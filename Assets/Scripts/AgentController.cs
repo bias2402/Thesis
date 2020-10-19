@@ -11,7 +11,6 @@ public class AgentController : MonoBehaviour {
     private bool isReadyToMove = true;
     [SerializeField] private float moveCooldown = 1;
     private float moveCooldownCounter = 1;
-    [SerializeField] private Transform gunTransform = null;
 
     #region
     public bool GetReadyToMoveState() { return isReadyToMove; }
@@ -29,22 +28,24 @@ public class AgentController : MonoBehaviour {
         isReadyToMove = false;
         transform.position = mapGenerator.GetSpawnPoint() + Vector3.up;
         transform.rotation = Quaternion.Euler(0, 90, 0);
-        moveCooldownCounter = moveCooldown;
+        moveCooldownCounter = moveCooldown * 3;
         AccessBlockDataFromBlockBelowAgent();
     }
 
 
 
     void Update() {
-        Debug.DrawRay(gunTransform.position, transform.forward * 2.5f);
-
         if (Input.GetKey(KeyCode.W) && isReadyToMove) WalkForward();
         if (Input.GetKey(KeyCode.S) && isReadyToMove) WalkBackward();
         if (Input.GetKey(KeyCode.A) && isReadyToMove) TurnLeft();
         if (Input.GetKey(KeyCode.D) && isReadyToMove) TurnRight();
         if (Input.GetKey(KeyCode.Space) && isReadyToMove) {
-            if (Shoot(out GameObject objectHit)) {
-                objectHit.SetActive(false);
+            if (Interact(out BlockData blockData)) {
+                switch (blockData.blockType) {
+                    case BlockData.BlockType.Boulder:
+                        blockData.gameObject.SetActive(false);
+                        break;
+                }
             }
         }
 
@@ -105,9 +106,9 @@ public class AgentController : MonoBehaviour {
     /// Returns information whether it hit something or not. Also outs the GameObject hit
     /// </summary>
     /// <returns></returns>
-    public bool Shoot(out GameObject go) {
-        bool hitSomething = Physics.Raycast(new Ray(gunTransform.position, transform.forward), out RaycastHit hit, 2, ~LayerMask.NameToLayer("Obstacle"));
-        go = hit.collider != null ? hit.collider.gameObject : null;
+    public bool Interact(out BlockData go) {
+        bool hitSomething = Physics.Raycast(new Ray(transform.position + Vector3.up * 0.25f, transform.forward), out RaycastHit hit, 1f, ~LayerMask.NameToLayer("Obstacle"));
+        go = hit.collider != null ? hit.collider.GetComponent<BlockData>() : null;
         return hitSomething;
     }
 

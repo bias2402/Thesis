@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 4042851509061766587}
   - component: {fileID: 2305824656404756849}
   - component: {fileID: 8780099065582061176}
+  - component: {fileID: 1549211131785760799}
   m_Layer: 10
   m_Name: Obstacle (Stone)
   m_TagString: Obstacle
@@ -97,3 +98,19 @@ BoxCollider:
   serializedVersion: 2
   m_Size: {x: 0.010669793, y: 0.015681703, z: 0.013063872}
   m_Center: {x: 0.0012172367, y: -0.0005829466, z: 0.0045240163}
+--- !u!114 &1549211131785760799
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 360027655744526500}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dc2997af8e2dcb746961f3f960112d8a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  lavaSpreadChance: 0
+  neighboorBlocks: []
+  neighboorDirection: []
+  blockType: 4

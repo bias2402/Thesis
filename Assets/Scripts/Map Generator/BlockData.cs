@@ -7,7 +7,7 @@ public class BlockData : MonoBehaviour {
 
     public List<BlockData> neighboorBlocks = new List<BlockData>();
     public List<Vector3> neighboorDirection = new List<Vector3>();
-    public enum BlockType { LavaBlock, Spawn, Goal, Platform };
+    public enum BlockType { LavaBlock, Spawn, Goal, Platform, Boulder };
     public BlockType blockType;
     public readonly Vector3[] directions = { Vector3.right, Vector3.left, Vector3.forward, Vector3.back };
 
