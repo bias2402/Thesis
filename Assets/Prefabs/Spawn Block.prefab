@@ -111,4 +111,4 @@ MonoBehaviour:
   lavaSpreadChance: 0
   neighboorBlocks: []
   neighboorDirection: []
-  blockType: 6
+  blockType: 1

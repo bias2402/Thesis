@@ -16,6 +16,7 @@ public class MapGenerator : MonoBehaviour {
     [SerializeField] private int zSize = 20;
     [SerializeField] private int procentChanceToSpawnLava = 10;
     [SerializeField] private int lavaSpreadChance = 50;
+    [SerializeField] private int stoneSpawnChance = 3;
     private Vector3 spawnPoint = Vector3.zero;
     private Vector3 goalPoint = Vector3.zero;
 
@@ -36,11 +37,13 @@ public class MapGenerator : MonoBehaviour {
     [SerializeField] private GameObject goalBlockPrefab = null;
     [SerializeField] private GameObject spawnBlockPrefab = null;
     [SerializeField] private GameObject borderBlockPrefab = null;
+    [SerializeField] private GameObject obstaclePrefab = null;
 
     [Header("Object pools")]
     [SerializeField] private Transform border = null;
     [SerializeField] private Transform path = null;
     [SerializeField] private Transform fill = null;
+    [SerializeField] private Transform obstacles = null;
 
     [Header("Debugging")]
     [Tooltip("This option will spam the console!")]
@@ -72,22 +75,6 @@ public class MapGenerator : MonoBehaviour {
 
     //Update is used for camera controls to move around the camera and zoom
     void Update() {
-        if (Input.GetKey(KeyCode.UpArrow)) { //Move camera forward
-            mainCam.transform.Translate(Vector3.forward, Space.World);
-        }
-
-        if (Input.GetKey(KeyCode.DownArrow)) { //Move camera back
-            mainCam.transform.Translate(Vector3.back, Space.World);
-        }
-
-        if (Input.GetKey(KeyCode.LeftArrow)) { //Move camera left
-            mainCam.transform.Translate(Vector3.left, Space.World);
-        }
-
-        if (Input.GetKey(KeyCode.RightArrow)) { //Move camera right
-            mainCam.transform.Translate(Vector3.right, Space.World);
-        }
-
         if (Input.GetKeyDown(KeyCode.N)) { //Create a new map with same settings (shortcut)
             StopAllCoroutines();
             CreateMap();
@@ -244,7 +231,7 @@ public class MapGenerator : MonoBehaviour {
                 }
 
                 if (check + directions[i] == goalPoint) { //If check point plus the direction hits the goal point, set reachedGoal to true and break
-                    Debug.Log("Reached the goal; breaking");
+                    if (debugRunning) Debug.Log("Reached the goal; breaking");
                     usedPositions = 0;
                     reachedGoal = true;
                     break;
@@ -304,7 +291,7 @@ public class MapGenerator : MonoBehaviour {
                     Destroy(child.gameObject);
                 }
             }
-            Debug.Log("Didn't succeed. Starting over");
+            if (debugRunning) Debug.Log("Didn't succeed. Starting over");
             StartCoroutine(CreateSecurePath());
         }
 
@@ -373,18 +360,16 @@ public class MapGenerator : MonoBehaviour {
     IEnumerator HoleCheck() {
         LayerMask blockMask = LayerMask.GetMask("Block");
         for (int x = -xSize / 2; x < xSize / 2 + 1; x++) { //Go from left to right
-            if (visualizeMapCreation) {
-                yield return null;
-            }
+            if (visualizeMapCreation) yield return null;
             for (int z = -zSize / 2; z < zSize / 2 + 1; z++) { //Go from bottom to top
                 mapChecker.position = new Vector3(x, 2, z); //Place the checker
                 Ray ray = new Ray(mapChecker.position, Vector3.down);
                 Physics.Raycast(ray, out RaycastHit hit, 4, blockMask); //Raycast downwards
                 if (hit.collider != null) { //If it hit someting, continue
-                    Debug.Log("Block existed");
+                    if (debugRunning) Debug.Log("Block existed");
                     continue;
                 } else {
-                    Debug.Log("Block didn't exist; created it at position: " + (mapChecker.position + (Vector3.down * 2)));
+                    if (debugRunning) Debug.Log("Block didn't exist; created it at position: " + (mapChecker.position + (Vector3.down * 2)));
                     BlockCreater(mapChecker.position + (Vector3.down * 2), blockMask); //If it didn't hit anything, call BlockCreater
                 }
             }
@@ -392,6 +377,29 @@ public class MapGenerator : MonoBehaviour {
         if (!visualizeMapCreation) {
             yield return null;
         }
+        StartCoroutine(ObstacleSpawner());
+    }
+
+    IEnumerator ObstacleSpawner() {
+        LayerMask blockMask = LayerMask.GetMask("Block");
+        for (int x = (-xSize / 2) + 3; x < (xSize / 2) - 3; x++) { //Go from left to right
+            if (visualizeMapCreation) yield return null;
+            for (int z = -zSize / 2; z < zSize / 2 + 1; z++) { //Go from bottom to top
+                mapChecker.position = new Vector3(x, 2, z); //Place the checker
+                Ray ray = new Ray(mapChecker.position, Vector3.down);
+                Physics.Raycast(ray, out RaycastHit hit, 4, blockMask); //Raycast downwards
+                BlockData.BlockType blockType = hit.collider.GetComponent<BlockData>().blockType;
+                if (blockType == BlockData.BlockType.Platform) {
+                    int rng = Random.Range(0, 101);
+                    if (rng <= stoneSpawnChance) {
+                        GameObject go = Instantiate(obstaclePrefab, obstacles);
+                        go.transform.position = mapChecker.position + Vector3.down * 1.5f;
+                        if (debugRunning) Debug.Log("Obstacle created at " + (mapChecker.position + Vector3.down));
+                    }
+                }
+            }
+        }
+
         StartCoroutine(RaycastNeighboors());
     }
 
