@@ -3811,7 +3811,7 @@ Camera:
   far clip plane: 1000
   field of view: 60
   orthographic: 1
-  orthographic size: 11.6
+  orthographic size: 11.75
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -4346,9 +4346,9 @@ MonoBehaviour:
   visualizeMapCreation: 0
   xSize: 20
   zSize: 20
-  procentChanceToSpawnLava: 10
-  lavaSpreadChance: 50
-  stoneSpawnChance: 3
+  procentChanceToSpawnLava: 15
+  lavaSpreadChance: 75
+  stoneSpawnChance: 2
   mapCreatorPanel: {fileID: 1617002264}
   createNewMapButton: {fileID: 555233425}
   mapChecker: {fileID: 1119612824}

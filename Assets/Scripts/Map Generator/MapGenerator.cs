@@ -12,11 +12,11 @@ public class MapGenerator : MonoBehaviour {
     [SerializeField] private bool showMapSettings = false;
     [SerializeField] private bool visualizeMapCreation = false;
     private Transform map;
-    [SerializeField] private int xSize = 20;
-    [SerializeField] private int zSize = 20;
-    [SerializeField] private int procentChanceToSpawnLava = 10;
-    [SerializeField] private int lavaSpreadChance = 50;
-    [SerializeField] private int stoneSpawnChance = 3;
+    [Range(10, 50)] [SerializeField] private int xSize = 20;
+    [Range(10, 50)] [SerializeField] private int zSize = 20;
+    [Range(0, 30)] [SerializeField] private int procentChanceToSpawnLava = 10;
+    [Range(0, 100)] [SerializeField] private int lavaSpreadChance = 50;
+    [Range(0, 25)] [SerializeField] private int stoneSpawnChance = 3;
     private Vector3 spawnPoint = Vector3.zero;
     private Vector3 goalPoint = Vector3.zero;
 
@@ -70,6 +70,9 @@ public class MapGenerator : MonoBehaviour {
             mapCreatorPanel.SetActive(false);
             createNewMapButton.SetActive(false);
             CreateMap();
+        } else {
+            mapCreatorPanel.SetActive(true);
+            createNewMapButton.SetActive(true);
         }
     }
 
