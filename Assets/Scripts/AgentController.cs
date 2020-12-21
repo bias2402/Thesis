@@ -1,23 +1,30 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 [RequireComponent(typeof(Rigidbody))]
 public class AgentController : MonoBehaviour {
+    [Header("Map & Agent")]
     [SerializeField] MapGenerator mapGenerator = null;
-    private Rigidbody body = null;
+    [SerializeField] private float moveCooldown = 1;
     private BlockData currentPositionBlockData = null;
     private bool didAgentMove = false;
     private bool isReadyToMove = true;
-    [SerializeField] private float moveCooldown = 1;
+    [HideInInspector] public bool didReachGoal { get; private set; } = false;
+    [HideInInspector] public bool isAIControlled = false;
+    [HideInInspector] public bool isAlive = true;
     private float moveCooldownCounter = 1;
+
+    [Header("UI")]
+    [SerializeField] private Text explanationText = null;
+    [SerializeField] private GameObject explanationTextBackground = null;
 
     #region
     public bool GetReadyToMoveState() { return isReadyToMove; }
     #endregion
 
     void Start() {
-        body = GetComponent<Rigidbody>();
         if (mapGenerator == null) mapGenerator = FindObjectOfType<MapGenerator>();
         mapGenerator.mapCompletedEvent += Reset;
         gameObject.SetActive(false);
@@ -26,6 +33,8 @@ public class AgentController : MonoBehaviour {
     void Reset() {
         gameObject.SetActive(true);
         isReadyToMove = false;
+        didReachGoal = false;
+        isAlive = true;
         transform.position = mapGenerator.GetSpawnPoint() + Vector3.up;
         transform.rotation = Quaternion.Euler(0, 90, 0);
         moveCooldownCounter = moveCooldown * 3;
@@ -35,16 +44,19 @@ public class AgentController : MonoBehaviour {
 
 
     void Update() {
-        if (Input.GetKey(KeyCode.W) && isReadyToMove) WalkForward();
-        if (Input.GetKey(KeyCode.S) && isReadyToMove) WalkBackward();
-        if (Input.GetKey(KeyCode.A) && isReadyToMove) TurnLeft();
-        if (Input.GetKey(KeyCode.D) && isReadyToMove) TurnRight();
-        if (Input.GetKey(KeyCode.Space) && isReadyToMove) {
-            if (Interact(out BlockData blockData)) {
-                switch (blockData.blockType) {
-                    case BlockData.BlockType.Boulder:
-                        blockData.gameObject.SetActive(false);
-                        break;
+        if (!isAlive || didReachGoal) return;
+        if (!isAIControlled) {
+            if (Input.GetKey(KeyCode.W) && isReadyToMove) WalkForward();
+            if (Input.GetKey(KeyCode.S) && isReadyToMove) WalkBackward();
+            if (Input.GetKey(KeyCode.A) && isReadyToMove) TurnLeft();
+            if (Input.GetKey(KeyCode.D) && isReadyToMove) TurnRight();
+            if (Input.GetKey(KeyCode.Space) && isReadyToMove) {
+                if (Interact(out BlockData blockData)) {
+                    switch (blockData.blockType) {
+                        case BlockData.BlockType.Boulder:
+                            blockData.gameObject.SetActive(false);
+                            break;
+                    }
                 }
             }
         }
@@ -52,7 +64,7 @@ public class AgentController : MonoBehaviour {
         if (didAgentMove) {
             didAgentMove = false;
             AccessBlockDataFromBlockBelowAgent();
-            if (currentPositionBlockData.blockType == BlockData.BlockType.LavaBlock) Reset();
+            AssessDataFromBlockBelowAgent();
         }
 
         if (!isReadyToMove) {
@@ -120,5 +132,26 @@ public class AgentController : MonoBehaviour {
     void AccessBlockDataFromBlockBelowAgent() {
         Physics.Raycast(new Ray(transform.position + Vector3.up * 0.25f, Vector3.down), out RaycastHit hit, 3, ~LayerMask.NameToLayer("Block"));
         currentPositionBlockData = hit.collider.GetComponent<BlockData>();
+    }
+
+    public void AssessDataFromBlockBelowAgent() {
+        switch (currentPositionBlockData.blockType) {
+            case BlockData.BlockType.LavaBlock:
+                isAlive = false;
+                StartCoroutine(ResetPlayer("LAVA! HOT, HOT, HOT! OUCH!"));
+                break;
+            case BlockData.BlockType.Goal:
+                didReachGoal = true;
+                StartCoroutine(ResetPlayer("Would you look at that. You actually made it.\nGood job!"));
+                break;
+        }
+    }
+
+    IEnumerator ResetPlayer(string reason) {
+        explanationText.text = reason;
+        explanationTextBackground.SetActive(true);
+        yield return new WaitForSeconds(3);
+        explanationTextBackground.SetActive(false);
+        Reset();
     }
 }
