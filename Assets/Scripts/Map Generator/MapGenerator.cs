@@ -7,6 +7,7 @@ using UnityEditor;
 public class MapGenerator : MonoBehaviour {
     public delegate void MapCompleted();
     public MapCompleted mapCompletedEvent;
+    [SerializeField] private DataCollector dataCollector = null;
 
     [Header("Map Settings")]
     [SerializeField] private bool showMapSettings = false;
@@ -54,7 +55,7 @@ public class MapGenerator : MonoBehaviour {
 
     private Vector3[] directions = new Vector3[] { Vector3.forward, Vector3.back, Vector3.right, Vector3.left };
     private List<Vector3> securePath = new List<Vector3>();
-    private List<BlockData> blocksCreated = new List<BlockData>();
+    public List<BlockData> blocksCreated { get; private set; } = new List<BlockData>();
 
     private Camera mainCam = null;
 
@@ -63,7 +64,39 @@ public class MapGenerator : MonoBehaviour {
 
     public Vector3 GetSpawnPoint() { return spawnPoint; }
 
-    void Start() {
+    public void RecreateMap(CollectedData data) {
+        StartCoroutine(CreateMapBorder(true));
+
+        int index = 0;
+        Vector3 nextPostion;
+        BlockData block = null;
+        for (int x = -xSize / 2; x < xSize / 2 + 1; x++) { //Go from left to right
+            for (int z = -zSize / 2; z < zSize / 2 + 1; z++) { //Go from bottom to top
+                nextPostion = new Vector3(x, 0, z);
+                switch (data.recordedMap[index]) {
+                    case "Platform":
+                        block = Instantiate(platformBlockPrefab, nextPostion, Quaternion.identity, fill).GetComponent<BlockData>();
+                        break;
+                    case "LavaBlock":
+                        block = Instantiate(lavaBlockPrefab, nextPostion, Quaternion.identity, fill).GetComponent<BlockData>();
+                        break;
+                    case "Spawn":
+                        block = Instantiate(spawnBlockPrefab, nextPostion, Quaternion.identity, fill).GetComponent<BlockData>();
+                        spawnPoint = block.transform.position;
+                        break;
+                    case "Goal":
+                        block = Instantiate(goalBlockPrefab, nextPostion, Quaternion.identity, fill).GetComponent<BlockData>();
+                        goalPoint = block.transform.position;
+                        break;
+                }
+                blocksCreated.Add(block);
+                index++;
+            }
+        }
+        StartCoroutine(RaycastNeighboors());
+    }
+
+    public void StartGeneration() {
         map = transform;
         mainCam = Camera.main;
         if (!showMapSettings) {
@@ -76,13 +109,12 @@ public class MapGenerator : MonoBehaviour {
         }
     }
 
-    //Update is used for camera controls to move around the camera and zoom
-    void Update() {
-        if (Input.GetKeyDown(KeyCode.N)) { //Create a new map with same settings (shortcut)
-            StopAllCoroutines();
-            CreateMap();
-        }
-    }
+    //void Update() {
+    //    if (Input.GetKeyDown(KeyCode.N)) { //Create a new map with same settings (shortcut)
+    //        StopAllCoroutines();
+    //        CreateMap();
+    //    }
+    //}
 
     //Called from the x inputfield when the value is edited. This will clamp the value between 10 and 50
     public void UpdateSizeX() {
@@ -155,7 +187,7 @@ public class MapGenerator : MonoBehaviour {
     }
 
     //Draw a border around the map.
-    IEnumerator CreateMapBorder() {
+    IEnumerator CreateMapBorder(bool isRecreating = false) {
         if (border.childCount > 0) {
             foreach (Transform child in border) {
                 Destroy(child.gameObject);
@@ -169,7 +201,7 @@ public class MapGenerator : MonoBehaviour {
                 }
                 Instantiate(borderBlockPrefab, new Vector3(x, 0.5f, z), Quaternion.identity, border);
                 if (x != (-xSize / 2) - 1 && x != (xSize / 2) + 1) {
-                    Instantiate(borderBlockPrefab, new Vector3(x, 0.5f, (zSize / 2) + 1) , Quaternion.identity, border);
+                    Instantiate(borderBlockPrefab, new Vector3(x, 0.5f, (zSize / 2) + 1), Quaternion.identity, border);
                     break;
                 }
             }
@@ -177,7 +209,7 @@ public class MapGenerator : MonoBehaviour {
         if (!visualizeMapCreation) {
             yield return null;
         }
-        StartCoroutine(CreateSecurePath());
+        if (!isRecreating) StartCoroutine(CreateSecurePath());
     }
 
     //Create a random path from the start to the goal. If it fails, it will delete the path and start over.
@@ -345,13 +377,13 @@ public class MapGenerator : MonoBehaviour {
                 blocksCreated.Add(block);
             } else { //If the numbers is greater than the chance...
                 BlockData block = Instantiate(platformBlockPrefab, nextPosition, Quaternion.identity, fill).GetComponent<BlockData>(); //... spawn a platform block
-                blocksCreated.Add(block); 
+                blocksCreated.Add(block);
             }
         } else { //If it didn't hit lava in the loop above...
             if (Random.Range(1, 101) <= procentChanceToSpawnLava) { //... check if a random number is less than or equal to the chance of spawning a lava block
                 BlockData block = Instantiate(lavaBlockPrefab, nextPosition, Quaternion.identity, fill).GetComponent<BlockData>(); //If it is, spawn a lava block...
                 block.lavaSpreadChance = lavaSpreadChance; //... and set the lavaSpreadChance to the start value
-                blocksCreated.Add(block); 
+                blocksCreated.Add(block);
             } else {
                 BlockData block = Instantiate(platformBlockPrefab, nextPosition, Quaternion.identity, fill).GetComponent<BlockData>(); //Spawn a platform block
                 blocksCreated.Add(block);
@@ -380,7 +412,8 @@ public class MapGenerator : MonoBehaviour {
         if (!visualizeMapCreation) {
             yield return null;
         }
-        StartCoroutine(ObstacleSpawner());
+        //StartCoroutine(ObstacleSpawner());
+        StartCoroutine(RaycastNeighboors());
     }
 
     IEnumerator ObstacleSpawner() {
@@ -420,5 +453,19 @@ public class MapGenerator : MonoBehaviour {
     public void TriggerMaterialUpdater() {
         materialUpdater();
         mapCompletedEvent();
+    }
+
+    public void RecordMap() {
+        dataCollector.SetMapSize(xSize, zSize);
+        LayerMask blockMask = LayerMask.GetMask("Block");
+        for (int x = -xSize / 2; x < xSize / 2 + 1; x++) { //Go from left to right
+            for (int z = -zSize / 2; z < zSize / 2 + 1; z++) { //Go from bottom to top
+                mapChecker.position = new Vector3(x, 2, z); //Place the checker
+                Ray ray = new Ray(mapChecker.position, Vector3.down);
+                Physics.Raycast(ray, out RaycastHit hit, 4, blockMask); //Raycast downwards
+                if (hit.collider != null) dataCollector.AddMapData(hit.collider.GetComponent<BlockData>().blockType.ToString());
+                else throw new System.NullReferenceException("Didn't find a block at position (" + x + ", " + z + ")!");
+            }
+        }
     }
 }

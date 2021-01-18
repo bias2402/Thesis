@@ -10,6 +10,7 @@ public class BlockData : MonoBehaviour {
     public enum BlockType { LavaBlock, Spawn, Goal, Platform, Boulder };
     public BlockType blockType;
     public readonly Vector3[] directions = { Vector3.right, Vector3.left, Vector3.forward, Vector3.back };
+    public bool isCasting { get; private set; } = true;
 
     //Raycast neighboors, get their BlockData component and save information about them for easy access by players/agents
     public void FindNeighboors() {
@@ -21,5 +22,10 @@ public class BlockData : MonoBehaviour {
                 neighboorDirection.Add(directions[i]);
             }
         }
+    }
+
+    public void Cast() {
+        Physics.Raycast(transform.position + Vector3.up * 5, Vector3.down, out RaycastHit hit, 8);
+        if (hit.collider.CompareTag("ExploPlate")) isCasting = false;
     }
 }
