@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+public enum BlockType { LavaBlock, Spawn, Goal, Platform, Treasure };
 public class BlockData : MonoBehaviour {
     [HideInInspector] public int lavaSpreadChance;
 
     public List<BlockData> neighboorBlocks = new List<BlockData>();
     public List<Vector3> neighboorDirection = new List<Vector3>();
-    public enum BlockType { LavaBlock, Spawn, Goal, Platform, Boulder };
     public BlockType blockType;
     public readonly Vector3[] directions = { Vector3.right, Vector3.left, Vector3.forward, Vector3.back };
     public bool isCasting { get; private set; } = true;

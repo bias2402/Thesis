@@ -424,8 +424,8 @@ public class MapGenerator : MonoBehaviour {
                 mapChecker.position = new Vector3(x, 2, z); //Place the checker
                 Ray ray = new Ray(mapChecker.position, Vector3.down);
                 Physics.Raycast(ray, out RaycastHit hit, 4, blockMask); //Raycast downwards
-                BlockData.BlockType blockType = hit.collider.GetComponent<BlockData>().blockType;
-                if (blockType == BlockData.BlockType.Platform) {
+                BlockType blockType = hit.collider.GetComponent<BlockData>().blockType;
+                if (blockType == BlockType.Platform) {
                     int rng = Random.Range(0, 101);
                     if (rng <= stoneSpawnChance) {
                         GameObject go = Instantiate(obstaclePrefab, obstacles);

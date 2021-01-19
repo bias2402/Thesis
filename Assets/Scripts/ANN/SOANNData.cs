@@ -75,10 +75,10 @@ public class SOANNData : ScriptableObject {
     public double GetBlockTypeValue(BlockData blockData) {
         if (blockData == null) return -1;
         switch (blockData.blockType) {
-            case BlockData.BlockType.Goal: return 3;
-            case BlockData.BlockType.LavaBlock: return 2;
-            case BlockData.BlockType.Platform: return 1;
-            case BlockData.BlockType.Spawn: return 0;
+            case BlockType.Goal: return 3;
+            case BlockType.LavaBlock: return 2;
+            case BlockType.Platform: return 1;
+            case BlockType.Spawn: return 0;
             default: return -1;
         }
     }

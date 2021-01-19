@@ -10,37 +10,42 @@ public enum AgentAIType { None, ANN, Playback }
 public class AgentController : MonoBehaviour {
     [Header("AI Settings")]
     [SerializeField] private AgentAIType AIType = AgentAIType.None;
-    [Space]
-    [SerializeField] private TextAsset playerData = null;
-    //[SerializeField] private BasicANNInitializer ANNInitializer = null;
-    //[Space]
+
+    [Header("ANN")]
+    [SerializeField] private BasicANNInitializer ANNInitializer = null;
+
+    [Header("Recording & Playback")]
     [SerializeField] private DataCollector dataCollector = new DataCollector();
-    [SerializeField] private bool recordData = false;
+    [SerializeField] private bool isRecordingData = false;
+    [SerializeField] private TextAsset playerData = null;
     private int completions = 0;
-    [Space]
     private string playerName = "";
     private bool isNameSet = false;
     private float explorationPercentage = 0;
-    [SerializeField] private GameObject nameField = null;
-    [SerializeField] private InputField nameInput = null;
+    private Queue<string> playbackActions;
 
     [Header("Map & Agent")]
-    private Rigidbody rb = null;
-    [SerializeField] private FollowObject cameraFollower = null;
     [SerializeField] private MapGenerator mapGenerator = null;
+    [SerializeField] private FollowObject cameraFollower = null;
     [SerializeField] private float moveCooldown = 1;
+    [SerializeField] private AudioClip[] clips = null;
+    private AudioSource audioSource = null;
     private BlockData currentPositionBlockData = null;
-    private bool didAgentMove = false;
+    private Rigidbody rb = null;
+    public bool didReachGoal { get; private set; } = false;
+    public bool isAlive { get; private set; } = true;
     private bool isReadyToMove = true;
-    [HideInInspector] public bool didReachGoal { get; private set; } = false;
-    [HideInInspector] public bool isAlive = true;
     private float moveCooldownCounter = 1;
+    private int move = 0;
 
     [Header("UI")]
     [SerializeField] private Text explanationText = null;
     [SerializeField] private GameObject explanationTextBackground = null;
     [SerializeField] private Text explorationText = null;
+    [SerializeField] private GameObject nameField = null;
+    [SerializeField] private InputField nameInput = null;
 
+    //Get/Set methods
     #region
     public void SetPlayerName() {
         playerName = nameInput.text;
@@ -51,6 +56,7 @@ public class AgentController : MonoBehaviour {
     #endregion
 
     void Start() {
+        audioSource = GetComponent<AudioSource>();
         if (mapGenerator == null) mapGenerator = FindObjectOfType<MapGenerator>();
         mapGenerator.mapCompletedEvent += ResetAgent;
 
@@ -58,7 +64,9 @@ public class AgentController : MonoBehaviour {
         if (AIType == AgentAIType.Playback) {
             StreamReader sr = new StreamReader("Assets/" + playerData.name + ".txt");
             string data = sr.ReadToEnd();
-            mapGenerator.RecreateMap(JsonUtility.FromJson<CollectedData>(data));
+            CollectedData collectedData = JsonUtility.FromJson<CollectedData>(data);
+            mapGenerator.RecreateMap(collectedData);
+            playbackActions = new Queue<string>(collectedData.recordedMoves);
         }
         rb = GetComponent<Rigidbody>();
         rb.isKinematic = true;
@@ -90,13 +98,14 @@ public class AgentController : MonoBehaviour {
     }
 
     void ResetAgent() {
-        if (recordData) mapGenerator.RecordMap();
+        if (isRecordingData) mapGenerator.RecordMap();
         enabled = true;
         isReadyToMove = false;
         didReachGoal = false;
         isAlive = true;
         transform.position = mapGenerator.GetSpawnPoint() + Vector3.up;
         transform.rotation = Quaternion.Euler(0, 90, 0);
+        move = 0;
         moveCooldownCounter = moveCooldown * 3;
         rb.isKinematic = false;
         AccessBlockDataFromBlockBelowAgent();
@@ -104,49 +113,11 @@ public class AgentController : MonoBehaviour {
     }
 
     void Update() {
-        if (!isAlive || didReachGoal) return;
-        if (AIType == AgentAIType.None) {
-            if (Input.GetKey(KeyCode.W) && isReadyToMove) {
-                WalkForward();
-                if (recordData) dataCollector.AddMoveToRecords("w");
-            }
+        if (!isAlive || didReachGoal || explanationTextBackground.activeSelf) return;
 
-            if (Input.GetKey(KeyCode.S) && isReadyToMove) {
-                WalkBackward();
-                if (recordData) dataCollector.AddMoveToRecords("s");
-            }
-
-            if (Input.GetKey(KeyCode.A) && isReadyToMove) {
-                TurnLeft();
-                if (recordData) dataCollector.AddMoveToRecords("a");
-            }
-
-            if (Input.GetKey(KeyCode.D) && isReadyToMove) {
-                TurnRight();
-                if (recordData) dataCollector.AddMoveToRecords("d");
-            }
-
-            //if (Input.GetKey(KeyCode.Space) && isReadyToMove) {
-            //    if (Interact(out BlockData blockData)) {
-            //        switch (blockData.blockType) {
-            //            case BlockData.BlockType.Boulder:
-            //                blockData.gameObject.SetActive(false);
-            //                break;
-            //        }
-            //    }
-            //    if (Input.GetKeyDown(KeyCode.Return)) {
-            //        ANNInitializer.CreateANN();
-            //    }
-            //}
-        } else if (AIType == AgentAIType.Playback) {
-
-        }
-
-        if (didAgentMove) {
-            didAgentMove = false;
-            AccessBlockDataFromBlockBelowAgent();
-            AssessDataFromBlockBelowAgent();
-            Exploration();
+        if (isReadyToMove) AgentMovementHandling();
+        else {
+            transform.Translate(Vector3.forward * move * Time.deltaTime * (1 / moveCooldown));
         }
 
         if (!isReadyToMove) {
@@ -154,7 +125,91 @@ public class AgentController : MonoBehaviour {
             else {
                 moveCooldownCounter = moveCooldown;
                 isReadyToMove = true;
+                move = 0;
+                AccessBlockDataFromBlockBelowAgent();
+                AssessDataFromBlockBelowAgent();
+                Exploration();
+                Align();
             }
+        }
+    }
+
+    void Align() {
+        Vector3 pos = transform.position;
+        pos.x = Mathf.Round(pos.x);
+        pos.z = Mathf.Round(pos.z);
+        transform.position = pos;
+    }
+
+    void AgentMovementHandling() {
+        switch (AIType) {
+            case AgentAIType.None:
+                if (Input.GetKey(KeyCode.W)) {
+                    WalkForward();
+                    if (isRecordingData) dataCollector.AddMoveToRecords("w");
+                }
+                if (Input.GetKey(KeyCode.S)) {
+                    WalkBackward();
+                    if (isRecordingData) dataCollector.AddMoveToRecords("s");
+                }
+                if (Input.GetKey(KeyCode.A)) {
+                    TurnLeft();
+                    if (isRecordingData) dataCollector.AddMoveToRecords("a");
+                }
+                if (Input.GetKey(KeyCode.D)) {
+                    TurnRight();
+                    if (isRecordingData) dataCollector.AddMoveToRecords("d");
+                }
+                break;
+            case AgentAIType.Playback:
+                string nextMove = playbackActions.Dequeue();
+                switch (nextMove) {
+                    case "w":
+                        WalkForward();
+                        break;
+                    case "a":
+                        TurnLeft();
+                        break;
+                    case "s":
+                        WalkBackward();
+                        break;
+                    case "d":
+                        TurnRight();
+                        break;
+                }
+                break;
+            case AgentAIType.ANN:
+
+                break;
+            default:
+                throw new System.NullReferenceException("AIType not properly set!");
+        }
+    }
+
+    void AgentReachedGoal() {
+        switch (AIType) {
+            case AgentAIType.None:
+                switch (completions) {
+                    case 0:
+                        dataCollector.CreateJSONFile("Speed_Runner_" + playerName, explorationPercentage);
+                        StartCoroutine(Feedback("Would you look at that. You actually made it.\nGood job!", true));
+                        completions++;
+                        break;
+                    case 1:
+                        dataCollector.CreateJSONFile("Explorer_" + playerName, explorationPercentage);
+                        StartCoroutine(Feedback("Would you look at that. You actually made it.\nGood job!", true));
+                        completions++;
+                        break;
+                    default:
+                        StartCoroutine(Feedback("Would you look at that. You actually made it.\nGood job!"));
+                        break;
+                }
+                break;
+            case AgentAIType.Playback:
+                //TO DO: Allow the agent to iterate through all the different data in the form of a list of text files
+                AIType = AgentAIType.None;
+                StartCoroutine(Feedback("Would you look at that. You actually made it.\nGood job!"));
+                break;
         }
     }
 
@@ -172,49 +227,41 @@ public class AgentController : MonoBehaviour {
     /// Returns information about the success of the movement
     /// </summary>
     /// <returns></returns>
-    public bool WalkForward() {
+    public void WalkForward() {
         if (!IsTheBorderInTheWay(transform.forward)) {
-            transform.Translate(Vector3.forward);
-            didAgentMove = true;
+            move = 1;
             isReadyToMove = false;
-            return true;
-        } else return false;
+            audioSource.clip = clips[0];
+            audioSource.Play();
+        }
     }
 
     /// <summary>
     /// Returns information about the success of the movement
     /// </summary>
     /// <returns></returns>
-    public bool WalkBackward() {
+    public void WalkBackward() {
         if (!IsTheBorderInTheWay(-transform.forward)) {
-            transform.Translate(Vector3.back);
-            didAgentMove = true;
+            move = -1;
             isReadyToMove = false;
-            return true;
-        } else return false;
+            audioSource.clip = clips[0];
+            audioSource.Play();
+        }
     }
 
     public void TurnLeft() {
         transform.Rotate(new Vector3(0, -90, 0));
-        didAgentMove = true;
         isReadyToMove = false;
+        audioSource.clip = clips[1];
+        audioSource.Play();
     }
 
     public void TurnRight() {
         transform.Rotate(new Vector3(0, 90, 0));
-        didAgentMove = true;
         isReadyToMove = false;
+        audioSource.clip = clips[1];
+        audioSource.Play();
     }
-
-    /// <summary>
-    /// Returns information whether it hit something or not. Also outs the GameObject hit
-    /// </summary>
-    /// <returns></returns>
-    //public bool Interact(out BlockData go) {
-    //    bool hitSomething = Physics.Raycast(new Ray(transform.position + Vector3.up * 0.25f, transform.forward), out RaycastHit hit, 1f, ~LayerMask.NameToLayer("Obstacle"));
-    //    go = hit.collider != null ? hit.collider.GetComponent<BlockData>() : null;
-    //    return hitSomething;
-    //}
 
     bool IsTheBorderInTheWay(Vector3 direction) {
         bool raycastResult = Physics.Raycast(new Ray(transform.position + Vector3.up * 0.25f, direction), 1, ~9);
@@ -228,32 +275,28 @@ public class AgentController : MonoBehaviour {
 
     public void AssessDataFromBlockBelowAgent() {
         switch (currentPositionBlockData.blockType) {
-            case BlockData.BlockType.LavaBlock:
+            case BlockType.LavaBlock:
                 isAlive = false;
-                StartCoroutine(ResetPlayer("LAVA! HOT, HOT, HOT! OUCH!"));
+                audioSource.clip = clips[2];
+                audioSource.Play();
+                StartCoroutine(Feedback("LAVA! HOT, HOT, HOT! OUCH!"));
                 break;
-            case BlockData.BlockType.Goal:
+            case BlockType.Goal:
                 didReachGoal = true;
-                switch (completions) {
-                    case 0:
-                        dataCollector.CreateJSONFile("Speed_Runner_" + playerName, explorationPercentage);
-                        break;
-                    case 1:
-                        dataCollector.CreateJSONFile("Explorer_" + playerName, explorationPercentage);
-                        break;
-                }
-                completions++;
-                StartCoroutine(ResetPlayer("Would you look at that. You actually made it.\nGood job!", true));
+                AgentReachedGoal();
+                break;
+            case BlockType.Treasure:
+
                 break;
         }
     }
 
-    IEnumerator ResetPlayer(string reason, bool newMap = false) {
+    IEnumerator Feedback(string reason, bool continuedRecording = false) {
         explanationText.text = reason;
         explanationTextBackground.SetActive(true);
         yield return new WaitForSeconds(3);
         explanationTextBackground.SetActive(false);
-        if (newMap) StartCoroutine(InformPlayer());
+        if (continuedRecording) StartCoroutine(InformPlayer());
         ResetAgent();
     }
 }
