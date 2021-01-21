@@ -21,7 +21,7 @@ public class AgentController : MonoBehaviour {
     [SerializeField] private DataCollector dataCollector = new DataCollector();
     [SerializeField] private bool isRecordingData = false;
     [SerializeField] private TextAsset playerData = null;
-    private int completions = 0;
+    private int steps = 0;
     private string playerName = "";
     private bool isNameSet = false;
     private float explorationPercentage = 0;
@@ -48,9 +48,11 @@ public class AgentController : MonoBehaviour {
     [Header("UI")]
     [SerializeField] private Text explanationText = null;
     [SerializeField] private GameObject explanationTextBackground = null;
-    [SerializeField] private Text explorationText = null;
     [SerializeField] private GameObject nameField = null;
     [SerializeField] private InputField nameInput = null;
+    [SerializeField] private Text actionsText = null;
+    [SerializeField] private Text explorationText = null;
+    [SerializeField] private Text treasureText = null;
 
     //Public get/Set methods
     #region
@@ -76,6 +78,9 @@ public class AgentController : MonoBehaviour {
                 StartCoroutine(InformPlayer());
                 break;
             case AgentType.Playback:
+                actionsText.gameObject.SetActive(true);
+                explorationText.gameObject.SetActive(true);
+                treasureText.gameObject.SetActive(true);
                 isRecordingData = false;
                 StreamReader sr = new StreamReader("Assets/" + playerData.name + ".txt");
                 string data = sr.ReadToEnd();
@@ -98,21 +103,24 @@ public class AgentController : MonoBehaviour {
             nameField.SetActive(false);
             explanationTextBackground.SetActive(true);
             explanationText.text = "Thank you for helping me with my Master's\nThesis. Controls and necessary information\n" +
-                "is shown on the right, and objectives are\nshown on the left.Remember to upload\nor send the generated text files" +
+                "is shown on the right, and objectives are\nshown on the left. Remember to upload\nor send the generated text files" +
                 "to me\nafter your runs!";
             yield return new WaitForSeconds(8);
         }
 
         switch (playstyle) {
             case PlayStyles.Speedrunner:
-                explanationText.text = "For this run, play as a Speedrunner!\nReach the goal in as few steps as possible!";
+                actionsText.gameObject.SetActive(true);
+                explanationText.text = "For this run, play as a Speedrunner!\nReach the goal in as few actions as possible!";
                 if (isRecordingData) mapGenerator.RecordMap();
                 break;
             case PlayStyles.Explorer:
+                explorationText.gameObject.SetActive(true);
                 explanationText.text = "For this run, play as an Explorer!\nExplore the map (at least 95% of it)\nbefore you reach the goal!";
                 if (isRecordingData) mapGenerator.RecordMap();
                 break;
             case PlayStyles.Treasurehunter:
+                treasureText.gameObject.SetActive(true);
                 explanationText.text = "For this run, play as a Treasurehunter\nFind and step on all the treasures before you reach the goal!";
                 if (isRecordingData) mapGenerator.RecordMap();
                 break;
@@ -138,6 +146,13 @@ public class AgentController : MonoBehaviour {
     }
 
     void ResetAgent() {
+        steps = 0;
+        explorationPercentage = 0;
+        treasuresFound = 0;
+        actionsText.text = "Actions: " + steps;
+        explorationText.text = "Exploration: " + explorationPercentage.ToString() + "%";
+        treasureText.text = "Treasures found: " + treasuresFound + "/" + maxTreasuresInMap;
+
         enabled = true;
         isReadyToMove = false;
         didReachGoal = false;
@@ -181,18 +196,26 @@ public class AgentController : MonoBehaviour {
             case AgentType.Human:
                 if (Input.GetKey(KeyCode.W)) {
                     WalkForward();
+                    steps++;
+                    actionsText.text = "Actions: " + steps;
                     if (isRecordingData) dataCollector.AddMoveToRecords("w");
                 }
                 if (Input.GetKey(KeyCode.S)) {
                     WalkBackward();
+                    steps++;
+                    actionsText.text = "Actions: " + steps;
                     if (isRecordingData) dataCollector.AddMoveToRecords("s");
                 }
                 if (Input.GetKey(KeyCode.A)) {
                     TurnLeft();
+                    steps++;
+                    actionsText.text = "Actions: " + steps;
                     if (isRecordingData) dataCollector.AddMoveToRecords("a");
                 }
                 if (Input.GetKey(KeyCode.D)) {
                     TurnRight();
+                    steps++;
+                    actionsText.text = "Actions: " + steps;
                     if (isRecordingData) dataCollector.AddMoveToRecords("d");
                 }
                 break;
@@ -337,6 +360,7 @@ public class AgentController : MonoBehaviour {
                     treasuresFound++;
                     currentPositionBlockData.isFound = true;
                     StartCoroutine(Feedback("You've found a treasure!", false));
+                    treasureText.text = "Treasures found: " + treasuresFound + "/" + maxTreasuresInMap;
                 }
                 break;
         }
