@@ -223,10 +223,6 @@ public class AgentController : MonoBehaviour {
         explorationText.text = "Exploration: " + explorationPercentage.ToString() + "%";
     }
 
-    /// <summary>
-    /// Returns information about the success of the movement
-    /// </summary>
-    /// <returns></returns>
     public void WalkForward() {
         if (!IsTheBorderInTheWay(transform.forward)) {
             move = 1;
@@ -236,10 +232,6 @@ public class AgentController : MonoBehaviour {
         }
     }
 
-    /// <summary>
-    /// Returns information about the success of the movement
-    /// </summary>
-    /// <returns></returns>
     public void WalkBackward() {
         if (!IsTheBorderInTheWay(-transform.forward)) {
             move = -1;
