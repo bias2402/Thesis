@@ -54,7 +54,7 @@ public class AgentController : MonoBehaviour {
 
     public bool GetReadyToMoveState() { return isReadyToMove; }
     #endregion
-
+     
     void Start() {
         audioSource = GetComponent<AudioSource>();
         if (mapGenerator == null) mapGenerator = FindObjectOfType<MapGenerator>();
