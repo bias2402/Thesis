@@ -11,6 +11,12 @@ public class BlockData : MonoBehaviour {
     public BlockType blockType;
     public readonly Vector3[] directions = { Vector3.right, Vector3.left, Vector3.forward, Vector3.back };
     public bool isCasting { get; private set; } = true;
+    public bool isFound = false;
+
+    public BlockData() {
+        if (blockType == BlockType.Treasure) isFound = false;
+        else isFound = true;
+    }
 
     //Raycast neighboors, get their BlockData component and save information about them for easy access by players/agents
     public void FindNeighboors() {
