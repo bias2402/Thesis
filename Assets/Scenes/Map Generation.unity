@@ -4339,6 +4339,7 @@ MonoBehaviour:
       type: {class: CollectedData, ns: , asm: Assembly-CSharp}
       data:
         explorationPercentage: 0
+        treasures: 0
         mapSizeX: 0
         mapSizeZ: 0
         recordedMap: []
@@ -6384,11 +6385,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9897710b722314cad25cd7cb1a3dfb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  AIType: 0
+  agentType: 2
   ANNInitializer: {fileID: 0}
   dataCollector: {fileID: 1430213785}
   isRecordingData: 0
-  playerData: {fileID: 4900000, guid: 66092f712fc796b40bdb0322e8023249, type: 3}
+  playerData: {fileID: 4900000, guid: cd97600a342ff65439e2f0b8623d14c4, type: 3}
   mapGenerator: {fileID: 1817389731}
   cameraFollower: {fileID: 1564766420}
   moveCooldown: 0.25

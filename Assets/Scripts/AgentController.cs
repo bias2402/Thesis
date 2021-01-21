@@ -10,7 +10,7 @@ public enum PlayStyles { Speedrunner, Explorer, Treasurehunter, Done }
 [RequireComponent(typeof(Rigidbody))]
 public class AgentController : MonoBehaviour {
     [Header("Agent Setting")]
-    [SerializeField] private AgentType AIType = AgentType.Human;
+    [SerializeField] private AgentType agentType = AgentType.Human;
     private PlayStyles playstyle = PlayStyles.Speedrunner;
 
     [Header("AI Settings")]
@@ -27,6 +27,7 @@ public class AgentController : MonoBehaviour {
     private float explorationPercentage = 0;
     private int treasuresFound = 0;
     private int maxTreasuresInMap = 0;
+    private float agentDelay = 0;
     private Queue<string> playbackActions;
 
     [Header("Map & Agent")]
@@ -39,9 +40,10 @@ public class AgentController : MonoBehaviour {
     private Rigidbody rb = null;
     public bool didReachGoal { get; private set; } = false;
     public bool isAlive { get; private set; } = true;
-    private bool isReadyToMove = true;
+    private bool isReadyToMove = false;
     private float moveCooldownCounter = 1;
     private int move = 0;
+    private bool isPreparing = false;
 
     [Header("UI")]
     [SerializeField] private Text explanationText = null;
@@ -68,16 +70,19 @@ public class AgentController : MonoBehaviour {
         if (mapGenerator == null) mapGenerator = FindObjectOfType<MapGenerator>();
         mapGenerator.mapCompletedEvent += ResetAgent;
 
-        if (AIType == AgentType.Human) {
-            mapGenerator.StartGeneration();
-            StartCoroutine(InformPlayer());
-        }
-        if (AIType == AgentType.Playback) {
-            StreamReader sr = new StreamReader("Assets/" + playerData.name + ".txt");
-            string data = sr.ReadToEnd();
-            CollectedData collectedData = JsonUtility.FromJson<CollectedData>(data);
-            mapGenerator.RecreateMap(collectedData);
-            playbackActions = new Queue<string>(collectedData.recordedActions);
+        switch (agentType) {
+            case AgentType.Human:
+                mapGenerator.StartGeneration();
+                StartCoroutine(InformPlayer());
+                break;
+            case AgentType.Playback:
+                isRecordingData = false;
+                StreamReader sr = new StreamReader("Assets/" + playerData.name + ".txt");
+                string data = sr.ReadToEnd();
+                CollectedData collectedData = JsonUtility.FromJson<CollectedData>(data);
+                mapGenerator.RecreateMap(collectedData);
+                playbackActions = new Queue<string>(collectedData.recordedActions);
+                break;
         }
 
         rb = GetComponent<Rigidbody>();
@@ -86,6 +91,7 @@ public class AgentController : MonoBehaviour {
     }
 
     IEnumerator InformPlayer() {
+        isPreparing = true;
         if (!isNameSet) {
             nameField.SetActive(true);
             yield return new WaitUntil(() => isNameSet);
@@ -100,12 +106,15 @@ public class AgentController : MonoBehaviour {
         switch (playstyle) {
             case PlayStyles.Speedrunner:
                 explanationText.text = "For this run, play as a Speedrunner!\nReach the goal in as few steps as possible!";
+                if (isRecordingData) mapGenerator.RecordMap();
                 break;
             case PlayStyles.Explorer:
-                explanationText.text = "For this run, play as an Explorer!\nExplore the map (at least 95% of it) before you reach the goal!";
+                explanationText.text = "For this run, play as an Explorer!\nExplore the map (at least 95% of it)\nbefore you reach the goal!";
+                if (isRecordingData) mapGenerator.RecordMap();
                 break;
             case PlayStyles.Treasurehunter:
                 explanationText.text = "For this run, play as a Treasurehunter\nFind and step on all the treasures before you reach the goal!";
+                if (isRecordingData) mapGenerator.RecordMap();
                 break;
             case PlayStyles.Done:
                 explanationText.text = "No more playstyles. Thanks for helping!\nRemember to send or upload the files for me!";
@@ -114,6 +123,7 @@ public class AgentController : MonoBehaviour {
         explanationTextBackground.SetActive(true);
         yield return new WaitForSeconds(3);
         explanationTextBackground.SetActive(false);
+        isPreparing = false;
     }
 
     IEnumerator Feedback(string reason, bool reset, bool continuedRecording = false) {
@@ -128,7 +138,6 @@ public class AgentController : MonoBehaviour {
     }
 
     void ResetAgent() {
-        if (isRecordingData) mapGenerator.RecordMap();
         enabled = true;
         isReadyToMove = false;
         didReachGoal = false;
@@ -143,16 +152,19 @@ public class AgentController : MonoBehaviour {
     }
 
     void Update() {
-        if (!isAlive || didReachGoal || explanationTextBackground.activeSelf) return;
+        if (!isAlive || didReachGoal || isPreparing) return;
 
-        if (isReadyToMove) AgentMovementHandling();
-        else {
+        if (isReadyToMove) {
+            AgentMovementHandling();
+            if (isRecordingData) agentDelay += Time.deltaTime;
+        } else {
             transform.Translate(Vector3.forward * move * Time.deltaTime * (1 / moveCooldown));
-        }
-
-        if (!isReadyToMove) {
             if (moveCooldownCounter > 0) moveCooldownCounter -= Time.deltaTime;
             else {
+                if (isRecordingData) {
+                    dataCollector.AddDelayToRecords(agentDelay);
+                    agentDelay = 0;
+                }
                 moveCooldownCounter = moveCooldown;
                 isReadyToMove = true;
                 move = 0;
@@ -165,7 +177,7 @@ public class AgentController : MonoBehaviour {
     }
 
     void AgentMovementHandling() {
-        switch (AIType) {
+        switch (agentType) {
             case AgentType.Human:
                 if (Input.GetKey(KeyCode.W)) {
                     WalkForward();
@@ -185,6 +197,11 @@ public class AgentController : MonoBehaviour {
                 }
                 break;
             case AgentType.Playback:
+                if (agentDelay > 0) {
+                    agentDelay -= Time.deltaTime;
+                    break;
+                }
+
                 string nextMove = playbackActions.Dequeue();
                 switch (nextMove) {
                     case "w":
@@ -198,6 +215,9 @@ public class AgentController : MonoBehaviour {
                         break;
                     case "d":
                         TurnRight();
+                        break;
+                    default:
+                        agentDelay = float.Parse(nextMove);
                         break;
                 }
                 break;
@@ -249,21 +269,21 @@ public class AgentController : MonoBehaviour {
     }
 
     void AgentReachedGoal() {
-        switch (AIType) {
+        switch (agentType) {
             case AgentType.Human:
                 switch (playstyle) {
                     case PlayStyles.Speedrunner:
-                        dataCollector.CreateJSONFile("Speed_Runner_" + playerName);
+                        if (isRecordingData) dataCollector.CreateJSONFile("Speed_Runner_" + playerName);
                         StartCoroutine(Feedback("Would you look at that. You actually made it.\nGood job!", true, true));
                         playstyle = PlayStyles.Explorer;
                         break;
                     case PlayStyles.Explorer:
-                        dataCollector.CreateJSONFile("Explorer_" + playerName, explorationPercentage);
+                        if (isRecordingData) dataCollector.CreateJSONFile("Explorer_" + playerName, explorationPercentage);
                         StartCoroutine(Feedback("Would you look at that. You actually made it.\nGood job!", true, true));
                         playstyle = PlayStyles.Treasurehunter;
                         break;
                     case PlayStyles.Treasurehunter:
-                        dataCollector.CreateJSONFile("Treasurehunter_" + playerName, explorationPercentage, treasuresFound);
+                        if (isRecordingData) dataCollector.CreateJSONFile("Treasurehunter_" + playerName, explorationPercentage, treasuresFound);
                         StartCoroutine(Feedback("Would you look at that. You actually made it.\nGood job!", true, true));
                         playstyle = PlayStyles.Done;
                         break;
@@ -274,7 +294,7 @@ public class AgentController : MonoBehaviour {
                 break;
             case AgentType.Playback:
                 //TO DO: Allow the agent to iterate through all the different data in the form of a list of text files
-                AIType = AgentType.Human;
+                agentType = AgentType.Human;
                 StartCoroutine(Feedback("Would you look at that. You actually made it.\nGood job!", true));
                 break;
         }

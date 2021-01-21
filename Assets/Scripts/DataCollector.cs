@@ -19,6 +19,7 @@ public class DataCollector : MonoBehaviour {
 
     public void CreateJSONFile(string fileName, float exploration = 0, int treasures = 0) {
         collectedData.explorationPercentage = (int)exploration;
+        collectedData.treasures = treasures;
         string data = JsonUtility.ToJson(collectedData);
         StreamWriter sw = new StreamWriter(fileName + ".txt");
         sw.WriteLine(data);
@@ -33,6 +34,7 @@ public class DataCollector : MonoBehaviour {
 [Serializable]
 public class CollectedData {
     public int explorationPercentage = 0;
+    public int treasures = 0;
     public int mapSizeX = 0;
     public int mapSizeZ = 0;
     public List<string> recordedMap = new List<string>();
