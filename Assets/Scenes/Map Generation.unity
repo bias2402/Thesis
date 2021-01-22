@@ -926,7 +926,7 @@ GameObject:
   m_Component:
   - component: {fileID: 247942459}
   m_Layer: 0
-  m_Name: Obstacles
+  m_Name: Treasures
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5390,7 +5390,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: f22510fbc742f6644a0ae6c4b7520f99, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 1ce1f89ad0afd364b800fceced27923e, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -6318,11 +6318,11 @@ MonoBehaviour:
   goalBlockPrefab: {fileID: 740953711020407969, guid: 765c5c8d88ca20045a89f8417a0ad382, type: 3}
   spawnBlockPrefab: {fileID: 740953711020407969, guid: 3582884174e006049bdc9250ec8e89e9, type: 3}
   borderBlockPrefab: {fileID: 1318025935503824617, guid: ec5400ffa950a0f469376d21d08c6f01, type: 3}
-  obstaclePrefab: {fileID: 360027655744526500, guid: 95a4fd351287808469b371effd5fb3c0, type: 3}
+  treasurePrefab: {fileID: 2953641315047630109, guid: fedd6f240789b984a9453a79faf6ae2d, type: 3}
   border: {fileID: 129298399}
   path: {fileID: 306701258}
   fill: {fileID: 1543541210}
-  obstacles: {fileID: 247942459}
+  treasureBlocks: {fileID: 247942459}
   debugRunning: 0
   debuggerBlockPrefab: {fileID: 3094961678349825659, guid: ebb98742849b75c45917c627925e8f5c, type: 3}
   debuggerPathBlockPrefab: {fileID: 3674164043610976611, guid: f936837bbd313b048bb919e5bfabee0c, type: 3}

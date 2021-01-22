@@ -12,7 +12,7 @@ public class BlockData : MonoBehaviour {
     public readonly Vector3[] directions = { Vector3.right, Vector3.left, Vector3.forward, Vector3.back };
     public bool isCasting { get; private set; } = true;
     public bool isFound = false;
-
+    
     public BlockData() {
         if (blockType == BlockType.Treasure) isFound = false;
         else isFound = true;
@@ -20,6 +20,7 @@ public class BlockData : MonoBehaviour {
 
     //Raycast neighboors, get their BlockData component and save information about them for easy access by players/agents
     public void FindNeighboors() {
+        neighboorBlocks.Clear();
         for (int i = 0; i < directions.Length; i++) {
             Ray ray = new Ray(transform.position, directions[i]);
             Physics.Raycast(ray, out RaycastHit hit, 1.5f);
@@ -27,6 +28,11 @@ public class BlockData : MonoBehaviour {
                 neighboorBlocks.Add(hit.collider.GetComponent<BlockData>());
                 neighboorDirection.Add(directions[i]);
             }
+        }
+        for (int i = 0; i < neighboorBlocks.Count;) {
+            if (neighboorBlocks[i] == null) {
+                neighboorBlocks.RemoveAt(i);
+            } else i++;
         }
     }
 

@@ -38,13 +38,13 @@ public class MapGenerator : MonoBehaviour {
     [SerializeField] private GameObject goalBlockPrefab = null;
     [SerializeField] private GameObject spawnBlockPrefab = null;
     [SerializeField] private GameObject borderBlockPrefab = null;
-    [SerializeField] private GameObject obstaclePrefab = null;
+    [SerializeField] private GameObject treasurePrefab = null;
 
     [Header("Object pools")]
     [SerializeField] private Transform border = null;
     [SerializeField] private Transform path = null;
     [SerializeField] private Transform fill = null;
-    [SerializeField] private Transform obstacles = null;
+    [SerializeField] private Transform treasureBlocks = null;
 
     [Header("Debugging")]
     [Tooltip("This option will spam the console!")]
@@ -109,14 +109,15 @@ public class MapGenerator : MonoBehaviour {
         }
     }
 
-    //void Update() {
-    //    if (Input.GetKeyDown(KeyCode.N)) { //Create a new map with same settings (shortcut)
-    //        StopAllCoroutines();
-    //        CreateMap();
-    //    }
-    //}
+    void Update() {
+        if (Input.GetKeyDown(KeyCode.N)) { //Create a new map with same settings (shortcut)
+            StopAllCoroutines();
+            CreateMap();
+        }
+    }
 
     //Called from the x inputfield when the value is edited. This will clamp the value between 10 and 50
+
     public void UpdateSizeX() {
         xSize = int.Parse(xInput.text);
         if (xSize < 10) {
@@ -412,26 +413,122 @@ public class MapGenerator : MonoBehaviour {
         if (!visualizeMapCreation) {
             yield return null;
         }
-        //StartCoroutine(ObstacleSpawner());
-        StartCoroutine(RaycastNeighboors());
+        StartCoroutine(TreasureSpawner());
+        //StartCoroutine(RaycastNeighboors());
     }
 
-    IEnumerator ObstacleSpawner() {
+    IEnumerator TreasureSpawner() {
+        int maxNumberOfTreasureBlocksToSpawn = 5;
+        int currentNumberOfTreasureBlocks = 0;
+        float spawnChance = 0.05f;
         LayerMask blockMask = LayerMask.GetMask("Block");
         for (int x = (-xSize / 2) + 3; x < (xSize / 2) - 3; x++) { //Go from left to right
             if (visualizeMapCreation) yield return null;
             for (int z = -zSize / 2; z < zSize / 2 + 1; z++) { //Go from bottom to top
+                if (currentNumberOfTreasureBlocks == maxNumberOfTreasureBlocksToSpawn) break;
                 mapChecker.position = new Vector3(x, 2, z); //Place the checker
                 Ray ray = new Ray(mapChecker.position, Vector3.down);
                 Physics.Raycast(ray, out RaycastHit hit, 4, blockMask); //Raycast downwards
-                BlockType blockType = hit.collider.GetComponent<BlockData>().blockType;
-                if (blockType == BlockType.Platform) {
+
+                bool skip = false;
+                BlockData block = hit.collider.GetComponent<BlockData>();
+                block.FindNeighboors();
+                foreach (BlockData bd in block.neighboorBlocks) {
+                    if (bd.blockType == BlockType.Treasure) skip = true;
+                }
+                if (skip) continue;
+
+                if (block.blockType == BlockType.Platform) {
                     int rng = Random.Range(0, 101);
-                    if (rng <= stoneSpawnChance) {
-                        GameObject go = Instantiate(obstaclePrefab, obstacles);
-                        go.transform.position = mapChecker.position + Vector3.down * 1.5f;
-                        if (debugRunning) Debug.Log("Obstacle created at " + (mapChecker.position + Vector3.down));
+                    if ((float)rng <= spawnChance) {
+                        spawnChance = 0.05f;
+                        currentNumberOfTreasureBlocks++;
+
+                        GameObject go = Instantiate(treasurePrefab, treasureBlocks);
+                        go.transform.position = hit.collider.transform.position;
+                        blocksCreated.Add(go.GetComponent<BlockData>());
+                        blocksCreated.Remove(blocksCreated.Find(i => i.gameObject == hit.collider.gameObject));
+                        Destroy(hit.collider.gameObject);
+
+                        if (debugRunning) Debug.Log("Treasure block spawned at " + (mapChecker.position + Vector3.down));
+                    } else {
+                        spawnChance *= 2;
                     }
+                }
+            }
+            if (currentNumberOfTreasureBlocks == maxNumberOfTreasureBlocksToSpawn) break;
+        }
+
+        StartCoroutine(EnsureAPathToObjectives(treasureBlocks));
+    }
+
+    IEnumerator EnsureAPathToObjectives(Transform pool) {
+        List<BlockData> explored = new List<BlockData>();
+        Stack<BlockData> unexplored = new Stack<BlockData>();
+        int whileBreaker = 0;
+        bool foundPath = false;
+        Vector3 closestPointToPath = new Vector3(100, 100, 100);
+
+        foreach (Transform obj in pool) {
+            if (visualizeMapCreation) yield return null;
+            explored.Clear();
+            unexplored.Clear();
+            whileBreaker = 0;
+            foundPath = false;
+
+            BlockData bd = blocksCreated.Find(x => x.gameObject == obj.gameObject);
+            unexplored.Push(bd);
+            while (unexplored.Count > 0) {
+                whileBreaker++;
+                if (whileBreaker > 10000) break;
+
+                bd = unexplored.Pop();
+                explored.Add(bd);
+                foreach (Vector3 v3 in securePath) {
+                    if (Vector3.Distance(bd.transform.position, v3) <
+                        Vector3.Distance(closestPointToPath, v3)) {
+                        closestPointToPath = bd.transform.position;
+                    }
+                }
+
+                if (securePath.Contains(bd.transform.position)) {
+                    foundPath = true;
+                    break;
+                }
+
+                bd.FindNeighboors();
+                foreach (BlockData neighboor in bd.neighboorBlocks) {
+                    if (neighboor.blockType != BlockType.LavaBlock) {
+                        if (!explored.Contains(neighboor)) {
+                            unexplored.Push(neighboor);
+                        }
+                    }
+                }
+            }
+
+            if (!foundPath) {
+                Debug.Log("Path not found. Creating a path");
+                Vector3 closestPointOnPath = new Vector3(100, 100, 100);
+                float shortestDistance = 1000;
+                foreach (Vector3 v3 in securePath) {
+                    if (Vector3.Distance(closestPointToPath, v3) < shortestDistance) {
+                        shortestDistance = Vector3.Distance(closestPointToPath, v3);
+                        closestPointOnPath = v3;
+                    }
+                }
+
+                RaycastHit[] blocksHit = Physics.RaycastAll(new Ray(closestPointToPath, closestPointToPath - closestPointOnPath), 
+                    shortestDistance);
+                foreach (RaycastHit hit in blocksHit) {
+                    if (hit.transform.position == closestPointToPath || hit.transform.position == closestPointOnPath) continue;
+
+                    Debug.Log(hit.collider.name + ", " + hit.collider.transform.position + ", " + closestPointToPath + ", " + closestPointOnPath);
+                    bd = hit.collider.GetComponent<BlockData>();
+                    GameObject go = Instantiate(platformBlockPrefab, path);
+                    go.transform.position = bd.transform.position;
+                    securePath.Add(go.transform.position);
+                    blocksCreated.Add(go.GetComponent<BlockData>());
+                    blocksCreated.Remove(bd);
                 }
             }
         }
