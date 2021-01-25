@@ -109,12 +109,12 @@ public class MapGenerator : MonoBehaviour {
         }
     }
 
-    void Update() {
-        if (Input.GetKeyDown(KeyCode.N)) { //Create a new map with same settings (shortcut)
-            StopAllCoroutines();
-            CreateMap();
-        }
-    }
+    //void Update() {
+    //    if (Input.GetKeyDown(KeyCode.N)) { //Create a new map with same settings (shortcut)
+    //        StopAllCoroutines();
+    //        CreateMap();
+    //    }
+    //}
 
     //Called from the x inputfield when the value is edited. This will clamp the value between 10 and 50
 
@@ -420,7 +420,7 @@ public class MapGenerator : MonoBehaviour {
     IEnumerator TreasureSpawner() {
         int maxNumberOfTreasureBlocksToSpawn = 5;
         int currentNumberOfTreasureBlocks = 0;
-        float spawnChance = 0.05f;
+        float spawnChance = 0.0001f;
         LayerMask blockMask = LayerMask.GetMask("Block");
         for (int x = (-xSize / 2) + 3; x < (xSize / 2) - 3; x++) { //Go from left to right
             if (visualizeMapCreation) yield return null;
@@ -441,7 +441,7 @@ public class MapGenerator : MonoBehaviour {
                 if (block.blockType == BlockType.Platform) {
                     int rng = Random.Range(0, 101);
                     if ((float)rng <= spawnChance) {
-                        spawnChance = 0.05f;
+                        spawnChance = 0.0001f;
                         currentNumberOfTreasureBlocks++;
 
                         GameObject go = Instantiate(treasurePrefab, treasureBlocks);
@@ -467,7 +467,6 @@ public class MapGenerator : MonoBehaviour {
         Stack<BlockData> unexplored = new Stack<BlockData>();
         int whileBreaker = 0;
         bool foundPath = false;
-        Vector3 closestPointToPath = new Vector3(100, 100, 100);
 
         foreach (Transform obj in pool) {
             if (visualizeMapCreation) yield return null;
@@ -484,12 +483,6 @@ public class MapGenerator : MonoBehaviour {
 
                 bd = unexplored.Pop();
                 explored.Add(bd);
-                foreach (Vector3 v3 in securePath) {
-                    if (Vector3.Distance(bd.transform.position, v3) <
-                        Vector3.Distance(closestPointToPath, v3)) {
-                        closestPointToPath = bd.transform.position;
-                    }
-                }
 
                 if (securePath.Contains(bd.transform.position)) {
                     foundPath = true;
@@ -506,34 +499,14 @@ public class MapGenerator : MonoBehaviour {
                 }
             }
 
-            if (!foundPath) {
-                Debug.Log("Path not found. Creating a path");
-                Vector3 closestPointOnPath = new Vector3(100, 100, 100);
-                float shortestDistance = 1000;
-                foreach (Vector3 v3 in securePath) {
-                    if (Vector3.Distance(closestPointToPath, v3) < shortestDistance) {
-                        shortestDistance = Vector3.Distance(closestPointToPath, v3);
-                        closestPointOnPath = v3;
-                    }
-                }
-
-                RaycastHit[] blocksHit = Physics.RaycastAll(new Ray(closestPointToPath, closestPointToPath - closestPointOnPath), 
-                    shortestDistance);
-                foreach (RaycastHit hit in blocksHit) {
-                    if (hit.transform.position == closestPointToPath || hit.transform.position == closestPointOnPath) continue;
-
-                    Debug.Log(hit.collider.name + ", " + hit.collider.transform.position + ", " + closestPointToPath + ", " + closestPointOnPath);
-                    bd = hit.collider.GetComponent<BlockData>();
-                    GameObject go = Instantiate(platformBlockPrefab, path);
-                    go.transform.position = bd.transform.position;
-                    securePath.Add(go.transform.position);
-                    blocksCreated.Add(go.GetComponent<BlockData>());
-                    blocksCreated.Remove(bd);
-                }
-            }
+            if (!foundPath) break;
         }
 
-        StartCoroutine(RaycastNeighboors());
+        if (!foundPath) {
+            StopAllCoroutines();
+            CreateMap();
+        }
+        else StartCoroutine(RaycastNeighboors());
     }
 
     //Used to make each block save information about their neighboors and start their animation

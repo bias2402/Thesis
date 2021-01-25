@@ -103,7 +103,7 @@ public class AgentController : MonoBehaviour {
             nameField.SetActive(false);
             explanationTextBackground.SetActive(true);
             explanationText.text = "Thank you for helping me with my Master's\nThesis. Controls and necessary information\n" +
-                "is shown on the right, and objectives are\nshown on the left. Remember to upload\nor send the generated text files" +
+                "is shown on the right, and objectives are\nshown on the left. Remember to upload\nor send the generated text files " +
                 "to me\nafter your runs!";
             yield return new WaitForSeconds(8);
         }
@@ -116,12 +116,12 @@ public class AgentController : MonoBehaviour {
                 break;
             case PlayStyles.Explorer:
                 explorationText.gameObject.SetActive(true);
-                explanationText.text = "For this run, play as an Explorer!\nExplore the map (at least 95% of it)\nbefore you reach the goal!";
+                explanationText.text = "For this run, play as an Explorer!\nExplore the map as much as possible\nbefore you reach the goal!";
                 if (isRecordingData) mapGenerator.RecordMap();
                 break;
             case PlayStyles.Treasurehunter:
                 treasureText.gameObject.SetActive(true);
-                explanationText.text = "For this run, play as a Treasurehunter\nFind and step on all the treasures before you reach the goal!";
+                explanationText.text = "For this run, play as a Treasurehunter\nFind and step on all the treasures\nbefore you reach the goal!";
                 if (isRecordingData) mapGenerator.RecordMap();
                 break;
             case PlayStyles.Done:
@@ -149,9 +149,11 @@ public class AgentController : MonoBehaviour {
         steps = 0;
         explorationPercentage = 0;
         treasuresFound = 0;
+        maxTreasuresInMap = 5;
         actionsText.text = "Actions: " + steps;
         explorationText.text = "Exploration: " + explorationPercentage.ToString() + "%";
         treasureText.text = "Treasures found: " + treasuresFound + "/" + maxTreasuresInMap;
+        foreach (BlockData bd in mapGenerator.blocksCreated) bd.isFound = false;
 
         enabled = true;
         isReadyToMove = false;
