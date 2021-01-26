@@ -10,7 +10,7 @@ public class BlockData : MonoBehaviour {
     public List<Vector3> neighboorDirection = new List<Vector3>();
     public BlockType blockType;
     public readonly Vector3[] directions = { Vector3.right, Vector3.left, Vector3.forward, Vector3.back };
-    public bool isCasting { get; private set; } = true;
+    public bool isCasting = true;
     public bool isFound = false;
     
     public BlockData() {

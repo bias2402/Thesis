@@ -146,14 +146,19 @@ public class AgentController : MonoBehaviour {
     }
 
     void ResetAgent() {
-        steps = 0;
-        explorationPercentage = 0;
-        treasuresFound = 0;
-        maxTreasuresInMap = 5;
-        actionsText.text = "Actions: " + steps;
-        explorationText.text = "Exploration: " + explorationPercentage.ToString() + "%";
-        treasureText.text = "Treasures found: " + treasuresFound + "/" + maxTreasuresInMap;
-        foreach (BlockData bd in mapGenerator.blocksCreated) bd.isFound = false;
+        if (didReachGoal) {
+            steps = 0;
+            explorationPercentage = 0;
+            treasuresFound = 0;
+            maxTreasuresInMap = 5;
+            actionsText.text = "Actions: " + steps;
+            explorationText.text = "Exploration: " + explorationPercentage.ToString() + "%";
+            treasureText.text = "Treasures found: " + treasuresFound + "/" + maxTreasuresInMap;
+            foreach (BlockData bd in mapGenerator.blocksCreated) {
+                bd.isCasting = true;
+                bd.isFound = false;
+            }
+        }
 
         enabled = true;
         isReadyToMove = false;
@@ -308,6 +313,11 @@ public class AgentController : MonoBehaviour {
                         playstyle = PlayStyles.Treasurehunter;
                         break;
                     case PlayStyles.Treasurehunter:
+                        if (treasuresFound < 5) {
+                            didReachGoal = false;
+                            StartCoroutine(Feedback("There are still treasures left to find!", false));
+                            break;
+                        }
                         if (isRecordingData) dataCollector.CreateJSONFile("Treasurehunter_" + playerName, explorationPercentage, treasuresFound);
                         StartCoroutine(Feedback("Would you look at that. You actually made it.\nGood job!", true, true));
                         playstyle = PlayStyles.Done;
