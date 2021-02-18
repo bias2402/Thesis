@@ -7305,7 +7305,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9897710b722314cad25cd7cb1a3dfb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  agentType: 2
+  agentType: 0
   ANNInitializer: {fileID: 0}
   dataCollector: {fileID: 0}
   isRecordingData: 1
