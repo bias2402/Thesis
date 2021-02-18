@@ -80,6 +80,9 @@ public class MapGenerator : MonoBehaviour {
                     case "LavaBlock":
                         block = Instantiate(lavaBlockPrefab, nextPostion, Quaternion.identity, fill).GetComponent<BlockData>();
                         break;
+                    case "Treasure":
+                        block = Instantiate(treasurePrefab, nextPostion, Quaternion.identity, fill).GetComponent<BlockData>();
+                        break;
                     case "Spawn":
                         block = Instantiate(spawnBlockPrefab, nextPostion, Quaternion.identity, fill).GetComponent<BlockData>();
                         spawnPoint = block.transform.position;
@@ -107,68 +110,6 @@ public class MapGenerator : MonoBehaviour {
             mapCreatorPanel.SetActive(true);
             createNewMapButton.SetActive(true);
         }
-    }
-
-    //void Update() {
-    //    if (Input.GetKeyDown(KeyCode.N)) { //Create a new map with same settings (shortcut)
-    //        StopAllCoroutines();
-    //        CreateMap();
-    //    }
-    //}
-
-    //Called from the x inputfield when the value is edited. This will clamp the value between 10 and 50
-
-    public void UpdateSizeX() {
-        xSize = int.Parse(xInput.text);
-        if (xSize < 10) {
-            xSize = 10;
-            xInput.text = "10";
-        } else if (xSize > 50) {
-            xSize = 50;
-            xInput.text = "50";
-        }
-    }
-
-    //Called from the z inputfield when the value is edited. This will clamp the value between 10 and 50
-    public void UpdateSizeY() {
-        zSize = int.Parse(zInput.text);
-        if (zSize < 10) {
-            zSize = 10;
-            zInput.text = "10";
-        } else if (zSize > 50) {
-            zSize = 50;
-            zInput.text = "50";
-        }
-    }
-
-    //Called from the lava spawn chance inputfield when the value is edited. This will clamp the value between 0 and 30
-    public void UpdateChance() {
-        procentChanceToSpawnLava = int.Parse(chanceInput.text);
-        if (procentChanceToSpawnLava < 0) {
-            procentChanceToSpawnLava = 0;
-            chanceInput.text = "0";
-        } else if (procentChanceToSpawnLava > 30) {
-            procentChanceToSpawnLava = 30;
-            chanceInput.text = "30";
-        }
-    }
-
-    //Called from the lava spread chance inputfield when the value is edited. This will clamp the value between 0 and 100
-    public void UpdateSpreadChance() {
-        lavaSpreadChance = int.Parse(spreadInput.text);
-        if (lavaSpreadChance < 0) {
-            lavaSpreadChance = 0;
-            chanceInput.text = "0";
-        } else if (lavaSpreadChance > 100) {
-            lavaSpreadChance = 100;
-            spreadInput.text = "100";
-        }
-    }
-
-    //Used by a button to show the mapCreatorPanel
-    public void ShowCreateNewMapMenu() {
-        mapCreatorPanel.SetActive(true);
-        createNewMapButton.SetActive(false);
     }
 
     //This is called from a button, which will start the creation of a new map

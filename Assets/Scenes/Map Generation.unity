@@ -4798,102 +4798,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1426826640}
   m_CullTransparentMesh: 0
---- !u!1 &1430213782
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1430213784}
-  - component: {fileID: 1430213783}
-  - component: {fileID: 1430213785}
-  m_Layer: 0
-  m_Name: AI Handler
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1430213783
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1430213782}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 39921f604527e8d48b5f9950f49ed058, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ANNData: {fileID: 11400000, guid: aa8c063bb1a1ffd46b7cb7ed7bd0b357, type: 2}
-  FFANN:
-    epochs: 0
-    alpha: 0
-    numberOfHiddenLayers: 0
-    numberOfHiddenNeurons: 0
-    outputs: []
-    layers: []
-    hiddenLayerActivationFunction: 0
-    outputLayerActivationFunction: 0
-    isDelaying: 0
-    layerIndex: 0
-    epochCounter: 0
-    trainingIndex: 0
-  epochs: 100
-  alpha: 0.05
-  numberOfHiddenLayers: 2
-  numberOfHiddenNeurons: 4
-  isUsingDiscreteActivation: 0
-  triggerPoint: 0.25
-  hiddenLayerActivationFunction: 1
-  outputLayerActivationFunction: 1
-  epochSteps: 1
-  isVisualizingANN: 0
-  visualizationHandler: {fileID: 0}
-  isDelayingExecution: 0
-  delay: 1
---- !u!4 &1430213784
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1430213782}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1057.6277, y: 548.4745, z: -210.46199}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_RootOrder: 7
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1430213785
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1430213782}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a16aca1c31a086b4da256c67f02092f5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  collectedData:
-    id: 0
-  references:
-    version: 1
-    00000000:
-      type: {class: CollectedData, ns: , asm: Assembly-CSharp}
-      data:
-        explorationPercentage: 0
-        treasures: 0
-        mapSizeX: 0
-        mapSizeZ: 0
-        recordedMap: []
-        recordedActions: []
 --- !u!1 &1448375078
 GameObject:
   m_ObjectHideFlags: 0
@@ -6298,7 +6202,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2eed9f101e7f0604fa65f6d2b1e89d6c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  dataCollector: {fileID: 1430213785}
+  dataCollector: {fileID: 0}
   showMapSettings: 0
   visualizeMapCreation: 0
   xSize: 20
@@ -7401,11 +7305,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9897710b722314cad25cd7cb1a3dfb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  agentType: 0
+  agentType: 2
   ANNInitializer: {fileID: 0}
-  dataCollector: {fileID: 1430213785}
-  isRecordingData: 0
-  playerData: {fileID: 4900000, guid: cd97600a342ff65439e2f0b8623d14c4, type: 3}
+  dataCollector: {fileID: 0}
+  isRecordingData: 1
+  playerData: {fileID: 4900000, guid: 2b914456e4e9c474d84af42531483d7a, type: 3}
   mapGenerator: {fileID: 1817389731}
   cameraFollower: {fileID: 1564766420}
   moveCooldown: 0.25
