@@ -50,30 +50,37 @@ namespace MachineLearning {
         /// <param name="input"></param>
         public List<float[,]> Convolution(float[,] map, int stride = 1) {
             /*
-             * The following handling has four sets of variables representing different aspects of the convolution:
-             * nmx/nmy: these give the index to set the calculated value in newMap
+             * The following handling has five sets of variables representing different aspects of the convolution:
+             * dimx/dimy: these give the dimensions for the new map
+             * offsetx/offsety: these give the offset for the convolution
+             * nmx/nmx: these give the index to apply the calculated value on the new map
              * kx/ky: these give the index for the kernel, which act as a lens moved across the map, through which the filter is applied
-             * fx/fy: these give the index for the filter, which is applied on the given map
              * mx/my: these give the index for the given map, and they are set by the kernel's current position
             */
             foreach (CNNFilter1D filter in CNNFilters) {
-                int offset = (int)Math.Floor((double)filter.dimensions / 2);                                //Offset the center depending on filter dimensions
-                float[,] newMap = new float[map.GetLength(0) - offset * 2, map.GetLength(1) - offset * 2];  //The map will shrink during convolution, so the new map is smaller in both dimensions
-                for (int nmy = 0, ky = offset; ky < map.GetLength(0) - offset; nmy++, ky++) {               //nmy is the new map x-coord and ky is the kernel x-coord
-                    for (int nmx = 0, kx = offset; kx < map.GetLength(1) - offset; nmx++, kx++) {               //nmx is the new map y-coord and kx is the kernel y-coord
-                        float value = 0;                                                                            //value is the calculated value of the current kernel position
-                        for (int fx = 0, fy = 0, mx = kx, my = ky; fy < filter.dimensions; fx++, mx++) {            //fx is the filter x-coord, fy is the filter y-coord, mx is the map x-coord, and my is the map y-coord
-                            value += map[mx - offset, my - offset] * filter.filter[fx, fy];
+                float dimx = (1 + (map.GetLength(0) - filter.dimensions) / stride);                             //O = 1 + (N - F) / S  --> Understanding of a Convolutional Neural Network (Albawi, Al-Zawi, & Mohammed, 2017)
+                float dimy = (1 + (map.GetLength(1) - filter.dimensions) / stride);
+                if (Math.Abs(Math.Round(dimx) - dimx) > 0.000001f || Math.Abs(Math.Round(dimy) - dimy) > 0.000001) 
+                    throw new ArgumentException("Output calculation didn't result in an integer! Adjust your stride or filter(s) so: outputMapSize = 1 + (inputMapSize - filterSize) / stride = integer");
 
-                            if (fx == filter.dimensions - 1) {                                                          //If fx reached the end of the current row, continue to the next row
-                                fy++;
-                                fx = 0;
-                                mx = kx - 1;
+                int offsetx = (int)Math.Floor(filter.dimensions / 2);                                           //Used to offset the kernel center along the x axis based on the filter dimensions
+                int offsety = (int)Math.Floor(filter.dimensions / 2);                                           //Used to offset the kernel center along the y axis based on the filter dimensions
+                float[,] newMap = new float[(int)dimx, (int)dimy];                                              //The map is created using the dimensions calculated above
+                for (int nmy = offsety; nmy < dimy; nmy++) {                                                    //nmy is the y-coord on the new map
+                    for (int nmx = offsetx; nmx < dimx; nmx++) {                                                    //nmx the x-coord on the new map
+                        float value = 0;                                                                            //value is the calculated value of the current kernel position
+                        for (int kx = 0, ky = 0, mx = nmx, my = nmy; ky < filter.dimensions; kx++, mx++) {              //kx is the filter x-coord, ky is the filter y-coord, mx is the map x-coord, and my is the map y-coord
+                            value += map[mx - offsetx, my - offsety] * filter.filter[kx, ky];
+
+                            if (kx == filter.dimensions - 1) {                                                              //If kx reached the end of the current row, continue to the next row
+                                ky++;
+                                kx = 0;
+                                mx = nmx - 1;
                                 my++;
                             }
                         }
 
-                        newMap[nmy, nmx] = value;
+                        newMap[nmx, nmy] = value;
                     }
                 }
                 generatedMaps.Add(newMap);
@@ -95,7 +102,8 @@ namespace MachineLearning {
              * kx/ky: these give the index for the kernel, which act as a lens moved across the map, through which the filter is applied
              * mx/my: these give the index for the given map, and they are set inside the kernel's current position
             */
-            float[,] newMap = new float[map.GetLength(0) / stride, map.GetLength(1) / stride];              //The map will shrink during pooling, so the new map is smaller in both dimensions
+            float[,] newMap = new float[(int)Math.Ceiling((double)((float)map.GetLength(0) / stride)), 
+                                        (int)Math.Ceiling((double)((float)map.GetLength(1) / stride))];     //The map will shrink during pooling, so the new map is smaller in both dimensions
             List<float> kernelValues = new List<float>();
             for (int ky = 0, nmy = 0; ky < map.GetLength(0); ky += stride, nmy++) {
                 for (int kx = 0, nmx = 0; kx < map.GetLength(1); kx += stride, nmx++) {

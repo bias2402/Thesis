@@ -31,7 +31,7 @@ public class Tester : MonoBehaviour {
 
     void Update() {
         if (Input.GetKeyDown(KeyCode.Space)) {
-            Debug.Log("Running...");
+            Debug.Log("Running...\nStart map size is: [9,9]");
             float[,] map = new float[9, 9] {
                 { 0, 0, 0, 1, 0, 1, 0, 1, 0 },
                 { 0, 0, 1, 0, 0, 1, 0, 0, 1 },
@@ -43,17 +43,18 @@ public class Tester : MonoBehaviour {
                 { 0, 0, 1, 0, 1, 0, 1, 0, 1 },
                 { 1, 1, 0, 1, 0, 1, 0, 1, 0 }
             };
-            map = cnn.Padding(map);
-            Debug.Log("Padded map's size: [" + map.GetLength(0) + "," + map.GetLength(1) + "]");
             string s = "";
-            for (int i = 0; i < map.GetLength(0); i++) {
-                for (int j = 0; j < map.GetLength(1); j++) {
-                    s += map[i, j].ToString();
-                    if (j != map.GetLength(1) - 1) s += ",";
-                }
-                s += "\n";
-            }
-            Debug.Log(s);
+
+            //map = cnn.Padding(map);
+            //Debug.Log("Padded map's size: [" + map.GetLength(0) + "," + map.GetLength(1) + "]");
+            //for (int i = 0; i < map.GetLength(0); i++) {
+            //    for (int j = 0; j < map.GetLength(1); j++) {
+            //        s += map[i, j].ToString();
+            //        if (j != map.GetLength(1) - 1) s += ",";
+            //    }
+            //    s += "\n";
+            //}
+            //Debug.Log(s);
 
             List<float[,]> maps = cnn.Convolution(map);
             Debug.Log("Count: " + maps.Count + ", first map's size: [" + maps[0].GetLength(0) + "," + maps[0].GetLength(1) + "]");
