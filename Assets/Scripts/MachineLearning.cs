@@ -5,7 +5,8 @@ using System.Linq;
 namespace MachineLearning {
     public class CNN {
         private List<CNNFilter> CNNFilters = new List<CNNFilter>();
-        private List<float[,]> generatedMaps = new List<float[,]>();
+        public List<float[,]> generatedMaps { get; private set; } = new List<float[,]>();
+        public List<float[,]> pooledMaps { get; private set; } = new List<float[,]>();
         public ANN ann { get; private set; } = null;
         public List<double> outputs = new List<double>();
 
@@ -41,7 +42,7 @@ namespace MachineLearning {
         public int Run(float[,] input) {
             Convolution(input);
             foreach (float[,] map in generatedMaps) Pooling(map);
-            outputs = FullyConnected(3);
+            outputs = FullyConnected(3, pooledMaps);
             return (int)outputs.Max();
         }
 
@@ -174,6 +175,7 @@ namespace MachineLearning {
                     }
                 }
             }
+            pooledMaps.Add(newMap);
 
             return newMap;
         }
@@ -186,9 +188,9 @@ namespace MachineLearning {
         /// <param name="nOutputs"></param>
         /// <param name="ann"></param>
         /// <returns></returns>
-        public List<double> FullyConnected(int nOutputs, ANN ann = null) {
+        public List<double> FullyConnected(int nOutputs, List<float[,]> maps, ANN ann = null) {
             //Generate a list of inputs
-            List<double> inputs = GenerateInputs(generatedMaps);
+            List<double> inputs = GenerateInputs(maps);
 
             //If an ANN hasn't been created nor is one given, create a new ANN and save it for later use
             if (ann == null && this.ann == null) this.ann = new ANN(inputs.Count, 0, 0, nOutputs, ANN.ActivationFunction.ReLU, ANN.ActivationFunction.ReLU);

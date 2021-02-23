@@ -70,19 +70,19 @@ public class Tester : MonoBehaviour {
             }
             Debug.Log(s);
 
-            float[,] pooledMap = cnn.Pooling(maps[0]);
-            Debug.Log("Pooled map's size: [" + pooledMap.GetLength(0) + "," + pooledMap.GetLength(1) + "]");
+            foreach (float[,] m in cnn.generatedMaps) cnn.Pooling(m);
+            Debug.Log("First pooled map's size: [" + cnn.pooledMaps[0].GetLength(0) + "," + cnn.pooledMaps[0].GetLength(1) + "]");
             s = "";
-            for (int i = 0; i < pooledMap.GetLength(0); i++) {
-                for (int j = 0; j < pooledMap.GetLength(1); j++) {
-                    s += pooledMap[i, j].ToString();
-                    if (j != pooledMap.GetLength(1) - 1) s += ",";
+            for (int i = 0; i < cnn.pooledMaps[0].GetLength(0); i++) {
+                for (int j = 0; j < cnn.pooledMaps[0].GetLength(1); j++) {
+                    s += cnn.pooledMaps[0][i, j].ToString();
+                    if (j != cnn.pooledMaps[0].GetLength(1) - 1) s += ",";
                 }
                 s += "\n";
             }
             Debug.Log(s);
 
-            List<double> outputs = cnn.FullyConnected(4);
+            List<double> outputs = cnn.FullyConnected(4, cnn.pooledMaps);
             Debug.Log("Run. #Neurons: " + cnn.ann.GetNeuronCount() + ". Outputs generated: " + outputs.Count);
             s = "";
             foreach (double d in outputs) {
