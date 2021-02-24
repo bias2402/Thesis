@@ -489,9 +489,9 @@ namespace MachineLearning {
             public Neuron(int nInputsToNeuron) {
                 if (nInputsToNeuron <= 0) return;
 
-                bias = random.NextDouble() * (1 -1) + -1;
+                bias = random.NextDouble() * (1 - -1) + -1;
                 for (int i = 0; i < nInputsToNeuron; i++) {
-                    weights.Add(random.NextDouble() * (1 - 1) + -1);
+                    weights.Add(random.NextDouble() * (1 - -1) + -1);
                 }
             }
         }
