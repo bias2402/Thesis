@@ -281,15 +281,15 @@ namespace MachineLearning {
             this.alpha = alpha;
 
             //Create the input layer
-            layers.Add(new Layer(this, nInputsN));
+            layers.Add(new Layer(nInputsN));
 
             //Create the hidden layers
             for (int i = 0; i < nHiddenL; i++) {
-                layers.Add(new Layer(this, nhiddenN, layers[layers.Count - 1], hiddenLAF));
+                layers.Add(new Layer(nhiddenN, layers[layers.Count - 1], hiddenLAF));
             }
 
             //Create the output layer
-            layers.Add(new Layer(this, nOutputN, layers[layers.Count - 1], outputLAF));
+            layers.Add(new Layer(nOutputN, layers[layers.Count - 1], outputLAF));
         }
 
         /// <summary>
@@ -438,14 +438,6 @@ namespace MachineLearning {
             }
         }
 
-        /// <summary>
-        /// Generate a random double value between <paramref name="min"/> and <paramref name="max"/>.
-        /// </summary>
-        /// <param name="min"></param>
-        /// <param name="max"></param>
-        /// <returns></returns>
-        public double GetRandomDouble(double min, double max) { return random.NextDouble() * (max - min) + min; }
-
         class Layer {
             public List<Neuron> neurons = new List<Neuron>();
 
@@ -457,10 +449,10 @@ namespace MachineLearning {
             /// <param name="numberOfNeuronsForLayer"></param>
             /// <param name="prevLayer"></param>
             /// <param name="activationFunction"></param>
-            public Layer(ANN ann, int numberOfNeuronsForLayer, Layer prevLayer = null, ActivationFunction activationFunction = ActivationFunction.ReLU) {
+            public Layer(int numberOfNeuronsForLayer, Layer prevLayer = null, ActivationFunction activationFunction = ActivationFunction.ReLU) {
                 for (int i = 0; i < numberOfNeuronsForLayer; i++) {
                     if (prevLayer != null) 
-                        neurons.Add(new Neuron(prevLayer.neurons.Count, ann));
+                        neurons.Add(new Neuron(prevLayer.neurons.Count));
                     else neurons.Add(new Neuron());
                 }
                 if (prevLayer != null) foreach (Neuron n in neurons) n.activationFunction = activationFunction;
@@ -494,12 +486,12 @@ namespace MachineLearning {
             /// Create a new hidden or output neuron. <paramref name="nInputsToNeuron"/> defines the number of weights generated for neuron.
             /// </summary>
             /// <param name="nInputsToNeuron"></param>
-            public Neuron(int nInputsToNeuron, ANN ann) {
+            public Neuron(int nInputsToNeuron) {
                 if (nInputsToNeuron <= 0) return;
 
-                bias = ann.GetRandomDouble(-1, 1);
+                bias = random.NextDouble() * (1 -1) + -1;
                 for (int i = 0; i < nInputsToNeuron; i++) {
-                    weights.Add(ann.GetRandomDouble(-1, 1));
+                    weights.Add(random.NextDouble() * (1 - 1) + -1);
                 }
             }
         }
