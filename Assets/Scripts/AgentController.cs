@@ -377,4 +377,8 @@ public class AgentController : MonoBehaviour {
                 break;
         }
     }
+
+    void FeedDataToCNN() {
+
+    }
 }

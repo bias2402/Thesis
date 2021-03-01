@@ -4,6 +4,7 @@ using MachineLearning;
 
 public class Tester : MonoBehaviour {
     private CNN cnn = new CNN();
+    [SerializeField] private CNNSaver cnnSaver = null;
 
     void Start() {
         float[,] filter1 = new float[3, 3] {
@@ -98,6 +99,8 @@ public class Tester : MonoBehaviour {
                 s += d + " ";
             }
             Debug.Log(s);
+
+            cnnSaver.cnn = cnn;
         }
     }
 }

@@ -1,14 +1,28 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+#if UNITY_EDITOR
+using UnityEngine;
+#endif
 
 namespace MachineLearning {
+#if UNITY_EDITOR
+    [Serializable]
+#endif
     public class CNN {
+#if UNITY_EDITOR
+        [SerializeField] public List<double> outputs = new List<double>();
+        [SerializeField] private List<CNNFilter> CNNFilters = new List<CNNFilter>();
+        [SerializeReference] public List<float[,]> generatedMaps = new List<float[,]>();
+        [SerializeReference] public List<float[,]> pooledMaps = new List<float[,]>();
+        [SerializeField] public ANN ann = null;
+#else
         private List<CNNFilter> CNNFilters = new List<CNNFilter>();
         public List<float[,]> generatedMaps { get; private set; } = new List<float[,]>();
         public List<float[,]> pooledMaps { get; private set; } = new List<float[,]>();
         public ANN ann { get; private set; } = null;
         public List<double> outputs = new List<double>();
+#endif
 
         /// <summary>
         /// Clear the CNN completely. Set the parameters to only clear some of the data.
@@ -197,6 +211,11 @@ namespace MachineLearning {
             return this.ann.Run(inputs);
         }
 
+        /// <summary>
+        /// Input a list of float[,] <paramref name="maps"/> and get a list of double values
+        /// </summary>
+        /// <param name="maps"></param>
+        /// <returns></returns>
         List<double> GenerateInputs(List<float[,]> maps) {
             List<double> inputs = new List<double>();
             for (int i = 0; i < generatedMaps.Count; i++) {
@@ -209,10 +228,13 @@ namespace MachineLearning {
             return inputs;
         }
 
+#if UNITY_EDITOR
+        [Serializable]
+#endif
         class CNNFilter {
-            public string filterName = "";
-            public float dimensions = 3;
-            public float[,] filter;
+            [SerializeReference] public string filterName = "";
+            [SerializeReference] public float dimensions = 3;
+            [SerializeReference] public float[,] filter;
 
             public CNNFilter(float[,] filter, string filterName) {
                 this.filter = filter;
@@ -226,6 +248,7 @@ namespace MachineLearning {
                         }
                         if (i < filter.GetLength(0) - 1) s += ",";
                     }
+                    this.filterName = s;
                 }
             }
         }
@@ -241,12 +264,23 @@ namespace MachineLearning {
         }
     }
 
+#if UNITY_EDITOR
+    [Serializable]
+#endif
     public class ANN {
+#if UNITY_EDITOR
+        [SerializeField] public enum ActivationFunction { ReLU, Sigmoid, TanH }
+        [SerializeReference] private int epochs = 1000;
+        [SerializeReference] private double alpha = 0.05;
+        [SerializeField] private List<Layer> layers = new List<Layer>();
+        [SerializeReference] private static System.Random random = new System.Random();
+#else
         public enum ActivationFunction { ReLU, Sigmoid, TanH }
         private int epochs = 1000;
         private double alpha = 0.05;
         private List<Layer> layers = new List<Layer>();
-        private static Random random = new Random();
+        private static System.Random random = new System.Random();
+#endif
 
         /// <summary>
         /// Get the total number of neurons in the network.
@@ -438,8 +472,15 @@ namespace MachineLearning {
             }
         }
 
+#if UNITY_EDITOR
+        [Serializable]
+#endif
         class Layer {
+#if UNITY_EDITOR
+            [SerializeField] public List<Neuron> neurons = new List<Neuron>();
+#else
             public List<Neuron> neurons = new List<Neuron>();
+#endif
 
             /// <summary>
             /// Create a new layer with <paramref name="numberOfNeuronsForLayer"/> number for neurons.
@@ -462,12 +503,23 @@ namespace MachineLearning {
             /// Set the activation function in each neuron of this layer to <paramref name="activationFunction"/>.
             /// </summary>
             /// <param name="activationFunction"></param>
-            public void SetActivationFunctionForLayer(ActivationFunction activationFunction) {
-                foreach (Neuron n in neurons) n.activationFunction = activationFunction;
-            }
+            public void SetActivationFunctionForLayer(ActivationFunction activationFunction) { foreach (Neuron n in neurons) n.activationFunction = activationFunction; }
         }
 
+#if UNITY_EDITOR
+        [Serializable]
+#endif
         class Neuron {
+#if UNITY_EDITOR
+            [SerializeReference] public ActivationFunction activationFunction = ActivationFunction.ReLU;
+            [SerializeReference] public bool isInputNeuron = false;
+            [SerializeReference] public double inputValue = 0;
+            [SerializeReference] public double bias = 0;
+            [SerializeField] public List<double> weights = new List<double>();
+            [SerializeField] public List<double> inputs = new List<double>();
+            [SerializeReference] public double outputValue = 0;
+            [SerializeReference] public double errorGradient = 0;
+#else
             public ActivationFunction activationFunction = ActivationFunction.ReLU;
             public bool isInputNeuron = false;
             public double inputValue = 0;
@@ -476,6 +528,7 @@ namespace MachineLearning {
             public List<double> inputs = new List<double>();
             public double outputValue = 0;
             public double errorGradient = 0;
+#endif
 
             /// <summary>
             /// Create a new input neuron.
