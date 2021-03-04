@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Diagnostics;
 #if UNITY_EDITOR
 using UnityEngine;
 #endif
@@ -23,6 +24,29 @@ namespace MachineLearning {
         public ANN ann { get; private set; } = null;
         public List<double> outputs = new List<double>();
 #endif
+        private Stopwatch stopwatch = null;
+
+        public void Debug() => stopwatch = new Stopwatch();
+
+        void PrintDebug(string state, bool isStarting = false) {
+            if (isStarting) {
+#if UNITY_EDITOR
+                UnityEngine.Debug.Log(state);
+#else
+                Console.WriteLine(state);
+#endif
+                stopwatch.Start();
+                return;
+            }
+            stopwatch.Stop();
+#if UNITY_EDITOR
+            UnityEngine.Debug.Log(state + stopwatch.ElapsedMilliseconds + " ms");
+#else
+            Console.WriteLine(state + stopwatch.ElapsedMilliseconds + " ms");
+#endif
+            stopwatch.Reset();
+            stopwatch.Start();
+        }
 
         /// <summary>
         /// Clear the CNN completely. Set the parameters to only clear some of the data.
@@ -43,9 +67,13 @@ namespace MachineLearning {
         /// </summary>
         /// <param name="filter"></param>
         public void AddNewFilter(float[,] filter, string filterName = "") {
-            if (filter.GetLength(0) != filter.GetLength(1)) throw new ArgumentException("Filter dimensions aren't equal size!");
+            if (CNNFilters.Find(x => x.filterName == filterName) != null) return;
+
+            if (filter.GetLength(0) != filter.GetLength(1)) throw new ArgumentException("Filter dimensions must be equal in both x and y direction!");
             CNNFilters.Add(new CNNFilter(filter, filterName));
         }
+
+        public List<CNNFilter> GetFilters() { return CNNFilters; }
 
         /// <summary>
         /// Run the CNN on the given 2D float array with the default settings and return the network's decision.
@@ -56,17 +84,35 @@ namespace MachineLearning {
         public int Run(float[,] input) {
             Convolution(input);
             foreach (float[,] map in generatedMaps) Pooling(map);
-            outputs = FullyConnected(3, pooledMaps);
+            FullyConnected(3, pooledMaps);
             return (int)outputs.Max();
         }
 
-        public List<double> Train(List<double> desiredOutputs, ANN ann = null) {
-            //Generate a list of inputs
-            List<double> inputs = GenerateInputs(generatedMaps);
+        /// <summary>
+        /// Train the CNN on the given 2D float array with the default settings.
+        /// Default settings: padding = 0, convolution stride = 1, pooling kernel = 2, pooling stride = 2, outputs = 3
+        /// Flow: Convolution, Pooling, Fully Connected (Decision Making)
+        /// </summary>
+        /// <param name="desiredOutputs"></param>
+        /// <param name="ann"></param>
+        /// <returns></returns>
+        public List<double> Train(float[,] input, List<double> desiredOutputs, ANN ann = null) {
+            if (stopwatch != null) PrintDebug("Starting debugging", true);
+            Convolution(input);
+            if (stopwatch != null) PrintDebug("Convolution: ");
 
-            //If an ANN hasn't been created nor is one given, create a new ANN and save it for later use
-            if (ann == null && this.ann == null) this.ann = new ANN(inputs.Count, 0, 0, desiredOutputs.Count, ANN.ActivationFunction.ReLU, ANN.ActivationFunction.ReLU);
-            return this.ann.Train(inputs, desiredOutputs);
+            foreach (float[,] map in generatedMaps) Pooling(map);
+            if (stopwatch != null) PrintDebug("Pooling: ");
+
+            //Generate a list of inputs
+            List<double> annInputs = GenerateInputs(generatedMaps);
+
+            //If an ANN hasn't been created nor one is given, create a new ANN and save it
+            if (ann == null && this.ann == null) this.ann = new ANN(annInputs.Count, 0, 0, desiredOutputs.Count, ANN.ActivationFunction.ReLU, ANN.ActivationFunction.ReLU);
+            this.ann.Train(annInputs, desiredOutputs);
+            if (stopwatch != null) PrintDebug("Fully Connected: ");
+
+            return this.ann.GetOutputs();
         }
 
         /// <summary>
@@ -208,7 +254,7 @@ namespace MachineLearning {
 
             //If an ANN hasn't been created nor is one given, create a new ANN and save it for later use
             if (ann == null && this.ann == null) this.ann = new ANN(inputs.Count, 0, 0, nOutputs, ANN.ActivationFunction.ReLU, ANN.ActivationFunction.ReLU);
-            return this.ann.Run(inputs);
+            return outputs = this.ann.Run(inputs);
         }
 
         /// <summary>
@@ -231,7 +277,7 @@ namespace MachineLearning {
 #if UNITY_EDITOR
         [Serializable]
 #endif
-        class CNNFilter {
+        public class CNNFilter {
             [SerializeReference] public string filterName = "";
             [SerializeReference] public float dimensions = 3;
             [SerializeReference] public float[,] filter;
@@ -250,6 +296,17 @@ namespace MachineLearning {
                     }
                     this.filterName = s;
                 }
+            }
+
+            public string GetFilterString() {
+                string s = "";
+                for (int i = 0; i < filter.GetLength(0); i++) {
+                    for (int j = 0; j < filter.GetLength(1); j++) {
+                        s += filter[i, j].ToString();
+                    }
+                    if (i < filter.GetLength(0) - 1) s += ",";
+                }
+                return s;
             }
         }
 
@@ -492,7 +549,7 @@ namespace MachineLearning {
             /// <param name="activationFunction"></param>
             public Layer(int numberOfNeuronsForLayer, Layer prevLayer = null, ActivationFunction activationFunction = ActivationFunction.ReLU) {
                 for (int i = 0; i < numberOfNeuronsForLayer; i++) {
-                    if (prevLayer != null) 
+                    if (prevLayer != null)
                         neurons.Add(new Neuron(prevLayer.neurons.Count));
                     else neurons.Add(new Neuron());
                 }

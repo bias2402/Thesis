@@ -17,7 +17,6 @@ public class MapGenerator : MonoBehaviour {
     [Range(10, 50)] [SerializeField] private int zSize = 20;
     [Range(0, 30)] [SerializeField] private int procentChanceToSpawnLava = 10;
     [Range(0, 100)] [SerializeField] private int lavaSpreadChance = 50;
-    [Range(0, 25)] [SerializeField] private int stoneSpawnChance = 3;
     private Vector3 spawnPoint = Vector3.zero;
     private Vector3 goalPoint = Vector3.zero;
 
@@ -25,12 +24,6 @@ public class MapGenerator : MonoBehaviour {
     [SerializeField] private GameObject mapCreatorPanel = null;
     [SerializeField] private GameObject createNewMapButton = null;
     [SerializeField] private Transform mapChecker = null;
-
-    [Header("Size inputs")]
-    [SerializeField] private InputField xInput = null;
-    [SerializeField] private InputField zInput = null;
-    [SerializeField] private InputField chanceInput = null;
-    [SerializeField] private InputField spreadInput = null;
 
     [Header("Prefabs")]
     [SerializeField] private GameObject platformBlockPrefab = null;
@@ -56,8 +49,6 @@ public class MapGenerator : MonoBehaviour {
     private Vector3[] directions = new Vector3[] { Vector3.forward, Vector3.back, Vector3.right, Vector3.left };
     private List<Vector3> securePath = new List<Vector3>();
     public List<BlockData> blocksCreated { get; private set; } = new List<BlockData>();
-
-    private Camera mainCam = null;
 
     public delegate void MaterialUpdater();
     public MaterialUpdater materialUpdater;
@@ -101,7 +92,6 @@ public class MapGenerator : MonoBehaviour {
 
     public void StartGeneration() {
         map = transform;
-        mainCam = Camera.main;
         if (!showMapSettings) {
             mapCreatorPanel.SetActive(false);
             createNewMapButton.SetActive(false);

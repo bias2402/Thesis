@@ -14,8 +14,10 @@ public class AgentController : MonoBehaviour {
     private PlayStyles playstyle = PlayStyles.Speedrunner;
 
     [Header("AI Settings")]
-    [Header("ANN")]
-    [SerializeField] private BasicANNInitializer ANNInitializer = null;
+    [SerializeField] private bool debugAI = false;
+    [SerializeField] private Text moveSuggestion = null;
+    [SerializeField] private bool isTraining = false;
+    [SerializeField] private CNNSaver cnnSaver = null;
 
     [Header("Recording & Playback")]
     [SerializeField] private DataCollector dataCollector = new DataCollector();
@@ -44,6 +46,7 @@ public class AgentController : MonoBehaviour {
     private float moveCooldownCounter = 1;
     private int move = 0;
     private bool isPreparing = false;
+
 
     [Header("UI")]
     [SerializeField] private Text explanationText = null;
@@ -75,7 +78,7 @@ public class AgentController : MonoBehaviour {
         switch (agentType) {
             case AgentType.Human:
                 mapGenerator.StartGeneration();
-                StartCoroutine(InformPlayer());
+                if (!isTraining) StartCoroutine(InformPlayer());
                 break;
             case AgentType.Playback:
                 actionsText.gameObject.SetActive(true);
@@ -171,6 +174,7 @@ public class AgentController : MonoBehaviour {
         rb.isKinematic = false;
         cameraFollower.enabled = true;
         GetBlockDataFromBlockBelowAgent();
+        FeedDataToCNN(new List<double>() { 0, 0, 0, 0 });
     }
 
     void Update() {
@@ -272,6 +276,7 @@ public class AgentController : MonoBehaviour {
             isReadyToMove = false;
             audioSource.clip = clips[0];
             audioSource.Play();
+            if (isTraining) FeedDataToCNN(new List<double>() { 1, 0, 0, 0 });
         }
     }
 
@@ -281,6 +286,7 @@ public class AgentController : MonoBehaviour {
             isReadyToMove = false;
             audioSource.clip = clips[0];
             audioSource.Play();
+            if (isTraining) FeedDataToCNN(new List<double>() { 0, 0, 1, 0 });
         }
     }
 
@@ -289,6 +295,7 @@ public class AgentController : MonoBehaviour {
         isReadyToMove = false;
         audioSource.clip = clips[1];
         audioSource.Play();
+        if (isTraining) FeedDataToCNN(new List<double>() { 0, 1, 0, 0 });
     }
 
     public void TurnRight() {
@@ -296,6 +303,7 @@ public class AgentController : MonoBehaviour {
         isReadyToMove = false;
         audioSource.clip = clips[1];
         audioSource.Play();
+        if (isTraining) FeedDataToCNN(new List<double>() { 0, 0, 0, 1 });
     }
 
     void AgentReachedGoal() {
@@ -378,7 +386,123 @@ public class AgentController : MonoBehaviour {
         }
     }
 
-    void FeedDataToCNN() {
+    void FeedDataToCNN(List<double> givenInput) {
+        Debug.Log("Starting training session...");
+        float elapsed = Time.realtimeSinceStartup;
 
+        float[,] visibleMap = new float[11, 11];
+        LayerMask blockMask = LayerMask.GetMask("Block");
+        for (int x = (int)transform.position.x - 5, vmx = 0; x < (int)transform.position.x + 5; x++, vmx++) { //Go from left to right
+            for (int z = (int)transform.position.z - 5, vmz = 0; z < (int)transform.position.x + 5; z++, vmz++) { //Go from bottom to top
+                Ray ray = new Ray(new Vector3(x, 1, z), Vector3.down);
+                Physics.Raycast(ray, out RaycastHit hit, 4, blockMask); //Raycast downwards
+                if (hit.collider != null) {
+                    visibleMap[vmx, vmz] = GetBlockValue(hit);
+                }
+            }
+        }
+
+        //if (cnnSaver.cnn == null) cnnSaver.cnn = new MachineLearning.CNN();
+        //if (cnnSaver != null) AddCNNFilters();
+        //List<MachineLearning.CNN.CNNFilter> filters = cnnSaver.cnn.GetFilters();
+        //for (int i = 0; i < filters.Count; i++) {
+        //    Debug.Log(filters[i].GetFilterString());
+        //}
+        MachineLearning.CNN cnn = new MachineLearning.CNN();
+        if (debugAI) cnn.Debug();
+        AddCNNFilters(cnn);
+        List<double> outputs = cnn.Train(visibleMap, givenInput);
+        Debug.Log(cnn.ann.GetNeuronCount());
+        moveSuggestion.text = "Suggested move: " + GetMoveFromInt(GetIndexOfMaxOutput(outputs));
+        Debug.Log("Session complete. Time elapsed: " + (Time.realtimeSinceStartup - elapsed) + " seconds");
+    }
+
+    int GetIndexOfMaxOutput(List<double> outputs) {
+        if (outputs == null) return -1;
+        double max = -5;
+        int index = -1;
+        for (int i = 0; i < outputs.Count; i++) {
+            if (outputs[i] > max) {
+                max = outputs[i];
+                index = i;
+            }
+        }
+        return index;
+    }
+
+    string GetMoveFromInt(int i) {
+        switch (i) {
+            case 0:
+                return "w";
+            case 1:
+                return "a";
+            case 2:
+                return "s";
+            case 3:
+                return "d";
+            default:
+                return "Something went wrong!";
+        }
+    }
+
+    float GetBlockValue(RaycastHit hit) {
+        switch (hit.collider.GetComponent<BlockData>().blockType) {
+            case BlockType.Goal:
+                return 1;
+            case BlockType.LavaBlock:
+                return 0;
+            case BlockType.Platform:
+                return 0.5f;
+            case BlockType.Spawn:
+                return 0.5f;
+            case BlockType.Treasure:
+                return 0.8f;
+            default:
+                return -1;
+        }
+    }
+
+    void AddCNNFilters(MachineLearning.CNN cnn) {
+        float[,] pathHorizontal = new float[3, 3] {
+            { -1, -1, -1 },
+            { 0.5F, 0.5F, 0.5F },
+            { -1, -1, -1 }
+        };
+        cnn.AddNewFilter(pathHorizontal, "Path Horizontal");
+
+        float[,] pathVertical = new float[3, 3] {
+            { -1, 0.5F, -1 },
+            { -1, 0.5F, -1 },
+            { -1, 0.5F, -1 }
+        };
+        cnn.AddNewFilter(pathVertical, "Path Vertical");
+
+        float[,] pathUpperRightCorner = new float[3, 3] {
+            { -1, 0.5F, -1 },
+            { -1, 0.5F, 0.5f },
+            { -1, -1, -1 }
+        };
+        cnn.AddNewFilter(pathUpperRightCorner, "Path Upper Right Corner");
+
+        float[,] pathLowerRightCorner = new float[3, 3] {
+            { -1, -1, -1 },
+            { -1, 0.5F, 0.5f },
+            { -1, 0.5f, -1 }
+        };
+        cnn.AddNewFilter(pathLowerRightCorner, "Path Lower Right Corner");
+
+        float[,] pathUpperLeftCorner = new float[3, 3] {
+            { -1, 0.5f, -1 },
+            { 0.5f, 0.5F, -1 },
+            { -1, -1, -1 }
+        };
+        cnn.AddNewFilter(pathUpperLeftCorner, "Path Upper Left Corner");
+
+        float[,] pathLowerLeftCorner = new float[3, 3] {
+            { -1, -1, -1 },
+            { 0.5f, 0.5F, -1 },
+            { -1, 0.5f, -1 }
+        };
+        cnn.AddNewFilter(pathLowerLeftCorner, "Path Lower Left Corner");
     }
 }

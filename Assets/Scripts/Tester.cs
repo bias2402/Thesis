@@ -92,7 +92,7 @@ public class Tester : MonoBehaviour {
             Debug.Log(s);
 
             List<double> desiredOutputs = new List<double>() { 0, 0.25, -0.1, 0.75 };
-            outputs = cnn.Train(desiredOutputs);
+            //outputs = cnn.Train(desiredOutputs);
             Debug.Log("Train. #Neurons: " + cnn.ann.GetNeuronCount() + ". Outputs generated: " + outputs.Count);
             s = "";
             foreach (double d in outputs) {
