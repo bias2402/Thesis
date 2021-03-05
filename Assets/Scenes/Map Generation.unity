@@ -7381,7 +7381,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   agentType: 0
-  debugAI: 1
+  debugAI: 0
   moveSuggestion: {fileID: 1924056784}
   isTraining: 1
   cnnSaver: {fileID: 11400000, guid: c7d821e6d3633fe469094392cba2885a, type: 2}

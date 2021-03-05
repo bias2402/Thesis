@@ -174,7 +174,7 @@ public class AgentController : MonoBehaviour {
         rb.isKinematic = false;
         cameraFollower.enabled = true;
         GetBlockDataFromBlockBelowAgent();
-        FeedDataToCNN(new List<double>() { 0, 0, 0, 0 });
+        //FeedDataToCNN(new List<double>() { 0, 0, 0, 0 });
     }
 
     void Update() {
@@ -409,11 +409,12 @@ public class AgentController : MonoBehaviour {
         //    Debug.Log(filters[i].GetFilterString());
         //}
         MachineLearning.CNN cnn = new MachineLearning.CNN();
-        if (debugAI) cnn.Debug();
+        if (debugAI) MachineLearning.MLDebugger.EnableDebugging(cnn);
+
         AddCNNFilters(cnn);
         List<double> outputs = cnn.Train(visibleMap, givenInput);
-        Debug.Log(cnn.ann.GetNeuronCount());
         moveSuggestion.text = "Suggested move: " + GetMoveFromInt(GetIndexOfMaxOutput(outputs));
+        MachineLearning.MLDebugger.Print();
         Debug.Log("Session complete. Time elapsed: " + (Time.realtimeSinceStartup - elapsed) + " seconds");
     }
 

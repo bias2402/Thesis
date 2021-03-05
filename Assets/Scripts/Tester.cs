@@ -71,7 +71,7 @@ public class Tester : MonoBehaviour {
             }
             Debug.Log(s);
 
-            foreach (float[,] m in cnn.generatedMaps) cnn.Pooling(m);
+            cnn.Pooling();
             Debug.Log("First pooled map's size: [" + cnn.pooledMaps[0].GetLength(0) + "," + cnn.pooledMaps[0].GetLength(1) + "]");
             s = "";
             for (int i = 0; i < cnn.pooledMaps[0].GetLength(0); i++) {
