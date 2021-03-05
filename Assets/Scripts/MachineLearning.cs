@@ -61,7 +61,7 @@ namespace MachineLearning {
 
             Pooling();
 
-            FullyConnected(3, pooledMaps);
+            FullyConnected(3, pooledMaps, "pooled maps");
             return (int)outputs.Max();
         }
 
@@ -81,7 +81,7 @@ namespace MachineLearning {
             Pooling();
 
             //Generate a list of inputs
-            List<double> annInputs = GenerateANNInputs(generatedMaps);
+            List<double> annInputs = GenerateANNInputs(pooledMaps, "pooled maps");
 
             //If an ANN hasn't been created nor one is given, create a new ANN and save it
             if (ann == null && this.ann == null) this.ann = new ANN(annInputs.Count, 0, 0, desiredOutputs.Count, ANN.ActivationFunction.ReLU, ANN.ActivationFunction.ReLU);
@@ -102,7 +102,7 @@ namespace MachineLearning {
             if (isDebugging) {
                 MLDebugger.AddToDebugOutput("Starting padding with a map of size " + map.GetLength(0) + "x" + map.GetLength(1) + ", " + 
                     "resulting in a map of size " + (map.GetLength(0) + 2) + "x" + (map.GetLength(1) + 2), false);
-                MLDebugger.ResetOperationWatch();
+                MLDebugger.RestartOperationWatch();
             }
 
             int newSizeX = map.GetLength(0) + 2;
@@ -125,7 +125,7 @@ namespace MachineLearning {
         public List<float[,]> Convolution(float[,] map, int stride = 1) {
             if (isDebugging) {
                 MLDebugger.AddToDebugOutput("Starting convolution with a map of size " + map.GetLength(0) + "x" + map.GetLength(1) + ", " + cnnFilters.Count + " filters, and a stride of " + stride, false);
-                MLDebugger.ResetOperationWatch();
+                MLDebugger.RestartOperationWatch();
             }
 
             float dimx, dimy, value;
@@ -191,7 +191,7 @@ namespace MachineLearning {
         public List<float[,]> Pooling(int kernelDimension = 2, int stride = 2) {
             if (isDebugging) {
                 MLDebugger.AddToDebugOutput("Starting pooling of all maps with a kernel with dimensions of " + kernelDimension + ", and a stride of " + stride, false);
-                MLDebugger.ResetOperationWatch();
+                MLDebugger.RestartOperationWatch();
             }
 
             foreach (float[,] map in generatedMaps) {
@@ -252,13 +252,13 @@ namespace MachineLearning {
         /// <param name="nOutputs"></param>
         /// <param name="ann"></param>
         /// <returns></returns>
-        public List<double> FullyConnected(int nOutputs, List<float[,]> maps, ANN ann = null) {
+        public List<double> FullyConnected(int nOutputs, List<float[,]> maps, string listName, ANN ann = null) {
             if (isDebugging) {
                 MLDebugger.AddToDebugOutput("Starting Fully Connected with a map of size expecting " + nOutputs + " number of outputs, given " + maps.Count + " maps", false);
-                MLDebugger.ResetOperationWatch();
+                MLDebugger.RestartOperationWatch();
             }
             //Generate a list of inputs
-            List<double> inputs = GenerateANNInputs(maps);
+            List<double> inputs = GenerateANNInputs(maps, listName);
 
             //If an ANN hasn't been created nor is one given, create a new ANN and save it for later use
             if (ann == null && this.ann == null) this.ann = new ANN(inputs.Count, 0, 0, nOutputs, ANN.ActivationFunction.ReLU, ANN.ActivationFunction.ReLU);
@@ -275,15 +275,18 @@ namespace MachineLearning {
         /// </summary>
         /// <param name="maps"></param>
         /// <returns></returns>
-        List<double> GenerateANNInputs(List<float[,]> maps) {
+        List<double> GenerateANNInputs(List<float[,]> maps, string listName) {
+            MLDebugger.AddToDebugOutput("Starting input generation from maps in " + listName, false);
             List<double> inputs = new List<double>();
-            for (int i = 0; i < generatedMaps.Count; i++) {
-                for (int x = 0; x < generatedMaps[i].GetLength(0); x++) {
-                    for (int y = 0; y < generatedMaps[i].GetLength(1); y++) {
-                        inputs.Add(generatedMaps[i][x, y]);
+            for (int i = 0; i < maps.Count; i++) {
+                for (int x = 0; x < maps[i].GetLength(0); x++) {
+                    for (int y = 0; y < maps[i].GetLength(1); y++) {
+                        inputs.Add(maps[i][x, y]);
                     }
                 }
             }
+
+            MLDebugger.AddToDebugOutput("Input generation complete with " + inputs.Count + " inputs for the ANN", false);
             return inputs;
         }
 
@@ -405,7 +408,7 @@ namespace MachineLearning {
         public List<double> Run(List<double> inputs) {
             if (isDebugging) {
                 MLDebugger.AddToDebugOutput("Running ANN", false);
-                MLDebugger.ResetOperationWatch();
+                MLDebugger.RestartOperationWatch();
             }
 
             PassInputs(inputs);
@@ -425,7 +428,7 @@ namespace MachineLearning {
         public List<double> Train(List<double> inputs, List<double> desiredOutputs) {
             if (isDebugging) {
                 MLDebugger.AddToDebugOutput("Training ANN for " + epochs + " epochs", false);
-                MLDebugger.ResetOperationWatch();
+                MLDebugger.RestartOperationWatch();
             }
 
             for (int i = 0; i < epochs; i++) {
@@ -449,7 +452,7 @@ namespace MachineLearning {
         public List<double> Train(List<List<double>> inputs, List<List<double>> desiredOutputs) {
             if (isDebugging) {
                 MLDebugger.AddToDebugOutput("Training ANN for " + epochs + " epochs", false);
-                MLDebugger.ResetOperationWatch();
+                MLDebugger.RestartOperationWatch();
             }
 
             for (int i = 0; i < inputs.Count; i++) {
@@ -711,7 +714,7 @@ namespace MachineLearning {
             isRunning = true;
         }
 
-        public static void ResetOperationWatch() {
+        public static void RestartOperationWatch() {
             operationStopwatch.Reset();
             operationStopwatch.Start();
         }
@@ -720,7 +723,7 @@ namespace MachineLearning {
             state = "|   Operation: " + state;
             if (includeDurationTime) {
                 state += "   |   Duration: " + operationStopwatch.ElapsedMilliseconds + "ms";
-                ResetOperationWatch();
+                RestartOperationWatch();
             }
 
             state += "   |   Total time: " + totalStopwatch.ElapsedMilliseconds + "ms   |";
@@ -743,9 +746,7 @@ namespace MachineLearning {
 #else
             Console.WriteLine(output);
 #endif
-            totalStopwatch.Stop();
             totalStopwatch.Reset();
-            operationStopwatch.Stop();
             operationStopwatch.Reset();
         }
     }
