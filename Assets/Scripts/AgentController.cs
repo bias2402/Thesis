@@ -6,18 +6,21 @@ using System.IO;
 
 public enum AgentType { Human, ANN, Playback }
 public enum PlayStyles { Speedrunner, Explorer, Treasurehunter, Done }
+public enum TestCombination { Test1, Test2, Test3 }
 
 [RequireComponent(typeof(Rigidbody))]
 public class AgentController : MonoBehaviour {
     [Header("Agent Setting")]
     [SerializeField] private AgentType agentType = AgentType.Human;
     private PlayStyles playstyle = PlayStyles.Speedrunner;
+    [SerializeField] private TestCombination testComb = TestCombination.Test1;
 
     [Header("AI Settings")]
     [SerializeField] private bool debugAI = false;
     [SerializeField] private Text moveSuggestion = null;
     [SerializeField] private bool isTraining = false;
     [SerializeField] private CNNSaver cnnSaver = null;
+    private MachineLearning.CNN cnn = null;
 
     [Header("Recording & Playback")]
     [SerializeField] private DataCollector dataCollector = new DataCollector();
@@ -79,6 +82,15 @@ public class AgentController : MonoBehaviour {
             case AgentType.Human:
                 mapGenerator.StartGeneration();
                 if (!isTraining) StartCoroutine(InformPlayer());
+                else {
+                    if (cnnSaver == null) {
+                        cnn = new MachineLearning.CNN();
+                        if (debugAI) MachineLearning.MLDebugger.EnableDebugging(cnn);
+                        AddCNNFilters(cnn);
+                    } else {
+                        cnn = cnnSaver.cnn;
+                    }
+                }
                 break;
             case AgentType.Playback:
                 actionsText.gameObject.SetActive(true);
@@ -408,14 +420,21 @@ public class AgentController : MonoBehaviour {
         //for (int i = 0; i < filters.Count; i++) {
         //    Debug.Log(filters[i].GetFilterString());
         //}
-        MachineLearning.CNN cnn = new MachineLearning.CNN();
-        if (debugAI) MachineLearning.MLDebugger.EnableDebugging(cnn);
 
-        AddCNNFilters(cnn);
-        List<double> outputs = cnn.Train(visibleMap, givenInput);
-        moveSuggestion.text = "Suggested move: " + GetMoveFromInt(GetIndexOfMaxOutput(outputs));
-        MachineLearning.MLDebugger.Print();
-        Debug.Log("Session complete. Time elapsed: " + (Time.realtimeSinceStartup - elapsed) + " seconds");
+        switch (testComb) {
+            case TestCombination.Test1:
+                List<double> outputs = cnn.Train(visibleMap, givenInput);
+                moveSuggestion.text = "Suggested move: " + GetMoveFromInt(GetIndexOfMaxOutput(outputs));
+                MachineLearning.MLDebugger.Print();
+                Debug.Log("Session complete. Time elapsed: " + (Time.realtimeSinceStartup - elapsed) + " seconds");
+                break;
+            case TestCombination.Test2:
+
+                break;
+            case TestCombination.Test3:
+
+                break;
+        }
     }
 
     int GetIndexOfMaxOutput(List<double> outputs) {

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics;
+using System.Xml.Serialization;
 #if UNITY_EDITOR
 using UnityEngine;
 #endif
@@ -144,8 +145,8 @@ namespace MachineLearning {
                     throw new ArgumentException("Output calculation didn't result in an integer! Adjust your stride or filter(s) so: outputMapSize = 1 + (inputMapSize - filterSize) / stride = integer");
 
                 newMap = new float[(int)dimx, (int)dimy];                                                       //The map is created using the dimensions calculated above
-                newMapCoord = new Coord(0, 0);                                                                  //Coordinates on the new map, where a the calculated value will be placed
-                mapCoord = new Coord(0, 0);                                                                     //Coordinates on the old map, from which the filter is applied
+                newMapCoord = new Coord(0, 0, newMap.GetLength(0), newMap.GetLength(1));                        //Coordinates on the new map, where a the calculated value will be placed
+                mapCoord = new Coord(0, 0, map.GetLength(0) - (int)filter.dimensions, map.GetLength(1) - (int)filter.dimensions); //Coordinates on the old map, from which the filter is applied
 
                 while (true) {
                     value = 0;                                                                                      //Value that is calculated during convolution and applied to the new map at newMapCoord
@@ -157,22 +158,11 @@ namespace MachineLearning {
                     }
 
                     //Increment mapCoord
-                    mapCoord.x += stride;
-                    if (mapCoord.x > map.GetLength(0) - filter.dimensions) {
-                        mapCoord.x = 0;
-                        mapCoord.y += stride;
-                    }
+                    mapCoord.Increment(stride);
 
                     //Apply the value to newMap and increment newMapCoord
                     newMap[newMapCoord.x, newMapCoord.y] = value;
-                    newMapCoord.x++;
-                    if (newMapCoord.x == newMap.GetLength(0)) {
-                        newMapCoord.x = 0;
-                        newMapCoord.y++;
-                        if (newMapCoord.y == newMap.GetLength(1)) {
-                            break;
-                        }
-                    }
+                    if (newMapCoord.Increment()) break;
                 }
                 generatedMaps.Add(newMap);
             }
@@ -206,8 +196,8 @@ namespace MachineLearning {
                     throw new ArgumentException("Output calculation didn't result in an integer! Adjust your stride or kernel dimension so: outputMapSize = 1 + (inputMapSize - filterSize) / stride = integer");
 
                 float[,] newMap = new float[(int)dimx, (int)dimy];                                              //The map will shrink during pooling, so the new map is smaller in both dimensions
-                Coord newMapCoord = new Coord(0, 0);                                                            //Coordinates on the new map, where a the calculated value will be placed
-                Coord mapCoord = new Coord(0, 0);                                                               //Coordinates on the old map, from which the filter is applied
+                Coord newMapCoord = new Coord(0, 0, newMap.GetLength(0), newMap.GetLength(1));                  //Coordinates on the new map, where a the calculated value will be placed
+                Coord mapCoord = new Coord(0, 0, map.GetLength(0) - kernelDimension, map.GetLength(1) - kernelDimension); //Coordinates on the old map, from which the filter is applied
                 List<float> kernelValues = new List<float>();
 
                 while (true) {
@@ -220,22 +210,11 @@ namespace MachineLearning {
                     }
 
                     //Increment mapCoord
-                    mapCoord.x += stride;
-                    if (mapCoord.x > map.GetLength(0) - kernelDimension) {
-                        mapCoord.x = 0;
-                        mapCoord.y += stride;
-                    }
+                    mapCoord.Increment(stride);
 
                     //Apply the value to newMap and increment newMapCoord
                     newMap[newMapCoord.x, newMapCoord.y] = kernelValues.Max();
-                    newMapCoord.x++;
-                    if (newMapCoord.x == newMap.GetLength(0)) {
-                        newMapCoord.x = 0;
-                        newMapCoord.y++;
-                        if (newMapCoord.y == newMap.GetLength(1)) {
-                            break;
-                        }
-                    }
+                    if (newMapCoord.Increment()) break;
                 }
                 pooledMaps.Add(newMap);
             }
@@ -290,6 +269,14 @@ namespace MachineLearning {
             return inputs;
         }
 
+        public void SerializeFilters() {
+
+        }
+
+        public void ParseFilters() {
+
+        }
+
         public class CNNFilter {
             [SerializeReference] public string filterName = "";
             [SerializeReference] public float dimensions = 3;
@@ -300,9 +287,25 @@ namespace MachineLearning {
             /// </summary>
             /// <param name="filter"></param>
             /// <param name="filterName"></param>
-            public CNNFilter(float[,] filter, string filterName) {
+            public CNNFilter(float[,] filter, string filterName = "") {
                 this.filter = filter;
                 dimensions = filter.GetLength(0);
+                if (!filterName.Equals("")) this.filterName = filterName;
+                else {
+                    string s = "";
+                    for (int i = 0; i < filter.GetLength(0); i++) {
+                        for (int j = 0; j < filter.GetLength(1); j++) {
+                            s += filter[i, j].ToString();
+                        }
+                        if (i < filter.GetLength(0) - 1) s += ",";
+                    }
+                    this.filterName = s;
+                }
+            }
+
+            public CNNFilter(string filterString, int dimension, string filterName = "") {
+                ParseSerializedFilter(filterString, dimension);
+                this.dimensions = dimension;
                 if (!filterName.Equals("")) this.filterName = filterName;
                 else {
                     string s = "";
@@ -320,25 +323,68 @@ namespace MachineLearning {
             /// Get a string representation of the filter
             /// </summary>
             /// <returns></returns>
-            public string GetFilterString() {
+            public string GetSerializedFilter() {
                 string s = "";
                 for (int i = 0; i < filter.GetLength(0); i++) {
                     for (int j = 0; j < filter.GetLength(1); j++) {
                         s += filter[i, j].ToString();
                     }
                     if (i < filter.GetLength(0) - 1) s += ",";
+                    else s += ";";
                 }
                 return s;
+            }
+
+            private void ParseSerializedFilter(string filterString, int dimension) {
+                filter = new float[dimension, dimension];
+                Coord coord = new Coord(0, 0, dimension, dimension);
+                foreach (char c in filterString) {
+                    switch(c.ToString()) {
+                        case ",":
+                            break;
+                        case ";":
+                            return;
+                        default:
+                            filter[coord.x, coord.y] = int.Parse(c.ToString());
+                            coord.Increment();
+                            break;
+                    }
+                }
             }
         }
 
         struct Coord {
             public int x;
             public int y;
+            private int xMin;
+            private int yMin;
+            private int xMax;
+            private int yMax;
 
-            public Coord(int x, int y) {
-                this.x = x;
-                this.y = y;
+            public Coord(int xMin, int yMin, int xMax, int yMax) {
+                x = this.xMin = xMin;
+                y = this.yMin = yMin;
+                this.xMax = xMax;
+                this.yMax = yMax;
+            }
+
+            /// <summary>
+            /// Increment the x by <paramref name="amount"/>. If x reaches its max, it will reset to its min and increment y by <paramref name="amount"/>.
+            /// Returns true if y reaches its max, otherwise it returns false.
+            /// </summary>
+            /// <param name="amount"></param>
+            /// <returns></returns>
+            public bool Increment(int amount = 1) {
+                x += amount;
+                if (x >= xMax) {
+                    x = xMin;
+                    y += amount;
+                    if (y >= yMax) {
+                        y = yMin;
+                        return true;
+                    }
+                }
+                return false;
             }
         }
     }
@@ -748,6 +794,17 @@ namespace MachineLearning {
 #endif
             totalStopwatch.Reset();
             operationStopwatch.Reset();
+        }
+    }
+
+    public static class MLSerializer {
+
+        public static string Serialize(CNN cnn) {
+            string output = "";
+
+            
+
+            return output;
         }
     }
 }
