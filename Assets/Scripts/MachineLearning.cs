@@ -101,7 +101,7 @@ namespace MachineLearning {
         /// <returns></returns>
         public float[,] Padding(float[,] map) {
             if (isDebugging) {
-                MLDebugger.AddToDebugOutput("Starting padding with a map of size " + map.GetLength(0) + "x" + map.GetLength(1) + ", " + 
+                MLDebugger.AddToDebugOutput("Starting padding with a map of size " + map.GetLength(0) + "x" + map.GetLength(1) + ", " +
                     "resulting in a map of size " + (map.GetLength(0) + 2) + "x" + (map.GetLength(1) + 2), false);
                 MLDebugger.RestartOperationWatch();
             }
@@ -269,13 +269,145 @@ namespace MachineLearning {
             return inputs;
         }
 
-        public void SerializeFilters() {
-
+        //This region contains the serialization and deserilization methods
+        #region
+        /// <summary>
+        /// Get a string containing all the filters of the CNN
+        /// </summary>
+        /// <returns></returns>
+        public string SerializeFilters() {
+            string output = "";
+            foreach (CNNFilter filter in cnnFilters) {
+                output += filter.filterName + ";" + filter.GetSerializedFilter() + ";" + filter.dimensions + ";";
+            }
+            return output;
         }
 
-        public void ParseFilters() {
+        /// <summary>
+        /// Pass a string containing CNN filters to pass them as new filters to this CNN
+        /// </summary>
+        /// <param name="filtersString"></param>
+        public void ParseFilters(string filtersString) {
+            Queue<string> parts = new Queue<string>(filtersString.Split(char.Parse(";")).ToList());
 
+            while (parts.Count > 0) {
+                cnnFilters.Add(new CNNFilter(parts.Dequeue(), parts.Dequeue(), int.Parse(parts.Dequeue())));
+                if (parts.Count < 3) break;
+            }
         }
+
+        /// <summary>
+        /// Get a string containing all the generated maps of the CNN
+        /// </summary>
+        /// <returns></returns>
+        public string SerializeGeneratedMaps() {
+            string output = "";
+            foreach (float[,] map in generatedMaps) {
+                output += map.GetLength(0) + ";" + map.GetLength(1) + ";";
+                for (int i = 0; i < map.GetLength(0); i++) {
+                    for (int j = 0; j < map.GetLength(1); j++) {
+                        output += map[i, j].ToString();
+                    }
+                    if (i < map.GetLength(0) - 1) output += ",";
+                }
+                output += ";";
+            }
+            return output;
+        }
+
+        /// <summary>
+        /// Pass a string containing generated CNN maps to pass them as new generated maps to this CNN
+        /// </summary>
+        /// <param name="mapsString"></param>
+        public void ParseGeneratedMaps(string mapsString) {
+            Queue<string> parts = new Queue<string>(mapsString.Split(char.Parse(";")).ToList());
+            while (parts.Count > 0) {
+                float[,] map = new float[int.Parse(parts.Dequeue()), int.Parse(parts.Dequeue())];
+                Coord coord = new Coord(0, 0, map.GetLength(0), map.GetLength(1));
+                foreach (char c in parts.Dequeue()) {
+                    switch (c.ToString()) {
+                        case ",":
+                            break;
+                        case ";":
+                            return;
+                        default:
+                            map[coord.x, coord.y] = int.Parse(c.ToString());
+                            coord.Increment();
+                            break;
+                    }
+                }
+                generatedMaps.Add(map);
+            }            
+        }
+
+        /// <summary>
+        /// Get a string containing all the pooled maps of the CNN
+        /// </summary>
+        /// <returns></returns>
+        public string SerializePooledMaps() {
+            string output = "";
+            foreach (float[,] map in pooledMaps) {
+                output += map.GetLength(0) + ";" + map.GetLength(1) + ";";
+                for (int i = 0; i < map.GetLength(0); i++) {
+                    for (int j = 0; j < map.GetLength(1); j++) {
+                        output += map[i, j].ToString();
+                    }
+                    if (i < map.GetLength(0) - 1) output += ",";
+                }
+                output += ";";
+            }
+            return output;
+        }
+
+        /// <summary>
+        /// Pass a string containing pooled CNN maps to pass them as new pooled maps to this CNN
+        /// </summary>
+        /// <param name="mapsString"></param>
+        public void ParsePooledMaps(string mapsString) {
+            Queue<string> parts = new Queue<string>(mapsString.Split(char.Parse(";")).ToList());
+            while (parts.Count > 0) {
+                float[,] map = new float[int.Parse(parts.Dequeue()), int.Parse(parts.Dequeue())];
+                Coord coord = new Coord(0, 0, map.GetLength(0), map.GetLength(1));
+                foreach (char c in parts.Dequeue()) {
+                    switch (c.ToString()) {
+                        case ",":
+                            break;
+                        case ";":
+                            return;
+                        default:
+                            map[coord.x, coord.y] = int.Parse(c.ToString());
+                            coord.Increment();
+                            break;
+                    }
+                }
+                pooledMaps.Add(map);
+            }
+        }
+
+        /// <summary>
+        /// Get a string containing all the outputs of the CNN
+        /// </summary>
+        /// <returns></returns>
+        public string SerializeOutputs() {
+            string output = "";
+            foreach (double op in outputs) {
+                output += op + ";";
+            }
+            return output;
+        }
+
+        /// <summary>
+        /// Pass a string containing the outputs of a CNN to pass them as new outputs to this CNN
+        /// </summary>
+        /// <param name="mapsString"></param>
+        public void ParseOutputs(string outputsString) {
+            Queue<string> parts = new Queue<string>(outputsString.Split(char.Parse(";")).ToList());
+
+            while (parts.Count > 0) {
+                outputs.Add(double.Parse(parts.Dequeue()));
+            }
+        }
+        #endregion
 
         public class CNNFilter {
             [SerializeReference] public string filterName = "";
@@ -283,7 +415,8 @@ namespace MachineLearning {
             [SerializeReference] public float[,] filter;
 
             /// <summary>
-            /// Create a new CNNFilter based on the given <paramref name="filter"/>. If the <paramref name="filterName"/> isn't given, it will be generated from the <paramref name="filter"/>
+            /// Create a new CNNFilter based on the given <paramref name="filter"/>. If the <paramref name="filterName"/> isn't given, it will be generated from the 
+            /// <paramref name="filter"/>
             /// </summary>
             /// <param name="filter"></param>
             /// <param name="filterName"></param>
@@ -303,9 +436,16 @@ namespace MachineLearning {
                 }
             }
 
-            public CNNFilter(string filterString, int dimension, string filterName = "") {
+            /// <summary>
+            /// Create a new CNNFilter by deserializing a filter string. The new filter will be <paramref name="filterName"/> with size a of <paramref name="dimension"/> and the
+            /// filter will consist of <paramref name="filterString"/>
+            /// </summary>
+            /// <param name="filterName"></param>
+            /// <param name="filterString"></param>
+            /// <param name="dimension"></param>
+            public CNNFilter(string filterName, string filterString, int dimension) {
                 ParseSerializedFilter(filterString, dimension);
-                this.dimensions = dimension;
+                dimensions = dimension;
                 if (!filterName.Equals("")) this.filterName = filterName;
                 else {
                     string s = "";
@@ -339,7 +479,7 @@ namespace MachineLearning {
                 filter = new float[dimension, dimension];
                 Coord coord = new Coord(0, 0, dimension, dimension);
                 foreach (char c in filterString) {
-                    switch(c.ToString()) {
+                    switch (c.ToString()) {
                         case ",":
                             break;
                         case ";":
@@ -802,7 +942,7 @@ namespace MachineLearning {
         public static string Serialize(CNN cnn) {
             string output = "";
 
-            
+
 
             return output;
         }

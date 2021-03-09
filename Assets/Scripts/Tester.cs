@@ -33,7 +33,7 @@ public class Tester : MonoBehaviour {
         if (Input.GetKeyDown(KeyCode.F)) {
             string filterString = cnn.GetFilters()[0].GetSerializedFilter();
             Debug.Log(filterString);
-            CNN.CNNFilter cnnFilter = new CNN.CNNFilter(filterString, 3, "Test");
+            CNN.CNNFilter cnnFilter = new CNN.CNNFilter("Test", filterString, 3);
             Debug.Log(cnnFilter.GetSerializedFilter());
         }
 
