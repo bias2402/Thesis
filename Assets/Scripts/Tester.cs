@@ -1,10 +1,13 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 using MachineLearning;
+using System.IO;
 
 public class Tester : MonoBehaviour {
     private CNN cnn = new CNN();
     [SerializeField] private CNNSaver cnnSaver = null;
+    private string savedCNN;
+    private int saveCounter = 0;
 
     void Start() {
         float[,] filter1 = new float[3, 3] {
@@ -30,15 +33,42 @@ public class Tester : MonoBehaviour {
     }
 
     void Update() {
-        if (Input.GetKeyDown(KeyCode.F)) {
-            string filterString = cnn.GetFilters()[0].GetSerializedFilter();
-            Debug.Log(filterString);
-            CNN.CNNFilter cnnFilter = new CNN.CNNFilter("Test", filterString, 3);
-            Debug.Log(cnnFilter.GetSerializedFilter());
+        if (Input.GetKeyDown(KeyCode.S)) {
+            savedCNN = MLSerializer.SerializeCNN(cnn);
+            StreamWriter sw = new StreamWriter("Assets/CNNOutput" + saveCounter.ToString() + ".txt", false); ;
+            sw.Write(savedCNN);
+            sw.Flush();
+            sw.Close();
+            Debug.Log("Saved");
+        }
+
+        if (Input.GetKeyDown(KeyCode.L)) {
+            cnn = MLSerializer.DeserializeCNN(savedCNN);
+            Debug.Log("Loaded");
+        }
+
+        if (Input.GetKeyDown(KeyCode.Return)) {
+            float[,] map = new float[9, 9] {
+                { 0, 0, 0, 1, 0, 1, 0, 1, 0 },
+                { 0, 0, 1, 0, 0, 1, 0, 0, 1 },
+                { 0, 1, 0, 1, 0, 0, 0, 1, 1 },
+                { 1, 0, 0, 1, 0, 0, 0, 0, 0 },
+                { 0, 0, 1, 0, 1, 1, 1, 1, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+                { 0, 1, 0, 1, 0, 0, 0, 1, 0 },
+                { 0, 0, 1, 0, 1, 0, 1, 0, 1 },
+                { 1, 1, 0, 1, 0, 1, 0, 1, 0 }
+            };
+            List<double> desiredOutputs = new List<double>() { 0, 0.25, -0.1, 0.75 };
+            List<double> outputs = cnn.Train(map, desiredOutputs);
+            string s = "";
+            foreach (double d in outputs) {
+                s += d + " ";
+            }
+            Debug.Log(s);
         }
 
         if (Input.GetKeyDown(KeyCode.Space)) {
-            Debug.ClearDeveloperConsole();
             cnn.Clear(true, true, false, false);
 
             Debug.Log("Running...\nStart map size is: [9,9]");

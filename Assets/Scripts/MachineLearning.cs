@@ -16,6 +16,14 @@ namespace MachineLearning {
         public List<double> outputs = new List<double>();
         private bool isDebugging = false;
 
+        public CNN() { }
+
+        /// <summary>
+        /// Creates a new CNN by deserializing the given <paramref name="cnnString"/>
+        /// </summary>
+        /// <param name="cnnString"></param>
+        public CNN(string cnnString) => DeserializeCNN(cnnString);
+
         /// <summary>
         /// Enables debugging. This method should never be called from anything but the MLDebugger!
         /// </summary>
@@ -85,7 +93,8 @@ namespace MachineLearning {
             List<double> annInputs = GenerateANNInputs(pooledMaps, "pooled maps");
 
             //If an ANN hasn't been created nor one is given, create a new ANN and save it
-            if (ann == null && this.ann == null) this.ann = new ANN(annInputs.Count, 0, 0, desiredOutputs.Count, ANN.ActivationFunction.ReLU, ANN.ActivationFunction.ReLU);
+            if (ann == null && this.ann == null) this.ann = new ANN(annInputs.Count, 0, 0, desiredOutputs.Count,
+                ActivationFunctionHandler.ActivationFunction.ReLU, ActivationFunctionHandler.ActivationFunction.ReLU);
 
             if (isDebugging) MLDebugger.EnableDebugging(this.ann);
 
@@ -240,7 +249,8 @@ namespace MachineLearning {
             List<double> inputs = GenerateANNInputs(maps, listName);
 
             //If an ANN hasn't been created nor is one given, create a new ANN and save it for later use
-            if (ann == null && this.ann == null) this.ann = new ANN(inputs.Count, 0, 0, nOutputs, ANN.ActivationFunction.ReLU, ANN.ActivationFunction.ReLU);
+            if (ann == null && this.ann == null) this.ann = new ANN(inputs.Count, 0, 0, nOutputs,
+                ActivationFunctionHandler.ActivationFunction.ReLU, ActivationFunctionHandler.ActivationFunction.ReLU);
 
             if (isDebugging) MLDebugger.EnableDebugging(this.ann);
             outputs = this.ann.Run(inputs);
@@ -269,26 +279,92 @@ namespace MachineLearning {
             return inputs;
         }
 
-        //This region contains the serialization and deserilization methods
+        //This region contains the serialization and deserilization methods of the CNN
         #region
         /// <summary>
-        /// Get a string containing all the filters of the CNN
+        /// Recursively serialize all filters, generated maps, pooled maps, outputs, and the internal ANN and return as a string
         /// </summary>
         /// <returns></returns>
-        public string SerializeFilters() {
+        public string SerializeCNN() {
             string output = "";
-            foreach (CNNFilter filter in cnnFilters) {
-                output += filter.filterName + ";" + filter.GetSerializedFilter() + ";" + filter.dimensions + ";";
+
+            output += "filters:";
+            if (cnnFilters.Count == 0) {
+                output += "none;";
+            } else {
+                for (int i = 0; i < cnnFilters.Count; i++) {
+                    output += cnnFilters[i].filterName + "," + cnnFilters[i].GetSerializedFilter() + "," + cnnFilters[i].dimensions;
+                    if (i < cnnFilters.Count - 1) output += ",";
+                }
+                output += ";\n";
             }
+
+            output += "generatedMaps:";
+            foreach (float[,] map in generatedMaps) {
+                output += map.GetLength(0) + "," + map.GetLength(1) + ",";
+                for (int i = 0; i < map.GetLength(0); i++) {
+                    for (int j = 0; j < map.GetLength(1); j++) {
+                        output += map[i, j].ToString();
+                    }
+                }
+                output += ",";
+            }
+            output += ";\n";
+
+            output += "pooledMaps:";
+            foreach (float[,] map in pooledMaps) {
+                output += map.GetLength(0) + "," + map.GetLength(1) + ",";
+                for (int i = 0; i < map.GetLength(0); i++) {
+                    for (int j = 0; j < map.GetLength(1); j++) {
+                        output += map[i, j].ToString();
+                    }
+                }
+                output += ",";
+            }
+            output += ";\n";
+
+            output += "outputs:";
+            for (int i = 0; i < outputs.Count; i++) {
+                output += outputs[i];
+                if (i < outputs.Count - 1) output += ",";
+            }
+            output += ";\n";
+
+            output += "ANN:" + ann.SerializeANN() + ";";
+
             return output;
         }
 
-        /// <summary>
-        /// Pass a string containing CNN filters to pass them as new filters to this CNN
-        /// </summary>
-        /// <param name="filtersString"></param>
-        public void ParseFilters(string filtersString) {
-            Queue<string> parts = new Queue<string>(filtersString.Split(char.Parse(";")).ToList());
+        void DeserializeCNN(string cnnString) {
+            Queue<string> parts = new Queue<string>(cnnString.Split(char.Parse(";")).ToList());
+            Queue<string> subparts;
+
+            while (parts.Count > 0) {
+                subparts = new Queue<string>(parts.Dequeue().Split(char.Parse(":")).ToList());
+
+                switch (subparts.Dequeue()) {
+                    case "filters":
+                        ParseFilters(subparts.Dequeue());
+                        break;
+                    case "generatedMaps":
+                        ParseGeneratedMaps(subparts.Dequeue());
+                        break;
+                    case "pooledMaps":
+                        ParsePooledMaps(subparts.Dequeue());
+                        break;
+                    case "outputs":
+                        ParseOutputs(subparts.Dequeue());
+                        break;
+                    case "ANN":
+                        UnityEngine.Debug.Log("ANN");
+                        ann = new ANN(subparts.Dequeue());
+                        break;
+                }
+            }
+        }
+
+        void ParseFilters(string filtersString) {
+            Queue<string> parts = new Queue<string>(filtersString.Split(char.Parse(",")).ToList());
 
             while (parts.Count > 0) {
                 cnnFilters.Add(new CNNFilter(parts.Dequeue(), parts.Dequeue(), int.Parse(parts.Dequeue())));
@@ -296,32 +372,10 @@ namespace MachineLearning {
             }
         }
 
-        /// <summary>
-        /// Get a string containing all the generated maps of the CNN
-        /// </summary>
-        /// <returns></returns>
-        public string SerializeGeneratedMaps() {
-            string output = "";
-            foreach (float[,] map in generatedMaps) {
-                output += map.GetLength(0) + ";" + map.GetLength(1) + ";";
-                for (int i = 0; i < map.GetLength(0); i++) {
-                    for (int j = 0; j < map.GetLength(1); j++) {
-                        output += map[i, j].ToString();
-                    }
-                    if (i < map.GetLength(0) - 1) output += ",";
-                }
-                output += ";";
-            }
-            return output;
-        }
-
-        /// <summary>
-        /// Pass a string containing generated CNN maps to pass them as new generated maps to this CNN
-        /// </summary>
-        /// <param name="mapsString"></param>
-        public void ParseGeneratedMaps(string mapsString) {
-            Queue<string> parts = new Queue<string>(mapsString.Split(char.Parse(";")).ToList());
+        void ParseGeneratedMaps(string mapsString) {
+            Queue<string> parts = new Queue<string>(mapsString.Split(char.Parse(",")).ToList());
             while (parts.Count > 0) {
+                if (parts.Count < 3) break;
                 float[,] map = new float[int.Parse(parts.Dequeue()), int.Parse(parts.Dequeue())];
                 Coord coord = new Coord(0, 0, map.GetLength(0), map.GetLength(1));
                 foreach (char c in parts.Dequeue()) {
@@ -331,41 +385,19 @@ namespace MachineLearning {
                         case ";":
                             return;
                         default:
-                            map[coord.x, coord.y] = int.Parse(c.ToString());
+                            map[coord.x, coord.y] = float.Parse(c.ToString());
                             coord.Increment();
                             break;
                     }
                 }
                 generatedMaps.Add(map);
-            }            
-        }
-
-        /// <summary>
-        /// Get a string containing all the pooled maps of the CNN
-        /// </summary>
-        /// <returns></returns>
-        public string SerializePooledMaps() {
-            string output = "";
-            foreach (float[,] map in pooledMaps) {
-                output += map.GetLength(0) + ";" + map.GetLength(1) + ";";
-                for (int i = 0; i < map.GetLength(0); i++) {
-                    for (int j = 0; j < map.GetLength(1); j++) {
-                        output += map[i, j].ToString();
-                    }
-                    if (i < map.GetLength(0) - 1) output += ",";
-                }
-                output += ";";
             }
-            return output;
         }
 
-        /// <summary>
-        /// Pass a string containing pooled CNN maps to pass them as new pooled maps to this CNN
-        /// </summary>
-        /// <param name="mapsString"></param>
-        public void ParsePooledMaps(string mapsString) {
-            Queue<string> parts = new Queue<string>(mapsString.Split(char.Parse(";")).ToList());
+        void ParsePooledMaps(string mapsString) {
+            Queue<string> parts = new Queue<string>(mapsString.Split(char.Parse(",")).ToList());
             while (parts.Count > 0) {
+                if (parts.Count < 3) break;
                 float[,] map = new float[int.Parse(parts.Dequeue()), int.Parse(parts.Dequeue())];
                 Coord coord = new Coord(0, 0, map.GetLength(0), map.GetLength(1));
                 foreach (char c in parts.Dequeue()) {
@@ -375,7 +407,7 @@ namespace MachineLearning {
                         case ";":
                             return;
                         default:
-                            map[coord.x, coord.y] = int.Parse(c.ToString());
+                            map[coord.x, coord.y] = float.Parse(c.ToString());
                             coord.Increment();
                             break;
                     }
@@ -384,24 +416,8 @@ namespace MachineLearning {
             }
         }
 
-        /// <summary>
-        /// Get a string containing all the outputs of the CNN
-        /// </summary>
-        /// <returns></returns>
-        public string SerializeOutputs() {
-            string output = "";
-            foreach (double op in outputs) {
-                output += op + ";";
-            }
-            return output;
-        }
-
-        /// <summary>
-        /// Pass a string containing the outputs of a CNN to pass them as new outputs to this CNN
-        /// </summary>
-        /// <param name="mapsString"></param>
-        public void ParseOutputs(string outputsString) {
-            Queue<string> parts = new Queue<string>(outputsString.Split(char.Parse(";")).ToList());
+        void ParseOutputs(string outputsString) {
+            Queue<string> parts = new Queue<string>(outputsString.Split(char.Parse(",")).ToList());
 
             while (parts.Count > 0) {
                 outputs.Add(double.Parse(parts.Dequeue()));
@@ -430,7 +446,7 @@ namespace MachineLearning {
                         for (int j = 0; j < filter.GetLength(1); j++) {
                             s += filter[i, j].ToString();
                         }
-                        if (i < filter.GetLength(0) - 1) s += ",";
+                        s += "-";
                     }
                     this.filterName = s;
                 }
@@ -453,7 +469,7 @@ namespace MachineLearning {
                         for (int j = 0; j < filter.GetLength(1); j++) {
                             s += filter[i, j].ToString();
                         }
-                        if (i < filter.GetLength(0) - 1) s += ",";
+                        s += "-";
                     }
                     this.filterName = s;
                 }
@@ -469,18 +485,16 @@ namespace MachineLearning {
                     for (int j = 0; j < filter.GetLength(1); j++) {
                         s += filter[i, j].ToString();
                     }
-                    if (i < filter.GetLength(0) - 1) s += ",";
-                    else s += ";";
                 }
                 return s;
             }
 
-            private void ParseSerializedFilter(string filterString, int dimension) {
+            void ParseSerializedFilter(string filterString, int dimension) {
                 filter = new float[dimension, dimension];
                 Coord coord = new Coord(0, 0, dimension, dimension);
                 foreach (char c in filterString) {
                     switch (c.ToString()) {
-                        case ",":
+                        case "-":
                             break;
                         case ";":
                             return;
@@ -530,12 +544,47 @@ namespace MachineLearning {
     }
 
     public class ANN {
-        public enum ActivationFunction { ReLU, Sigmoid, TanH }
         private int epochs = 1000;
         private double alpha = 0.05;
         private List<Layer> layers = new List<Layer>();
         private static System.Random random = new System.Random();
         private bool isDebugging = false;
+
+        /// <summary>
+        /// Create a new ANN consisting of an input layer with <paramref name="nInputsN"/> neurons, <paramref name="nHiddenL"/> hidden layers each with <paramref name="nhiddenN"/>
+        /// neurons and the activation function <paramref name="hiddenLAF"/>, and lastly the output layer with <paramref name="nOutputN"/> neurons and
+        /// activation function <paramref name="outputLAF"/>. Epochs (runs) and alpha (learning rate) can be adjusted, but will otherwise default to <paramref name="epochs"/> = 1000
+        /// and <paramref name="alpha"/> = 0.05.
+        /// </summary>
+        /// <param name="nInputsN"></param>
+        /// <param name="nHiddenL"></param>
+        /// <param name="nhiddenN"></param>
+        /// <param name="nOutputN"></param>
+        /// <param name="hiddenLAF"></param>
+        /// <param name="outputLAF"></param>
+        /// <param name="epochs"></param>
+        /// <param name="alpha"></param>
+        public ANN(int nInputsN, int nHiddenL, int nhiddenN, int nOutputN, ActivationFunctionHandler.ActivationFunction hiddenLAF, ActivationFunctionHandler.ActivationFunction outputLAF, int epochs = 1000, double alpha = 0.05) {
+            this.epochs = epochs;
+            this.alpha = alpha;
+
+            //Create the input layer
+            layers.Add(new Layer(nInputsN));
+
+            //Create the hidden layers
+            for (int i = 0; i < nHiddenL; i++) {
+                layers.Add(new Layer(nhiddenN, layers[layers.Count - 1], hiddenLAF));
+            }
+
+            //Create the output layer
+            layers.Add(new Layer(nOutputN, layers[layers.Count - 1], outputLAF));
+        }
+
+        /// <summary>
+        /// Creates a new ANN from an <paramref name="annString"/> by deserializing the ANN
+        /// </summary>
+        /// <param name="annString"></param>
+        public ANN(string annString) => DeserializeANN(annString);
 
         /// <summary>
         /// Enables debugging. This method should never be called from anything but the MLDebugger!
@@ -554,36 +603,6 @@ namespace MachineLearning {
                 }
             }
             return count;
-        }
-
-        /// <summary>
-        /// Create a new ANN consisting of an input layer with <paramref name="nInputsN"/> neurons, <paramref name="nHiddenL"/> hidden layers each with <paramref name="nhiddenN"/>
-        /// neurons and the activation function <paramref name="hiddenLAF"/>, and lastly the output layer with <paramref name="nOutputN"/> neurons and
-        /// activation function <paramref name="outputLAF"/>. Epochs (runs) and alpha (learning rate) can be adjusted, but will otherwise default to <paramref name="epochs"/> = 1000
-        /// and <paramref name="alpha"/> = 0.05.
-        /// </summary>
-        /// <param name="nInputsN"></param>
-        /// <param name="nHiddenL"></param>
-        /// <param name="nhiddenN"></param>
-        /// <param name="nOutputN"></param>
-        /// <param name="hiddenLAF"></param>
-        /// <param name="outputLAF"></param>
-        /// <param name="epochs"></param>
-        /// <param name="alpha"></param>
-        public ANN(int nInputsN, int nHiddenL, int nhiddenN, int nOutputN, ActivationFunction hiddenLAF, ActivationFunction outputLAF, int epochs = 1000, double alpha = 0.05) {
-            this.epochs = epochs;
-            this.alpha = alpha;
-
-            //Create the input layer
-            layers.Add(new Layer(nInputsN));
-
-            //Create the hidden layers
-            for (int i = 0; i < nHiddenL; i++) {
-                layers.Add(new Layer(nhiddenN, layers[layers.Count - 1], hiddenLAF));
-            }
-
-            //Create the output layer
-            layers.Add(new Layer(nOutputN, layers[layers.Count - 1], outputLAF));
         }
 
         /// <summary>
@@ -761,6 +780,54 @@ namespace MachineLearning {
             }
         }
 
+        /// <summary>
+        /// Serializes the ANN's fields and recursively serializes the layers and the layer's neurons, returning the output as a string
+        /// </summary>
+        /// <returns></returns>
+        public string SerializeANN() {
+            string output = "";
+            output += "epochs:" + epochs + ";";
+            output += "alpha:" + alpha + ";";
+            output += "layers:\n";
+            if (layers.Count == 0) {
+                output += "none;";
+            } else {
+                foreach (Layer layer in layers) {
+                    output += layer.SerializeLayer() + ",\n";
+                }
+            }
+            output += ";";
+            return output;
+        }
+
+        void DeserializeANN(string annString) {
+            Queue<string> parts = new Queue<string>(annString.Split(char.Parse(";")).ToList());
+            Queue<string> subparts;
+            string value;
+            Queue<string> listContent;
+
+            while (parts.Count > 0) {
+                subparts = new Queue<string>(parts.Dequeue().Split(char.Parse(":")).ToList());
+
+                switch (subparts.Dequeue()) {
+                    case "epochs":
+                        epochs = int.Parse(subparts.Dequeue());
+                        break;
+                    case "alpha":
+                        alpha = int.Parse(subparts.Dequeue());
+                        break;
+                    case "layers":
+                        value = subparts.Dequeue();
+                        if (value.Equals("none")) break;
+                        listContent = new Queue<string>(value.Split(char.Parse(",")).ToList());
+                        while (listContent.Count > 0) {
+                            layers.Add(new Layer(listContent.Dequeue()));
+                        }
+                        break;
+                }
+            }
+        }
+
         class Layer {
             public List<Neuron> neurons = new List<Neuron>();
 
@@ -772,7 +839,7 @@ namespace MachineLearning {
             /// <param name="numberOfNeuronsForLayer"></param>
             /// <param name="prevLayer"></param>
             /// <param name="activationFunction"></param>
-            public Layer(int numberOfNeuronsForLayer, Layer prevLayer = null, ActivationFunction activationFunction = ActivationFunction.ReLU) {
+            public Layer(int numberOfNeuronsForLayer, Layer prevLayer = null, ActivationFunctionHandler.ActivationFunction activationFunction = ActivationFunctionHandler.ActivationFunction.ReLU) {
                 for (int i = 0; i < numberOfNeuronsForLayer; i++) {
                     if (prevLayer != null)
                         neurons.Add(new Neuron(prevLayer.neurons.Count));
@@ -782,86 +849,228 @@ namespace MachineLearning {
             }
 
             /// <summary>
+            /// Create a new layer by deserializing the <paramref name="layerString"/>
+            /// </summary>
+            /// <param name="layerString"></param>
+            public Layer(string layerString) => DeserializeLayer(layerString);
+
+            /// <summary>
             /// Set the activation function in each neuron of this layer to <paramref name="activationFunction"/>.
             /// </summary>
             /// <param name="activationFunction"></param>
-            public void SetActivationFunctionForLayer(ActivationFunction activationFunction) { foreach (Neuron n in neurons) n.activationFunction = activationFunction; }
+            public void SetActivationFunctionForLayer(ActivationFunctionHandler.ActivationFunction activationFunction) {
+                foreach (Neuron n in neurons) n.activationFunction = activationFunction;
+            }
+
+            /// <summary>
+            /// Serializes the layer and its neurons and returns the output as a string
+            /// </summary>
+            /// <returns></returns>
+            public string SerializeLayer() {
+                string output = "neurons:\n";
+                foreach (Neuron n in neurons) {
+                    output += n.SerializeNeuron() + ",\n";
+                }
+                return output;
+            }
+
+            void DeserializeLayer(string layerString) {
+                Queue<string> neuronStrings = new Queue<string>(layerString.Split(char.Parse(":"))[1].Split(char.Parse(",")).ToList());
+
+                while (neuronStrings.Count > 0) {
+                    neurons.Add(new Neuron(neuronStrings.Dequeue()));
+                }
+            }
         }
 
         class Neuron {
-            public ActivationFunction activationFunction = ActivationFunction.ReLU;
+            public ActivationFunctionHandler.ActivationFunction activationFunction = ActivationFunctionHandler.ActivationFunction.ReLU;
             public bool isInputNeuron = false;
             public double inputValue = 0;
             public double bias = 0;
-            public List<double> weights = new List<double>();
-            public List<double> inputs = new List<double>();
             public double outputValue = 0;
             public double errorGradient = 0;
+            public List<double> weights = new List<double>();
+            public List<double> inputs = new List<double>();
 
             /// <summary>
-            /// Create a new input neuron.
+            /// Create a new input neuron
             /// </summary>
             public Neuron() => isInputNeuron = true;
 
             /// <summary>
-            /// Create a new hidden or output neuron. <paramref name="nInputsToNeuron"/> defines the number of weights generated for neuron.
+            /// Create a new hidden or output neuron. <paramref name="nInputsToNeuron"/> defines the number of weights generated for neuron
             /// </summary>
             /// <param name="nInputsToNeuron"></param>
             public Neuron(int nInputsToNeuron) {
                 if (nInputsToNeuron <= 0) return;
 
-                bias = random.NextDouble() * (1 - -1) + -1;
+                bias = random.NextDouble() * (1 + 1) - 1;
                 for (int i = 0; i < nInputsToNeuron; i++) {
-                    weights.Add(random.NextDouble() * (1 - -1) + -1);
+                    weights.Add(random.NextDouble() * (1 + 1) - 1);
+                }
+            }
+
+            /// <summary>
+            /// Create a new neuron by deserializing the <paramref name="neuronString"/>
+            /// </summary>
+            /// <param name="neuronString"></param>
+            public Neuron(string neuronString) => DeserializeNeuron(neuronString);
+
+            /// <summary>
+            /// Serializes the neuron's fields and return them as a string
+            /// </summary>
+            /// <returns></returns>
+            public string SerializeNeuron() {
+                string output = "";
+                output += "AF:" + activationFunction + ";";
+                output += "isInput:" + isInputNeuron + ";";
+                output += "inputValue:" + inputValue + ";";
+                output += "bias:" + bias + ";";
+                output += "outputValue:" + outputValue + ";";
+                output += "errorGradient:" + errorGradient + ";";
+                if (weights.Count == 0) {
+                    output += "weights:none;";
+                } else {
+                    output += "weights:";
+                    foreach (double weight in weights) {
+                        output += weight + ",";
+                    }
+                    output += ";";
+                }
+                if (inputs.Count == 0) {
+                    output += "inputs:none;";
+                } else {
+                    output += "inputs:";
+                    foreach (double input in inputs) {
+                        output += input + ",";
+                    }
+                    output += ";";
+                }
+                return output;
+            }
+
+            void DeserializeNeuron(string neuronString) {
+                Queue<string> parts = new Queue<string>(neuronString.Split(char.Parse(";")).ToList());
+                Queue<string> subparts;
+                string value;
+                Queue<string> listContent;
+
+                while (parts.Count > 0) {
+                    subparts = new Queue<string>(parts.Dequeue().Split(char.Parse(":")).ToList());
+
+                    switch (subparts.Dequeue()) {
+                        case "AF":
+                            activationFunction.Parse(subparts.Dequeue());
+                            break;
+                        case "isInput":
+                            isInputNeuron = bool.Parse(subparts.Dequeue());
+                            break;
+                        case "inputValue":
+                            inputValue = double.Parse(subparts.Dequeue());
+                            break;
+                        case "bias":
+                            bias = double.Parse(subparts.Dequeue());
+                            break;
+                        case "outputValue":
+                            outputValue = double.Parse(subparts.Dequeue());
+                            break;
+                        case "errorGradient":
+                            errorGradient = double.Parse(subparts.Dequeue());
+                            break;
+                        case "weights":
+                            value = subparts.Dequeue();
+                            if (value.Equals("none")) break;
+                            listContent = new Queue<string>(value.Split(char.Parse(",")).ToList());
+                            while (listContent.Count > 0) {
+                                weights.Add(double.Parse(listContent.Dequeue()));
+                            }
+                            break;
+                        case "inputs":
+                            value = subparts.Dequeue();
+                            if (value.Equals("none")) break;
+                            listContent = new Queue<string>(value.Split(char.Parse(",")).ToList());
+                            while (listContent.Count > 0) {
+                                inputs.Add(double.Parse(listContent.Dequeue()));
+                            }
+                            break;
+                    }
                 }
             }
         }
+    }
 
-        static class ActivationFunctionHandler {
-            public static double TriggerActivationFunction(ActivationFunction activationFunction, double value) {
-                switch (activationFunction) {
-                    case ActivationFunction.ReLU:
-                        return ReLU(value);
-                    case ActivationFunction.Sigmoid:
-                        return Sigmoid(value);
-                    case ActivationFunction.TanH:
-                        return TanH(value);
-                    default:
-                        throw new System.NullReferenceException("The activation function wasn't set properly!");
-                }
+    public static class ActivationFunctionHandler {
+        public enum ActivationFunction { ReLU, Sigmoid, TanH }
+
+        /// <summary>
+        /// Parse the given string into a value from the ActivationFunction enum
+        /// </summary>
+        /// <param name="actFunc"></param>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public static ActivationFunction Parse(this ActivationFunction actFunc, string value) {
+            foreach (ActivationFunction af in Enum.GetValues(typeof(ActivationFunction))) {
+                if (af.ToString().Equals(value)) return af;
             }
-
-            static double ReLU(double value) { return value > 0 ? value : 0; }
-
-            static double Sigmoid(double value) {
-                double k = Math.Exp(value);
-                return k / (1.0f + k);
-            }
-
-            static double TanH(double value) {
-                double k = Math.Exp(-2 * value);
-                return 2 / (1.0f + k) - 1;
-            }
-
-            public static double TriggerDerativeFunction(ActivationFunction activationFunction, double value) {
-                switch (activationFunction) {
-                    case ActivationFunction.ReLU:
-                        return ReLUDerivative(value);
-                    case ActivationFunction.Sigmoid:
-                        return SigmoidDerivative(value);
-                    case ActivationFunction.TanH:
-                        return TanHDerivative(value);
-                    default:
-                        throw new System.NullReferenceException("The activation function wasn't set properly!");
-                }
-            }
-
-            static double SigmoidDerivative(double value) { return value * (1 - value); }
-
-            static double ReLUDerivative(double value) { return value > 0 ? value : 0; }
-
-            static double TanHDerivative(double value) { return 1 - value * value; }
+            throw new TypeLoadException("Couldn't find the requested value (" + value + ") in the ActivationFunction enum");
         }
+
+        /// <summary>
+        /// Triggers the given <paramref name="activationFunction"/>'s calculation of <paramref name="value"/> and returns the result
+        /// </summary>
+        /// <param name="activationFunction"></param>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public static double TriggerActivationFunction(ActivationFunction activationFunction, double value) {
+            switch (activationFunction) {
+                case ActivationFunction.ReLU:
+                    return ReLU(value);
+                case ActivationFunction.Sigmoid:
+                    return Sigmoid(value);
+                case ActivationFunction.TanH:
+                    return TanH(value);
+                default:
+                    throw new System.NullReferenceException("The activation function wasn't set properly!");
+            }
+        }
+
+        /// <summary>
+        /// Triggers the given <paramref name="activationFunction"/>'s derivative calculation of <paramref name="value"/> and returns the result
+        /// </summary>
+        /// <param name="activationFunction"></param>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public static double TriggerDerativeFunction(ActivationFunction activationFunction, double value) {
+            switch (activationFunction) {
+                case ActivationFunction.ReLU:
+                    return ReLUDerivative(value);
+                case ActivationFunction.Sigmoid:
+                    return SigmoidDerivative(value);
+                case ActivationFunction.TanH:
+                    return TanHDerivative(value);
+                default:
+                    throw new NullReferenceException("The activation function wasn't set properly!");
+            }
+        }
+
+        static double ReLU(double value) { return value > 0 ? value : 0; }
+
+        static double Sigmoid(double value) {
+            double k = Math.Exp(value);
+            return k / (1.0f + k);
+        }
+
+        static double TanH(double value) {
+            double k = Math.Exp(-2 * value);
+            return 2 / (1.0f + k) - 1;
+        }
+
+        static double SigmoidDerivative(double value) { return value * (1 - value); }
+
+        static double ReLUDerivative(double value) { return value > 0 ? value : 0; }
+
+        static double TanHDerivative(double value) { return 1 - value * value; }
     }
 
     /// <summary>
@@ -939,12 +1148,24 @@ namespace MachineLearning {
 
     public static class MLSerializer {
 
-        public static string Serialize(CNN cnn) {
-            string output = "";
+        /// <summary>
+        /// Serialize the given <paramref name="cnn"/> object and return the resulting string
+        /// </summary>
+        /// <param name="cnn"></param>
+        /// <returns></returns>
+        public static string SerializeCNN(CNN cnn) {
+            if (cnn == null) throw new NullReferenceException("You didn't pass a CNN for serialization");
+            return cnn.SerializeCNN();
+        }
 
-
-
-            return output;
+        /// <summary>
+        /// Deserialize the given <paramref name="cnnString"/> and return a new CNN object
+        /// </summary>
+        /// <param name="cnnString"></param>
+        /// <returns></returns>
+        public static CNN DeserializeCNN(string cnnString) {
+            if (cnnString.Equals("")) throw new ArgumentException("The given CNN string is empty");
+            return new CNN(cnnString);
         }
     }
 }
