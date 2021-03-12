@@ -109,19 +109,19 @@ public class Tester : MonoBehaviour {
             Debug.Log(s);
 
             cnn.Pooling();
-            Debug.Log("First pooled map's size: [" + cnn.pooledMaps[0].GetLength(0) + "," + cnn.pooledMaps[0].GetLength(1) + "]");
+            Debug.Log("First pooled map's size: [" + cnn.GetPooledMaps()[0].GetLength(0) + "," + cnn.GetPooledMaps()[0].GetLength(1) + "]");
             s = "";
-            for (int i = 0; i < cnn.pooledMaps[0].GetLength(0); i++) {
-                for (int j = 0; j < cnn.pooledMaps[0].GetLength(1); j++) {
-                    s += cnn.pooledMaps[0][i, j].ToString();
-                    if (j != cnn.pooledMaps[0].GetLength(1) - 1) s += ",";
+            for (int i = 0; i < cnn.GetPooledMaps()[0].GetLength(0); i++) {
+                for (int j = 0; j < cnn.GetPooledMaps()[0].GetLength(1); j++) {
+                    s += cnn.GetPooledMaps()[0][i, j].ToString();
+                    if (j != cnn.GetPooledMaps()[0].GetLength(1) - 1) s += ",";
                 }
                 s += "\n";
             }
             Debug.Log(s);
 
-            List<double> outputs = cnn.FullyConnected(4, cnn.pooledMaps, "pooled maps");
-            Debug.Log("Run. #Neurons: " + cnn.ann.GetNeuronCount() + ". Outputs generated: " + outputs.Count);
+            List<double> outputs = cnn.FullyConnected(4, cnn.GetPooledMaps(), "pooled maps");
+            Debug.Log("Run. #Neurons: " + cnn.GetANN().GetNeuronCount() + ". Outputs generated: " + outputs.Count);
             s = "";
             foreach (double d in outputs) {
                 s += d + " ";
@@ -130,7 +130,7 @@ public class Tester : MonoBehaviour {
 
             List<double> desiredOutputs = new List<double>() { 0, 0.25, -0.1, 0.75 };
             //outputs = cnn.Train(desiredOutputs);
-            Debug.Log("Train. #Neurons: " + cnn.ann.GetNeuronCount() + ". Outputs generated: " + outputs.Count);
+            Debug.Log("Train. #Neurons: " + cnn.GetANN().GetNeuronCount() + ". Outputs generated: " + outputs.Count);
             s = "";
             foreach (double d in outputs) {
                 s += d + " ";
