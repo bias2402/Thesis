@@ -89,7 +89,10 @@ namespace MachineLearning {
         /// </summary>
         /// <param name="input"></param>
         public int Run(float[,] input) {
-            if (isDebugging) MLDebugger.AddToDebugOutput("Starting CNN default Running", false);
+            if (isDebugging) {
+                MLDebugger.Start();
+                MLDebugger.AddToDebugOutput("Starting CNN default Running", false);
+            }
 
             Convolution(input);
 
@@ -108,8 +111,10 @@ namespace MachineLearning {
         /// <param name="ann"></param>
         /// <returns></returns>
         public List<double> Train(float[,] input, List<double> desiredOutputs, ANN ann = null) {
-            if (isDebugging) MLDebugger.AddToDebugOutput("Starting CNN default Training", false);
-
+            if (isDebugging) {
+                MLDebugger.Start();
+                MLDebugger.AddToDebugOutput("Starting CNN default Training", false);
+            }
             Convolution(input);
 
             Pooling();
@@ -135,6 +140,7 @@ namespace MachineLearning {
         /// <returns></returns>
         public float[,] Padding(float[,] map) {
             if (isDebugging) {
+                MLDebugger.Start();
                 MLDebugger.AddToDebugOutput("Starting padding with a map of size " + map.GetLength(0) + "x" + map.GetLength(1) + ", " +
                     "resulting in a map of size " + (map.GetLength(0) + 2) + "x" + (map.GetLength(1) + 2), false);
                 MLDebugger.RestartOperationWatch();
@@ -159,6 +165,7 @@ namespace MachineLearning {
         /// <param name="input"></param>
         public List<float[,]> Convolution(float[,] map, int stride = 1) {
             if (isDebugging) {
+                MLDebugger.Start();
                 MLDebugger.AddToDebugOutput("Starting convolution with a map of size " + map.GetLength(0) + "x" + map.GetLength(1) + ", " + cnnFilters.Count + " filters, and a stride of " + stride, false);
                 MLDebugger.RestartOperationWatch();
             }
@@ -214,6 +221,7 @@ namespace MachineLearning {
         /// <param name="stride"></param>
         public List<float[,]> Pooling(int kernelDimension = 2, int stride = 2) {
             if (isDebugging) {
+                MLDebugger.Start();
                 MLDebugger.AddToDebugOutput("Starting pooling of all maps with a kernel with dimensions of " + kernelDimension + ", and a stride of " + stride, false);
                 MLDebugger.RestartOperationWatch();
             }
@@ -267,6 +275,7 @@ namespace MachineLearning {
         /// <returns></returns>
         public List<double> FullyConnected(int nOutputs, List<float[,]> maps, string listName, ANN ann = null) {
             if (isDebugging) {
+                MLDebugger.Start();
                 MLDebugger.AddToDebugOutput("Starting Fully Connected with a map of size expecting " + nOutputs + " number of outputs, given " + maps.Count + " maps", false);
                 MLDebugger.RestartOperationWatch();
             }
@@ -290,7 +299,11 @@ namespace MachineLearning {
         /// <param name="maps"></param>
         /// <returns></returns>
         List<double> GenerateANNInputs(List<float[,]> maps, string listName) {
-            MLDebugger.AddToDebugOutput("Starting input generation from maps in " + listName, false);
+            if (isDebugging) {
+                MLDebugger.Start();
+                MLDebugger.AddToDebugOutput("Starting input generation from maps in " + listName, false);
+            }
+
             List<double> inputs = new List<double>();
             for (int i = 0; i < maps.Count; i++) {
                 for (int x = 0; x < maps[i].GetLength(0); x++) {
@@ -622,6 +635,7 @@ namespace MachineLearning {
         /// <returns></returns>
         public List<double> Run(List<double> inputs) {
             if (isDebugging) {
+                MLDebugger.Start();
                 MLDebugger.AddToDebugOutput("Running ANN", false);
                 MLDebugger.RestartOperationWatch();
             }
@@ -642,6 +656,7 @@ namespace MachineLearning {
         /// <returns></returns>
         public List<double> Train(List<double> inputs, List<double> desiredOutputs) {
             if (isDebugging) {
+                MLDebugger.Start();
                 MLDebugger.AddToDebugOutput("Training ANN for " + epochs + " epochs", false);
                 MLDebugger.RestartOperationWatch();
             }
@@ -666,6 +681,7 @@ namespace MachineLearning {
         /// <returns></returns>
         public List<double> Train(List<List<double>> inputs, List<List<double>> desiredOutputs) {
             if (isDebugging) {
+                MLDebugger.Start();
                 MLDebugger.AddToDebugOutput("Training ANN for " + epochs + " epochs", false);
                 MLDebugger.RestartOperationWatch();
             }
@@ -1054,21 +1070,19 @@ namespace MachineLearning {
         /// Enables debugging of the given CNN. This also enables debugging of the CNN's internal ANN
         /// </summary>
         /// <param name="cnn"></param>
-        public static void EnableDebugging(CNN cnn) {
-            cnn.EnableDebugging();
-            if (!isRunning) StartTotalWatch();
-        }
+        public static void EnableDebugging(CNN cnn) => cnn.EnableDebugging();
 
         /// <summary>
         /// Enables debugging of the given ANN
         /// </summary>
         /// <param name="ann"></param>
-        public static void EnableDebugging(ANN ann) {
-            ann.EnableDebugging();
-            if (!isRunning) StartTotalWatch();
-        }
+        public static void EnableDebugging(ANN ann) => ann.EnableDebugging();
 
-        static void StartTotalWatch() {
+        /// <summary>
+        /// Start the total watch
+        /// </summary>
+        public static void Start() {
+            if (isRunning) return;
             totalStopwatch.Start();
             operationStopwatch.Start();
             AddLineToOutput();

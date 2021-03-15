@@ -84,7 +84,7 @@ public class AgentController : MonoBehaviour {
                 mapGenerator.StartGeneration();
                 if (!isTraining) StartCoroutine(InformPlayer());
                 else {
-                    if (cnnSaver == null) {
+                    if (cnnSaver == null || string.IsNullOrEmpty(cnnSaver.serializedCNN)) {
                         cnn = new CNN();
                         if (debugAI) MLDebugger.EnableDebugging(cnn);
                         AddCNNFilters(cnn);
@@ -187,7 +187,7 @@ public class AgentController : MonoBehaviour {
         rb.isKinematic = false;
         cameraFollower.enabled = true;
         GetBlockDataFromBlockBelowAgent();
-        //FeedDataToCNN(new List<double>() { 0, 0, 0, 0 });
+        FeedDataToCNN(new List<double>() { 0, 0, 0, 0 });
     }
 
     void Update() {
@@ -215,6 +215,8 @@ public class AgentController : MonoBehaviour {
         }
     }
 
+    //Movement and environment handling
+    #region
     void AgentMovementHandling() {
         switch (agentType) {
             case AgentType.Human:
@@ -398,6 +400,7 @@ public class AgentController : MonoBehaviour {
                 break;
         }
     }
+    #endregion
 
     void FeedDataToCNN(List<double> givenInput) {
         Debug.Log("Starting training session...");
