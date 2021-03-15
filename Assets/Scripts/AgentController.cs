@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using System.IO;
+using MachineLearning;
 
 public enum AgentType { Human, ANN, Playback }
 public enum PlayStyles { Speedrunner, Explorer, Treasurehunter, Done }
@@ -20,7 +21,7 @@ public class AgentController : MonoBehaviour {
     [SerializeField] private Text moveSuggestion = null;
     [SerializeField] private bool isTraining = false;
     [SerializeField] private CNNSaver cnnSaver = null;
-    private MachineLearning.CNN cnn = null;
+    private CNN cnn = null;
 
     [Header("Recording & Playback")]
     [SerializeField] private DataCollector dataCollector = new DataCollector();
@@ -84,11 +85,11 @@ public class AgentController : MonoBehaviour {
                 if (!isTraining) StartCoroutine(InformPlayer());
                 else {
                     if (cnnSaver == null) {
-                        cnn = new MachineLearning.CNN();
-                        if (debugAI) MachineLearning.MLDebugger.EnableDebugging(cnn);
+                        cnn = new CNN();
+                        if (debugAI) MLDebugger.EnableDebugging(cnn);
                         AddCNNFilters(cnn);
                     } else {
-                        cnn = cnnSaver.cnn;
+                        cnn = MLSerializer.DeserializeCNN(cnnSaver.serializedCNN);
                     }
                 }
                 break;
@@ -414,9 +415,9 @@ public class AgentController : MonoBehaviour {
             }
         }
 
-        //if (cnnSaver.cnn == null) cnnSaver.cnn = new MachineLearning.CNN();
+        //if (cnnSaver.cnn == null) cnnSaver.cnn = new CNN();
         //if (cnnSaver != null) AddCNNFilters();
-        //List<MachineLearning.CNN.CNNFilter> filters = cnnSaver.cnn.GetFilters();
+        //List<CNN.CNNFilter> filters = cnnSaver.cnn.GetFilters();
         //for (int i = 0; i < filters.Count; i++) {
         //    Debug.Log(filters[i].GetFilterString());
         //}
@@ -425,7 +426,7 @@ public class AgentController : MonoBehaviour {
             case TestCombination.Test1:
                 List<double> outputs = cnn.Train(visibleMap, givenInput);
                 moveSuggestion.text = "Suggested move: " + GetMoveFromInt(GetIndexOfMaxOutput(outputs));
-                MachineLearning.MLDebugger.Print();
+                MLDebugger.Print();
                 Debug.Log("Session complete. Time elapsed: " + (Time.realtimeSinceStartup - elapsed) + " seconds");
                 break;
             case TestCombination.Test2:
@@ -482,7 +483,7 @@ public class AgentController : MonoBehaviour {
         }
     }
 
-    void AddCNNFilters(MachineLearning.CNN cnn) {
+    void AddCNNFilters(CNN cnn) {
         float[,] pathHorizontal = new float[3, 3] {
             { -1, -1, -1 },
             { 0.5F, 0.5F, 0.5F },

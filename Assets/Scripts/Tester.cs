@@ -6,7 +6,6 @@ using System.IO;
 public class Tester : MonoBehaviour {
     private CNN cnn = new CNN();
     [SerializeField] private CNNSaver cnnSaver = null;
-    private string savedCNN;
     private int saveCounter = 0;
 
     void Start() {
@@ -34,17 +33,17 @@ public class Tester : MonoBehaviour {
 
     void Update() {
         if (Input.GetKeyDown(KeyCode.S)) {
-            savedCNN = MLSerializer.SerializeCNN(cnn);
-            StreamWriter sw = new StreamWriter("Assets/CNNOutput" + saveCounter.ToString() + ".txt", false); ;
-            sw.Write(savedCNN);
-            sw.Flush();
-            sw.Close();
+            cnnSaver.serializedCNN = MLSerializer.SerializeCNN(cnn);
             Debug.Log("Saved");
         }
 
         if (Input.GetKeyDown(KeyCode.L)) {
-            cnn = MLSerializer.DeserializeCNN(savedCNN);
+            cnn = MLSerializer.DeserializeCNN(cnnSaver.serializedCNN);
             Debug.Log("Loaded");
+        }
+
+        if (Input.GetKeyDown(KeyCode.C)) {
+            Debug.Log(cnn.GetANN().GetNeuronCount());
         }
 
         if (Input.GetKeyDown(KeyCode.Return)) {
@@ -59,6 +58,7 @@ public class Tester : MonoBehaviour {
                 { 0, 0, 1, 0, 1, 0, 1, 0, 1 },
                 { 1, 1, 0, 1, 0, 1, 0, 1, 0 }
             };
+            map = cnn.Padding(map);
             List<double> desiredOutputs = new List<double>() { 0, 0.25, -0.1, 0.75 };
             List<double> outputs = cnn.Train(map, desiredOutputs);
             string s = "";
@@ -136,8 +136,6 @@ public class Tester : MonoBehaviour {
                 s += d + " ";
             }
             Debug.Log(s);
-
-            cnnSaver.cnn = cnn;
         }
     }
 }
