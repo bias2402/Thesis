@@ -410,7 +410,7 @@ public class AgentController : MonoBehaviour {
                 Ray ray = new Ray(new Vector3(x, 1, z), Vector3.down);
                 Physics.Raycast(ray, out RaycastHit hit, 4, blockMask); //Raycast downwards
                 if (hit.collider != null) {
-                    visibleMap[vmx, vmz] = GetBlockValue(hit);
+                    visibleMap[vmx, vmz] = GetBlockValue(hit.collider.GetComponent<BlockData>().blockType);
                 }
             }
         }
@@ -466,8 +466,8 @@ public class AgentController : MonoBehaviour {
         }
     }
 
-    float GetBlockValue(RaycastHit hit) {
-        switch (hit.collider.GetComponent<BlockData>().blockType) {
+    float GetBlockValue(BlockType type) {
+        switch (type) {
             case BlockType.Goal:
                 return 1;
             case BlockType.LavaBlock:
@@ -484,46 +484,184 @@ public class AgentController : MonoBehaviour {
     }
 
     void AddCNNFilters(CNN cnn) {
+        //Path filters
+        #region
         float[,] pathHorizontal = new float[3, 3] {
-            { -1, -1, -1 },
-            { 0.5F, 0.5F, 0.5F },
-            { -1, -1, -1 }
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.None), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.Platform) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.None), GetBlockValue(BlockType.None) }
         };
         cnn.AddNewFilter(pathHorizontal, "Path Horizontal");
 
         float[,] pathVertical = new float[3, 3] {
-            { -1, 0.5F, -1 },
-            { -1, 0.5F, -1 },
-            { -1, 0.5F, -1 }
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.None) }
         };
         cnn.AddNewFilter(pathVertical, "Path Vertical");
 
         float[,] pathUpperRightCorner = new float[3, 3] {
-            { -1, 0.5F, -1 },
-            { -1, 0.5F, 0.5f },
-            { -1, -1, -1 }
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.Platform) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.None), GetBlockValue(BlockType.None) }
         };
         cnn.AddNewFilter(pathUpperRightCorner, "Path Upper Right Corner");
 
         float[,] pathLowerRightCorner = new float[3, 3] {
-            { -1, -1, -1 },
-            { -1, 0.5F, 0.5f },
-            { -1, 0.5f, -1 }
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.None), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.Platform) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.None) }
         };
         cnn.AddNewFilter(pathLowerRightCorner, "Path Lower Right Corner");
 
         float[,] pathUpperLeftCorner = new float[3, 3] {
-            { -1, 0.5f, -1 },
-            { 0.5f, 0.5F, -1 },
-            { -1, -1, -1 }
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.None), GetBlockValue(BlockType.None) }
         };
         cnn.AddNewFilter(pathUpperLeftCorner, "Path Upper Left Corner");
 
         float[,] pathLowerLeftCorner = new float[3, 3] {
-            { -1, -1, -1 },
-            { 0.5f, 0.5F, -1 },
-            { -1, 0.5f, -1 }
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.None), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.None) }
         };
         cnn.AddNewFilter(pathLowerLeftCorner, "Path Lower Left Corner");
+        #endregion
+
+        //Treasure filters
+        #region
+        float[,] treasureHorizontal = new float[3, 3] {
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.None), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.Treasure), GetBlockValue(BlockType.Platform) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.None), GetBlockValue(BlockType.None) }
+        };
+        cnn.AddNewFilter(treasureHorizontal, "Treasure Horizontal");
+
+        float[,] treasureVertical = new float[3, 3] {
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Treasure), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.None) }
+        };
+        cnn.AddNewFilter(treasureVertical, "Treasure Vertical");
+
+        float[,] treasureUpperRightCorner = new float[3, 3] {
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Treasure), GetBlockValue(BlockType.Platform) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.None), GetBlockValue(BlockType.None) }
+        };
+        cnn.AddNewFilter(treasureUpperRightCorner, "Treasure Upper Right Corner");
+
+        float[,] treasureLowerRightCorner = new float[3, 3] {
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.None), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Treasure), GetBlockValue(BlockType.Platform) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.None) }
+        };
+        cnn.AddNewFilter(treasureLowerRightCorner, "Treasure Lower Right Corner");
+
+        float[,] treasureUpperLeftCorner = new float[3, 3] {
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.Treasure), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.None), GetBlockValue(BlockType.None) }
+        };
+        cnn.AddNewFilter(treasureUpperLeftCorner, "Treasure Upper Left Corner");
+
+        float[,] treasureLowerLeftCorner = new float[3, 3] {
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.None), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.Treasure), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.None) }
+        };
+        cnn.AddNewFilter(treasureLowerLeftCorner, "Treasure Lower Left Corner");
+        #endregion
+
+        //Spawn filters
+        #region
+        float[,] spawnHorizontal = new float[3, 3] {
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.None), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.Spawn), GetBlockValue(BlockType.Platform) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.None), GetBlockValue(BlockType.None) }
+        };
+        cnn.AddNewFilter(spawnHorizontal, "Spawn Horizontal");
+
+        float[,] spawnVertical = new float[3, 3] {
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Spawn), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.None) }
+        };
+        cnn.AddNewFilter(spawnVertical, "Spawn Vertical");
+
+        float[,] spawnUpperRightCorner = new float[3, 3] {
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Spawn), GetBlockValue(BlockType.Platform) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.None), GetBlockValue(BlockType.None) }
+        };
+        cnn.AddNewFilter(spawnUpperRightCorner, "Spawn Upper Right Corner");
+
+        float[,] spawnLowerRightCorner = new float[3, 3] {
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.None), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Spawn), GetBlockValue(BlockType.Platform) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.None) }
+        };
+        cnn.AddNewFilter(spawnLowerRightCorner, "Spawn Lower Right Corner");
+
+        float[,] spawnUpperLeftCorner = new float[3, 3] {
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.Spawn), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.None), GetBlockValue(BlockType.None) }
+        };
+        cnn.AddNewFilter(spawnUpperLeftCorner, "Spawn Upper Left Corner");
+
+        float[,] spawnLowerLeftCorner = new float[3, 3] {
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.None), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.Spawn), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.None) }
+        };
+        cnn.AddNewFilter(spawnLowerLeftCorner, "Spawn Lower Left Corner");
+        #endregion
+
+        //Goal filters
+        #region
+        float[,] goalHorizontal = new float[3, 3] {
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.None), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.Goal), GetBlockValue(BlockType.Platform) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.None), GetBlockValue(BlockType.None) }
+        };
+        cnn.AddNewFilter(goalHorizontal, "Goal Horizontal");
+
+        float[,] goalVertical = new float[3, 3] {
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Goal), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.None) }
+        };
+        cnn.AddNewFilter(goalVertical, "Goal Vertical");
+
+        float[,] goalUpperRightCorner = new float[3, 3] {
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Goal), GetBlockValue(BlockType.Platform) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.None), GetBlockValue(BlockType.None) }
+        };
+        cnn.AddNewFilter(goalUpperRightCorner, "Goal Upper Right Corner");
+
+        float[,] goalLowerRightCorner = new float[3, 3] {
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.None), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Goal), GetBlockValue(BlockType.Platform) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.None) }
+        };
+        cnn.AddNewFilter(goalLowerRightCorner, "Goal Lower Right Corner");
+
+        float[,] goalUpperLeftCorner = new float[3, 3] {
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.Goal), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.None), GetBlockValue(BlockType.None) }
+        };
+        cnn.AddNewFilter(goalUpperLeftCorner, "Goal Upper Left Corner");
+
+        float[,] goalLowerLeftCorner = new float[3, 3] {
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.None), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.Goal), GetBlockValue(BlockType.None) },
+            { GetBlockValue(BlockType.None), GetBlockValue(BlockType.Platform), GetBlockValue(BlockType.None) }
+        };
+        cnn.AddNewFilter(goalLowerLeftCorner, "Goal Lower Left Corner");
+        #endregion
     }
 }

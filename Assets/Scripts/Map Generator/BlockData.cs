@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public enum BlockType { LavaBlock, Spawn, Goal, Platform, Treasure };
+public enum BlockType { LavaBlock, Spawn, Goal, Platform, Treasure, None };
 public class BlockData : MonoBehaviour {
     [HideInInspector] public int lavaSpreadChance;
 
