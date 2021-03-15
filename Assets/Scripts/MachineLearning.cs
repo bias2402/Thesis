@@ -123,8 +123,6 @@ namespace MachineLearning {
             }
             Convolution(input);
             Pooling();
-
-            if (isDebugging) MLDebugger.EnableDebugging(ann);
             
             FullyConnected(pooledMaps, "pooled maps", desiredOutputs, desiredOutputs.Count);
             return outputs;
