@@ -187,11 +187,12 @@ public class AgentController : MonoBehaviour {
         rb.isKinematic = false;
         cameraFollower.enabled = true;
         GetBlockDataFromBlockBelowAgent();
-        FeedDataToCNN(new List<double>() { 0, 0, 0, 0 });
     }
 
     void Update() {
         if (!isAlive || didReachGoal || isPreparing) return;
+
+        if (Input.GetKeyDown(KeyCode.Space)) FeedDataToCNN(new List<double>() { 0, 0, 0, 0 });
 
         if (isReadyToMove) {
             AgentMovementHandling();
@@ -403,9 +404,6 @@ public class AgentController : MonoBehaviour {
     #endregion
 
     void FeedDataToCNN(List<double> givenInput) {
-        Debug.Log("Starting training session...");
-        float elapsed = Time.realtimeSinceStartup;
-
         float[,] visibleMap = new float[11, 11];
         LayerMask blockMask = LayerMask.GetMask("Block");
         for (int x = (int)transform.position.x - 5, vmx = 0; x < (int)transform.position.x + 5; x++, vmx++) { //Go from left to right
@@ -418,19 +416,12 @@ public class AgentController : MonoBehaviour {
             }
         }
 
-        //if (cnnSaver.cnn == null) cnnSaver.cnn = new CNN();
-        //if (cnnSaver != null) AddCNNFilters();
-        //List<CNN.CNNFilter> filters = cnnSaver.cnn.GetFilters();
-        //for (int i = 0; i < filters.Count; i++) {
-        //    Debug.Log(filters[i].GetFilterString());
-        //}
-
         switch (testComb) {
             case TestCombination.Test1:
                 List<double> outputs = cnn.Train(visibleMap, givenInput);
+                //List<double> outputs = cnn.Run(visibleMap);
                 moveSuggestion.text = "Suggested move: " + GetMoveFromInt(GetIndexOfMaxOutput(outputs));
                 MLDebugger.Print();
-                Debug.Log("Session complete. Time elapsed: " + (Time.realtimeSinceStartup - elapsed) + " seconds");
                 break;
             case TestCombination.Test2:
 

@@ -50,6 +50,12 @@ namespace MachineLearning {
         #endregion
 
         /// <summary>
+        /// Allows setting a custom made ANN as the CNN's internal ANN for the Fully-Connected layer calculations
+        /// </summary>
+        /// <param name="ann"></param>
+        public void SetANN(ANN ann) => this.ann = ann;
+
+        /// <summary>
         /// Enables debugging. This method should never be called from anything but the MLDebugger!
         /// </summary>
         internal void EnableDebugging() => isDebugging = true;
@@ -83,12 +89,12 @@ namespace MachineLearning {
         //CNN methods for generating outputs and training network
         #region
         /// <summary>
-        /// Run the CNN on the given 2D float array with the default settings and return the network's decision.
+        /// Run the CNN on the given <paramref name="input"/> using default settings and return outputs.
         /// Default settings: padding = 0, convolution stride = 1, pooling kernel = 2, pooling stride = 2, outputs = 3
         /// Flow: Convolution, Pooling, Fully Connected (Decision Making)
         /// </summary>
         /// <param name="input"></param>
-        public int Run(float[,] input) {
+        public List<double> Run(float[,] input) {
             if (isDebugging) {
                 MLDebugger.Start();
                 MLDebugger.AddToDebugOutput("Starting CNN default Running", false);
@@ -98,38 +104,29 @@ namespace MachineLearning {
 
             Pooling();
 
-            FullyConnected(3, pooledMaps, "pooled maps");
-            return (int)outputs.Max();
+            FullyConnected(pooledMaps, "pooled maps", 3);
+            return outputs;
         }
 
         /// <summary>
-        /// Train the CNN on the given 2D float array with the default settings.
-        /// Default settings: padding = 0, convolution stride = 1, pooling kernel = 2, pooling stride = 2, outputs = 3
+        /// Train the CNN on the given <paramref name="input"/> using default settings and return outputs.
+        /// Default settings: padding = 0, convolution stride = 1, pooling kernel = 2, pooling stride = 2, outputs = <paramref name="desiredOutputs"/>.Count
         /// Flow: Convolution, Pooling, Fully Connected (Decision Making)
         /// </summary>
+        /// <param name="input"></param>
         /// <param name="desiredOutputs"></param>
-        /// <param name="ann"></param>
         /// <returns></returns>
-        public List<double> Train(float[,] input, List<double> desiredOutputs, ANN ann = null) {
+        public List<double> Train(float[,] input, List<double> desiredOutputs) {
             if (isDebugging) {
                 MLDebugger.Start();
                 MLDebugger.AddToDebugOutput("Starting CNN default Training", false);
             }
             Convolution(input);
-
             Pooling();
 
-            //Generate a list of inputs
-            List<double> annInputs = GenerateANNInputs(pooledMaps, "pooled maps");
-
-            //If an ANN hasn't been created nor one is given, create a new ANN and save it
-            if (ann == null && this.ann == null) this.ann = new ANN(annInputs.Count, 0, 0, desiredOutputs.Count,
-                ActivationFunctionHandler.ActivationFunction.ReLU, ActivationFunctionHandler.ActivationFunction.ReLU);
-
-            if (isDebugging) MLDebugger.EnableDebugging(this.ann);
-
-            this.ann.Train(annInputs, desiredOutputs);
-            outputs = this.ann.GetOutputs();
+            if (isDebugging) MLDebugger.EnableDebugging(ann);
+            
+            FullyConnected(pooledMaps, "pooled maps", desiredOutputs, desiredOutputs.Count);
             return outputs;
         }
 
@@ -266,14 +263,38 @@ namespace MachineLearning {
         }
 
         /// <summary>
-        /// Run the generated maps through an ANN (if an ANN doesn't exist nor is given, it creates a new using the <paramref name="nOutputs"/> paramter)
-        /// and return the calculated outputs from the ANN. The <paramref name="ann"/> parameter allows for custom ANN's to be used.
-        /// If an ANN is given, it will be used and it will override the currently saved ANN (if any). 
+        /// Run the list of <paramref name="maps"/> through the ANN (creates a new using the <paramref name="nOutputs"/> parameter if necessary)
+        /// and return the calculated outputs from the ANN. <paramref name="mapListsName"/> is used by the MLDebugger
         /// </summary>
+        /// <param name="maps"></param>
+        /// <param name="mapListsName"></param>
         /// <param name="nOutputs"></param>
-        /// <param name="ann"></param>
         /// <returns></returns>
-        public List<double> FullyConnected(int nOutputs, List<float[,]> maps, string listName, ANN ann = null) {
+        public List<double> FullyConnected(List<float[,]> maps, string mapListsName, int nOutputs = 3) {
+            //Generate a list of inputs
+            List<double> inputs = GenerateANNInputs(maps, mapListsName);
+
+            //Create a new ANN if one doesn't exist already
+            if (ann == null) ann = new ANN(inputs.Count, 0, 0, nOutputs,
+                ActivationFunctionHandler.ActivationFunction.ReLU, ActivationFunctionHandler.ActivationFunction.ReLU);
+
+            if (isDebugging) MLDebugger.EnableDebugging(ann);
+            outputs = ann.Run(inputs);
+
+            if (isDebugging) MLDebugger.AddToDebugOutput("Fully Connected Layer complete", true);
+            return outputs;
+        }
+
+        /// <summary>
+        /// Train the ANN using the list of <paramref name="maps"/> (if an ANN doesn't exist, one is created a new using the <paramref name="nOutputs"/> 
+        /// parameter). Backpropagation of the ANN is performed using the <paramref name="desiredOutputs"/> parameter
+        /// </summary>
+        /// <param name="maps"></param>
+        /// <param name="listName"></param>
+        /// <param name="desiredOutputs"></param>
+        /// <param name="nOutputs"></param>
+        /// <returns></returns>
+        public List<double> FullyConnected(List<float[,]> maps, string listName, List<double> desiredOutputs, int nOutputs = 3) {
             if (isDebugging) {
                 MLDebugger.Start();
                 MLDebugger.AddToDebugOutput("Starting Fully Connected with a map of size expecting " + nOutputs + " number of outputs, given " + maps.Count + " maps", false);
@@ -282,12 +303,12 @@ namespace MachineLearning {
             //Generate a list of inputs
             List<double> inputs = GenerateANNInputs(maps, listName);
 
-            //If an ANN hasn't been created nor is one given, create a new ANN and save it for later use
-            if (ann == null && this.ann == null) this.ann = new ANN(inputs.Count, 0, 0, nOutputs,
+            //Create a new ANN if one doesn't exist already
+            if (ann == null) ann = new ANN(inputs.Count, 0, 0, nOutputs,
                 ActivationFunctionHandler.ActivationFunction.ReLU, ActivationFunctionHandler.ActivationFunction.ReLU);
 
             if (isDebugging) MLDebugger.EnableDebugging(this.ann);
-            outputs = this.ann.Run(inputs);
+            outputs = ann.Train(inputs, desiredOutputs);
 
             if (isDebugging) MLDebugger.AddToDebugOutput("Fully Connected Layer complete", true);
             return outputs;
@@ -318,7 +339,7 @@ namespace MachineLearning {
         }
         #endregion
 
-        //Deserialization methods, used by the MLSerializer
+        //Serilization and deserialization methods, used by the MLSerializer
         #region
         public string SerializeMap(float[,] map) {
             string output = "";
@@ -1134,6 +1155,7 @@ namespace MachineLearning {
 #endif
             totalStopwatch.Reset();
             operationStopwatch.Reset();
+            output = "";
         }
     }
 

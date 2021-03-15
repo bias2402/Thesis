@@ -120,7 +120,7 @@ public class Tester : MonoBehaviour {
             }
             Debug.Log(s);
 
-            List<double> outputs = cnn.FullyConnected(4, cnn.GetPooledMaps(), "pooled maps");
+            List<double> outputs = cnn.FullyConnected(cnn.GetPooledMaps(), "pooled maps", 4);
             Debug.Log("Run. #Neurons: " + cnn.GetANN().GetNeuronCount() + ". Outputs generated: " + outputs.Count);
             s = "";
             foreach (double d in outputs) {
@@ -129,7 +129,7 @@ public class Tester : MonoBehaviour {
             Debug.Log(s);
 
             List<double> desiredOutputs = new List<double>() { 0, 0.25, -0.1, 0.75 };
-            //outputs = cnn.Train(desiredOutputs);
+            //outputs = cnn.Train(map, desiredOutputs);
             Debug.Log("Train. #Neurons: " + cnn.GetANN().GetNeuronCount() + ". Outputs generated: " + outputs.Count);
             s = "";
             foreach (double d in outputs) {
