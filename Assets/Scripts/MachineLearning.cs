@@ -165,6 +165,7 @@ namespace MachineLearning {
                 MLDebugger.RestartOperationWatch();
             }
 
+            convolutedMaps.Clear();
             float dimx, dimy, value;
             Coord newMapCoord, mapCoord;
             float[,] newMap;
@@ -220,6 +221,8 @@ namespace MachineLearning {
                 MLDebugger.AddToDebugOutput("Starting pooling of all maps with a kernel with dimensions of " + kernelDimension + ", and a stride of " + stride, false);
                 MLDebugger.RestartOperationWatch();
             }
+
+            pooledMaps.Clear();
 
             foreach (float[,] map in convolutedMaps) {
                 //The dimensions for the output map is calculated using this formula: OutputDimension = 1 + (inputDimension - filterDimension) / Stride   <=>   0 = 1 + (N - F) / S
@@ -279,7 +282,7 @@ namespace MachineLearning {
             if (isDebugging) MLDebugger.EnableDebugging(ann);
             outputs = ann.Run(inputs);
 
-            if (isDebugging) MLDebugger.AddToDebugOutput("Fully Connected Layer complete", true);
+            if (isDebugging) MLDebugger.AddToDebugOutput("Fully Connected Layer complete", false);
             return outputs;
         }
 
@@ -305,10 +308,10 @@ namespace MachineLearning {
             if (ann == null) ann = new ANN(inputs.Count, 0, 0, nOutputs,
                 ActivationFunctionHandler.ActivationFunction.ReLU, ActivationFunctionHandler.ActivationFunction.ReLU);
 
-            if (isDebugging) MLDebugger.EnableDebugging(this.ann);
+            if (isDebugging) MLDebugger.EnableDebugging(ann);
             outputs = ann.Train(inputs, desiredOutputs);
 
-            if (isDebugging) MLDebugger.AddToDebugOutput("Fully Connected Layer complete", true);
+            if (isDebugging) MLDebugger.AddToDebugOutput("Fully Connected Layer complete", false);
             return outputs;
         }
 
@@ -692,7 +695,7 @@ namespace MachineLearning {
 
         /// <summary>
         /// Run the network with <paramref name="inputs"/>, after which backpropagation is run using <paramref name="desiredOutputs"/>.
-        /// Number of iterations is based on the amount of data sets nested in lists, as well as network's 'epochs' setting. The network will
+        /// Number of iterations is based on the amount of data sets nested in lists, as well as the network's 'epochs' setting. The network will
         /// iterate for list's count times epochs (which can become a lot)!
         /// </summary>
         /// <param name="inputs"></param>
@@ -1154,6 +1157,7 @@ namespace MachineLearning {
             totalStopwatch.Reset();
             operationStopwatch.Reset();
             output = "";
+            isRunning = false;
         }
     }
 

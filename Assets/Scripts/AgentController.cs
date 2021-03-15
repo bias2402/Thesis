@@ -406,12 +406,15 @@ public class AgentController : MonoBehaviour {
     void FeedDataToCNN(List<double> givenInput) {
         float[,] visibleMap = new float[11, 11];
         LayerMask blockMask = LayerMask.GetMask("Block");
-        for (int x = (int)transform.position.x - 5, vmx = 0; x < (int)transform.position.x + 5; x++, vmx++) { //Go from left to right
-            for (int z = (int)transform.position.z - 5, vmz = 0; z < (int)transform.position.x + 5; z++, vmz++) { //Go from bottom to top
-                Ray ray = new Ray(new Vector3(x, 1, z), Vector3.down);
+        int posX = (int)transform.position.x, posZ = (int)transform.position.z;
+        for (int x = posX - 5, vmx = 0; x <= posX + 5; x++, vmx++) { //Go from left to right
+            for (int z = posZ - 5, vmz = 0; z <= posZ + 5; z++, vmz++) { //Go from bottom to top
+                Ray ray = new Ray(new Vector3(x, 1, z), Vector3.down * 4);
                 Physics.Raycast(ray, out RaycastHit hit, 4, blockMask); //Raycast downwards
                 if (hit.collider != null) {
                     visibleMap[vmx, vmz] = GetBlockValue(hit.collider.GetComponent<BlockData>().blockType);
+                } else {
+                    visibleMap[vmx, vmz] = GetBlockValue(BlockType.None);
                 }
             }
         }
