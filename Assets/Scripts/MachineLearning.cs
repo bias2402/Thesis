@@ -288,14 +288,16 @@ namespace MachineLearning {
 
         /// <summary>
         /// Train the ANN using the list of <paramref name="maps"/> (if an ANN doesn't exist, one is created a new using the <paramref name="nOutputs"/> 
-        /// parameter). Backpropagation of the ANN is performed using the <paramref name="desiredOutputs"/> parameter
+        /// parameter). Backpropagation of the ANN is performed using the <paramref name="desiredOutputs"/> parameter, and the <paramref name="epochs"/>
+        /// parameter allows for a custom number of iterations
         /// </summary>
         /// <param name="maps"></param>
         /// <param name="listName"></param>
         /// <param name="desiredOutputs"></param>
         /// <param name="nOutputs"></param>
+        /// <param name="epochs"></param>
         /// <returns></returns>
-        public List<double> FullyConnected(List<float[,]> maps, string listName, List<double> desiredOutputs, int nOutputs = 3) {
+        public List<double> FullyConnected(List<float[,]> maps, string listName, List<double> desiredOutputs, int nOutputs = 3, int epochs = 0) {
             if (isDebugging) {
                 MLDebugger.Start();
                 MLDebugger.AddToDebugOutput("Starting Fully Connected with a map of size expecting " + nOutputs + " number of outputs, given " + maps.Count + " maps", false);
@@ -309,7 +311,8 @@ namespace MachineLearning {
                 ActivationFunctionHandler.ActivationFunction.ReLU, ActivationFunctionHandler.ActivationFunction.ReLU);
 
             if (isDebugging) MLDebugger.EnableDebugging(ann);
-            outputs = ann.Train(inputs, desiredOutputs);
+            if (epochs == 0) outputs = ann.Train(inputs, desiredOutputs);
+            else outputs = ann.Train(inputs, desiredOutputs, epochs);
 
             if (isDebugging) MLDebugger.AddToDebugOutput("Fully Connected Layer complete", false);
             return outputs;
@@ -671,7 +674,32 @@ namespace MachineLearning {
 
         /// <summary>
         /// Run the network with <paramref name="inputs"/>, after which backpropagation is run using <paramref name="desiredOutputs"/>.
-        /// Number of iterations is based on the network's 'epochs' setting!
+        /// Number of iterations is based on the given <paramref name="epochs"/> parameter
+        /// </summary>
+        /// <param name="inputs"></param>
+        /// <param name="desiredOutputs"></param>
+        /// <param name="epochs"></param>
+        /// <returns></returns>
+        public List<double> Train(List<double> inputs, List<double> desiredOutputs, int epochs) {
+            if (isDebugging) {
+                MLDebugger.Start();
+                MLDebugger.AddToDebugOutput("Training ANN for " + epochs + " epochs", false);
+                MLDebugger.RestartOperationWatch();
+            }
+
+            for (int i = 0; i < epochs; i++) {
+                PassInputs(inputs);
+                CalculateOutput();
+                Backpropagation(desiredOutputs);
+            }
+
+            if (isDebugging) MLDebugger.AddToDebugOutput("Training complete", true);
+            return GetOutputs();
+        }
+
+        /// <summary>
+        /// Run the network with <paramref name="inputs"/>, after which backpropagation is run using <paramref name="desiredOutputs"/>.
+        /// Number of iterations is based on the network's 'epochs' setting
         /// </summary>
         /// <param name="inputs"></param>
         /// <param name="desiredOutputs"></param>
@@ -696,7 +724,7 @@ namespace MachineLearning {
         /// <summary>
         /// Run the network with <paramref name="inputs"/>, after which backpropagation is run using <paramref name="desiredOutputs"/>.
         /// Number of iterations is based on the amount of data sets nested in lists, as well as the network's 'epochs' setting. The network will
-        /// iterate for list's count times epochs (which can become a lot)!
+        /// iterate each list in input times epochs (which can become a lot)
         /// </summary>
         /// <param name="inputs"></param>
         /// <param name="desiredOutputs"></param>

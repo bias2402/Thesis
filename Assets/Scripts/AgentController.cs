@@ -421,8 +421,8 @@ public class AgentController : MonoBehaviour {
 
         switch (testComb) {
             case TestCombination.Test1:
-                List<double> outputs = cnn.Train(visibleMap, givenInput);
-                //List<double> outputs = cnn.Run(visibleMap);
+                //List<double> outputs = cnn.Train(visibleMap, givenInput);
+                List<double> outputs = cnn.Run(visibleMap);
                 moveSuggestion.text = "Suggested move: " + GetMoveFromInt(GetIndexOfMaxOutput(outputs));
                 MLDebugger.Print();
                 break;
