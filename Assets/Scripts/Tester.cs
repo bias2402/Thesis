@@ -96,7 +96,7 @@ public class Tester : MonoBehaviour {
             }
             Debug.Log(s);
 
-            List<float[,]> maps = cnn.Convolution(map);
+            List<float[,]> maps = cnn.Convolution(map, ActivationFunctionHandler.ActivationFunction.ReLU);
             Debug.Log("Count: " + maps.Count + ", first map's size: [" + maps[0].GetLength(0) + "," + maps[0].GetLength(1) + "]");
             s = "";
             for (int i = 0; i < maps[0].GetLength(0); i++) {
@@ -108,7 +108,7 @@ public class Tester : MonoBehaviour {
             }
             Debug.Log(s);
 
-            cnn.Pooling();
+            cnn.MaxPooling(ActivationFunctionHandler.ActivationFunction.ReLU);
             Debug.Log("First pooled map's size: [" + cnn.GetPooledMaps()[0].GetLength(0) + "," + cnn.GetPooledMaps()[0].GetLength(1) + "]");
             s = "";
             for (int i = 0; i < cnn.GetPooledMaps()[0].GetLength(0); i++) {

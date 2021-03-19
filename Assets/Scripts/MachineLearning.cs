@@ -9,12 +9,15 @@ using UnityEngine;
 
 namespace MachineLearning {
     public class CNN {
+        private bool isDebugging = false;
+        //Calculation fields
         private List<CNNFilter> cnnFilters = new List<CNNFilter>();
         private List<float[,]> convolutedMaps = new List<float[,]>();
         private List<float[,]> pooledMaps = new List<float[,]>();
         private List<double> outputs = new List<double>();
         private ANN ann = null;
-        private bool isDebugging = false;
+        //Execution memory fields
+        private Stack<ExecutionStep> executionMemory = new Stack<ExecutionStep>();
 
         //Get methods
         #region
@@ -61,14 +64,16 @@ namespace MachineLearning {
         internal void EnableDebugging() => isDebugging = true;
 
         /// <summary>
-        /// Clear the CNN completely. Set the parameters to only clear some of the data.
+        /// Clear the CNN completely. Set the parameters to only clear some parts
         /// </summary>
+        /// <param name="clearExecutionMemory"></param>
         /// <param name="clearOutputs"></param>
         /// <param name="clearGeneratedMaps"></param>
         /// <param name="clearFilters"></param>
         /// <param name="clearANN"></param>
-        public void Clear(bool clearOutputs = true, bool clearGeneratedMaps = true, bool clearFilters = true, bool clearANN = true) {
+        public void Clear(bool clearExecutionMemory = true, bool clearOutputs = true, bool clearGeneratedMaps = true, bool clearFilters = true, bool clearANN = true) {
             if (isDebugging) MLDebugger.AddToDebugOutput("Clearing specified data from the CNN", false);
+            if (clearExecutionMemory) executionMemory.Clear();
             if (clearOutputs) outputs.Clear();
             if (clearGeneratedMaps) convolutedMaps.Clear();
             if (clearFilters) cnnFilters.Clear();
@@ -90,27 +95,28 @@ namespace MachineLearning {
         #region
         /// <summary>
         /// Run the CNN on the given <paramref name="input"/> using default settings and return outputs.
-        /// Default settings: padding = 0, convolution stride = 1, pooling kernel = 2, pooling stride = 2, outputs = 3
+        /// Default settings: padding = 0, convolution stride = 1, pooling kernel = 2, pooling stride = 2, outputs = 3, ActivationFunction = ReLU
         /// Flow: Convolution, Pooling, Fully Connected (Decision Making)
         /// </summary>
         /// <param name="input"></param>
-        public List<double> Run(float[,] input) {
+        public List<double> Run(float[,] input, int desiredNumberOfOutputs = 3) {
             if (isDebugging) {
                 MLDebugger.Start();
                 MLDebugger.AddToDebugOutput("Starting CNN default Running", false);
             }
 
-            Convolution(input);
+            Convolution(input, ActivationFunctionHandler.ActivationFunction.ReLU);
 
-            Pooling();
+            MaxPooling(ActivationFunctionHandler.ActivationFunction.ReLU);
 
-            FullyConnected(pooledMaps, "pooled maps", 3);
+            FullyConnected(pooledMaps, "pooled maps", desiredNumberOfOutputs);
             return outputs;
         }
 
         /// <summary>
         /// Train the CNN on the given <paramref name="input"/> using default settings and return outputs.
-        /// Default settings: padding = 0, convolution stride = 1, pooling kernel = 2, pooling stride = 2, outputs = <paramref name="desiredOutputs"/>.Count
+        /// Default settings: padding = 0, convolution stride = 1, pooling kernel = 2, pooling stride = 2, outputs = <paramref name="desiredOutputs"/>.Count,
+        /// ActivationFunction = ReLU
         /// Flow: Convolution, Pooling, Fully Connected (Decision Making)
         /// </summary>
         /// <param name="input"></param>
@@ -121,15 +127,17 @@ namespace MachineLearning {
                 MLDebugger.Start();
                 MLDebugger.AddToDebugOutput("Starting CNN default Training", false);
             }
-            Convolution(input);
-            Pooling();
-            
-            FullyConnected(pooledMaps, "pooled maps", desiredOutputs, desiredOutputs.Count);
+            Convolution(input, ActivationFunctionHandler.ActivationFunction.ReLU);
+            MaxPooling(ActivationFunctionHandler.ActivationFunction.ReLU);
+
+            FullyConnected(pooledMaps, "pooled maps", desiredOutputs.Count);
+            Backpropagation(desiredOutputs);
+
             return outputs;
         }
 
         /// <summary>
-        /// Add padding of zeros to the inputted map (<paramref name="map"/>)
+        /// Add padding of zeros to the inputted map (<paramref name="map"/>) increasing the size with two in both dimensions
         /// </summary>
         /// <param name="map"></param>
         /// <returns></returns>
@@ -150,18 +158,23 @@ namespace MachineLearning {
                     else newMap[x, y] = map[x - 1, y - 1];
                 }
             }
+            executionMemory.Push(new ExecutionStep(ExecutionStep.Operation.Padding));
+
             if (isDebugging) MLDebugger.AddToDebugOutput("Padding Layer complete", true);
             return newMap;
         }
 
         /// <summary>
-        /// Run the convolution on <paramref name="input"/> resulting in a list of maps: one map per filter used. 
+        /// Run the convolution on <paramref name="map"/> resulting in a list of maps: one map per filter. Apply the activation function to each value of the new map after creation
         /// </summary>
-        /// <param name="input"></param>
-        public List<float[,]> Convolution(float[,] map, int stride = 1) {
+        /// <param name="map"></param>
+        /// <param name="af"></param>
+        /// <param name="stride"></param>
+        public List<float[,]> Convolution(float[,] map, ActivationFunctionHandler.ActivationFunction af, int stride = 1) {
             if (isDebugging) {
                 MLDebugger.Start();
-                MLDebugger.AddToDebugOutput("Starting convolution with a map of size " + map.GetLength(0) + "x" + map.GetLength(1) + ", " + cnnFilters.Count + " filters, and a stride of " + stride, false);
+                MLDebugger.AddToDebugOutput("Starting convolution with a map of size " + map.GetLength(0) + "x" + map.GetLength(1) + ", " + cnnFilters.Count +
+                                            " filters, and a stride of " + stride, false);
                 MLDebugger.RestartOperationWatch();
             }
 
@@ -201,7 +214,9 @@ namespace MachineLearning {
                     newMap[newMapCoord.x, newMapCoord.y] = value;
                     if (newMapCoord.Increment()) break;
                 }
-                convolutedMaps.Add(newMap);
+                convolutedMaps.Add(ApplyActivationFunctionToMap(newMap, af));
+
+                executionMemory.Push(new ExecutionStep(ExecutionStep.Operation.Convolution, map, convolutedMaps[convolutedMaps.Count - 1], filter.dimensions, stride));
             }
 
             if (isDebugging) MLDebugger.AddToDebugOutput("Convolution Layer complete", true);
@@ -209,13 +224,13 @@ namespace MachineLearning {
         }
 
         /// <summary>
-        /// Pool the given <paramref name="map"/>, keeping the highest value found in the kernel for each stride.
-        /// Kernel is a square of size <paramref name="kernelDimension"/>, and it's moved using <paramref name="stride"/>.
+        /// Pool the convoluted maps, keeping the highest value found in the kernel for each stride.
+        /// Kernel is a square of size <paramref name="kernelDimension"/>, and it is moved using <paramref name="stride"/>.
         /// </summary>
-        /// <param name="map"></param>
-        /// <param name="filterDimension"></param>
+        /// <param name="af"></param>
+        /// <param name="kernelDimension"></param>
         /// <param name="stride"></param>
-        public List<float[,]> Pooling(int kernelDimension = 2, int stride = 2) {
+        public List<float[,]> MaxPooling(ActivationFunctionHandler.ActivationFunction af, int kernelDimension = 2, int stride = 2) {
             if (isDebugging) {
                 MLDebugger.Start();
                 MLDebugger.AddToDebugOutput("Starting pooling of all maps with a kernel with dimensions of " + kernelDimension + ", and a stride of " + stride, false);
@@ -223,6 +238,13 @@ namespace MachineLearning {
             }
 
             pooledMaps.Clear();
+
+            float[,] newMap;
+            float[,] derivedMap;
+            Coord newMapCoord;
+            Coord mapCoord;
+            float maxValue = 0;
+            
 
             foreach (float[,] map in convolutedMaps) {
                 //The dimensions for the output map is calculated using this formula: OutputDimension = 1 + (inputDimension - filterDimension) / Stride   <=>   0 = 1 + (N - F) / S
@@ -235,17 +257,26 @@ namespace MachineLearning {
                 if (Math.Abs(Math.Round(dimx) - dimx) > 0.000001f || Math.Abs(Math.Round(dimy) - dimy) > 0.000001)
                     throw new ArgumentException("Output calculation didn't result in an integer! Adjust your stride or kernel dimension so: outputMapSize = 1 + (inputMapSize - filterSize) / stride = integer");
 
-                float[,] newMap = new float[(int)dimx, (int)dimy];                                              //The map will shrink during pooling, so the new map is smaller in both dimensions
-                Coord newMapCoord = new Coord(0, 0, newMap.GetLength(0), newMap.GetLength(1));                  //Coordinates on the new map, where a the calculated value will be placed
-                Coord mapCoord = new Coord(0, 0, map.GetLength(0) - kernelDimension, map.GetLength(1) - kernelDimension); //Coordinates on the old map, from which the filter is applied
-                List<float> kernelValues = new List<float>();
+                newMap = new float[(int)dimx, (int)dimy];                                                   //The map will shrink during pooling, so the new map is smaller in both dimensions
+                derivedMap = new float[map.GetLength(0), map.GetLength(1)];                                 //This map is created and saved for later use during backpropagation
+                newMapCoord = new Coord(0, 0, newMap.GetLength(0), newMap.GetLength(1));                    //Coordinates on the new map, where a the calculated value will be placed
+                mapCoord = new Coord(0, 0, map.GetLength(0) - kernelDimension, map.GetLength(1) - kernelDimension); //Coordinates on the old map, from which the filter is applied
 
                 while (true) {
-                    kernelValues.Clear();
                     //Store values found through the kernel from current mapCoord
                     for (int y = mapCoord.y; y < mapCoord.y + kernelDimension; y++) {
                         for (int x = mapCoord.x; x < mapCoord.x + kernelDimension; x++) {
-                            kernelValues.Add(map[x, y]);
+                            if (x == mapCoord.x && y == mapCoord.y) {
+                                derivedMap[x, y] = maxValue = map[x, y];
+                            } else if (map[x, y] > maxValue) {
+                                derivedMap[x, y] = maxValue = map[x, y];
+
+                                if ((x - 1) < mapCoord.x) {
+                                    derivedMap[x, y - 1] = 0;
+                                } else {
+                                    derivedMap[x - 1, y] = 0;
+                                }
+                            }
                         }
                     }
 
@@ -253,14 +284,24 @@ namespace MachineLearning {
                     mapCoord.Increment(stride);
 
                     //Apply the value to newMap and increment newMapCoord
-                    newMap[newMapCoord.x, newMapCoord.y] = kernelValues.Max();
+                    newMap[newMapCoord.x, newMapCoord.y] = maxValue;
                     if (newMapCoord.Increment()) break;
                 }
-                pooledMaps.Add(newMap);
+                pooledMaps.Add(ApplyActivationFunctionToMap(newMap, af));
+                executionMemory.Push(new ExecutionStep(ExecutionStep.Operation.MaxPooling, map, pooledMaps[pooledMaps.Count - 1], kernelDimension, stride, derivedMap));
             }
 
             if (isDebugging) MLDebugger.AddToDebugOutput("Pooling Layer complete", true);
             return pooledMaps;
+        }
+
+        float[,] ApplyActivationFunctionToMap(float[,] map, ActivationFunctionHandler.ActivationFunction af) {
+            for (int i = 0; i < map.GetLength(0); i++) {
+                for (int j = 0; j < map.GetLength(1); j++) {
+                    map[i, j] = (float)ActivationFunctionHandler.TriggerActivationFunction(af, map[i, j]);
+                }
+            }
+            return map;
         }
 
         /// <summary>
@@ -281,38 +322,7 @@ namespace MachineLearning {
 
             if (isDebugging) MLDebugger.EnableDebugging(ann);
             outputs = ann.Run(inputs);
-
-            if (isDebugging) MLDebugger.AddToDebugOutput("Fully Connected Layer complete", false);
-            return outputs;
-        }
-
-        /// <summary>
-        /// Train the ANN using the list of <paramref name="maps"/> (if an ANN doesn't exist, one is created a new using the <paramref name="nOutputs"/> 
-        /// parameter). Backpropagation of the ANN is performed using the <paramref name="desiredOutputs"/> parameter, and the <paramref name="epochs"/>
-        /// parameter allows for a custom number of iterations
-        /// </summary>
-        /// <param name="maps"></param>
-        /// <param name="listName"></param>
-        /// <param name="desiredOutputs"></param>
-        /// <param name="nOutputs"></param>
-        /// <param name="epochs"></param>
-        /// <returns></returns>
-        public List<double> FullyConnected(List<float[,]> maps, string listName, List<double> desiredOutputs, int nOutputs = 3, int epochs = 0) {
-            if (isDebugging) {
-                MLDebugger.Start();
-                MLDebugger.AddToDebugOutput("Starting Fully Connected with a map of size expecting " + nOutputs + " number of outputs, given " + maps.Count + " maps", false);
-                MLDebugger.RestartOperationWatch();
-            }
-            //Generate a list of inputs
-            List<double> inputs = GenerateANNInputs(maps, listName);
-
-            //Create a new ANN if one doesn't exist already
-            if (ann == null) ann = new ANN(inputs.Count, 0, 0, nOutputs,
-                ActivationFunctionHandler.ActivationFunction.ReLU, ActivationFunctionHandler.ActivationFunction.ReLU);
-
-            if (isDebugging) MLDebugger.EnableDebugging(ann);
-            if (epochs == 0) outputs = ann.Train(inputs, desiredOutputs);
-            else outputs = ann.Train(inputs, desiredOutputs, epochs);
+            executionMemory.Push(new ExecutionStep(ExecutionStep.Operation.FullyConnected, ann));
 
             if (isDebugging) MLDebugger.AddToDebugOutput("Fully Connected Layer complete", false);
             return outputs;
@@ -340,6 +350,31 @@ namespace MachineLearning {
 
             MLDebugger.AddToDebugOutput("Input generation complete with " + inputs.Count + " inputs for the ANN", false);
             return inputs;
+        }
+
+        /// <summary>
+        /// Perform the backpropagation of the CNN to update values of the ANN's and filters
+        /// </summary>
+        public void Backpropagation(List<double> desiredOutputs) {
+            while (executionMemory.Count > 0) {
+                ExecutionStep exeStep = executionMemory.Pop();
+                switch (exeStep.operation) {
+                    case ExecutionStep.Operation.AveragePooling:
+
+                        break;
+                    case ExecutionStep.Operation.Convolution:
+                        break;
+                    case ExecutionStep.Operation.FullyConnected:
+                        exeStep.ann.Backpropagation(desiredOutputs);
+                        break;
+                    case ExecutionStep.Operation.MaxPooling:
+                        //TO DO: Build output maps from the saved maps, where everything but the max value is set to 0
+                        
+                        break;
+                    case ExecutionStep.Operation.Padding:
+                        break;
+                }
+            }
         }
         #endregion
 
@@ -434,7 +469,7 @@ namespace MachineLearning {
 
         public class CNNFilter {
             [SerializeReference] public string filterName = "";
-            [SerializeReference] public float dimensions = 3;
+            [SerializeReference] public int dimensions = 3;
             [SerializeReference] public float[,] filter;
 
             /// <summary>
@@ -485,7 +520,7 @@ namespace MachineLearning {
                             }
                             break;
                         case "dimension":
-                            dimensions = float.Parse(filterParts.Dequeue());
+                            dimensions = int.Parse(filterParts.Dequeue());
                             break;
                         case "filter":
                             ParseSerializedFilter(filterParts.Dequeue());
@@ -523,12 +558,12 @@ namespace MachineLearning {
         }
 
         struct Coord {
-            public int x;
-            public int y;
-            private int xMin;
-            private int yMin;
-            private int xMax;
-            private int yMax;
+            public int x { get; private set; }
+            public int y { get; private set; }
+            public int xMin { get; }
+            public int yMin { get; }
+            public int xMax { get; }
+            public int yMax { get; }
 
             public Coord(int xMin, int yMin, int xMax, int yMax) {
                 x = this.xMin = xMin;
@@ -554,6 +589,50 @@ namespace MachineLearning {
                     }
                 }
                 return false;
+            }
+        }
+
+        struct ExecutionStep {
+            public enum Operation { AveragePooling, Convolution, FullyConnected, MaxPooling, Padding }
+            public Operation operation { get; }
+            public float[,] inputMap { get; }
+            public float[,] outputMap { get; }
+            public float[,] derivedPoolMap { get; }
+            public ANN ann { get; }
+            public int kernelDimensions { get; }
+            public int stride { get; }
+
+            /// <summary>
+            /// Constructor for padding layer and fully-connected layer
+            /// </summary>
+            /// <param name="operation"></param>
+            /// <param name="ann"></param>
+            public ExecutionStep(Operation operation, ANN ann = null) {
+                this.ann = ann;
+                this.operation = operation;
+                inputMap = null;
+                outputMap = null;
+                derivedPoolMap = null;
+                kernelDimensions = 0;
+                stride = 0;
+            }
+            
+            /// <summary>
+            /// Constructor for convulutional layer and pooling layers
+            /// </summary>
+            /// <param name="operation"></param>
+            /// <param name="inputMap"></param>
+            /// <param name="outputMap"></param>
+            /// <param name="kernelDimensions"></param>
+            /// <param name="stride"></param>
+            public ExecutionStep(Operation operation, float[,] inputMap, float[,] outputMap, int kernelDimensions, int stride, float[,] derivedPoolMap = null) {
+                this.operation = operation;
+                this.inputMap = inputMap;
+                this.outputMap = outputMap;
+                this.kernelDimensions = kernelDimensions;
+                this.stride = stride;
+                this.derivedPoolMap = derivedPoolMap;
+                ann = null;
             }
         }
     }
@@ -798,7 +877,7 @@ namespace MachineLearning {
         /// Backpropagation for the ANN to update weights and biases of the neurons
         /// </summary>
         /// <param name="desiredOutputs"></param>
-        void Backpropagation(List<double> desiredOutputs) {
+        public void Backpropagation(List<double> desiredOutputs) {
             int outputLayer = layers.Count - 1;
             int hiddenLayers = layers.Count > 2 ? layers.Count - 2 : 0;
             Neuron neuron;
@@ -1033,7 +1112,7 @@ namespace MachineLearning {
     }
 
     public static class ActivationFunctionHandler {
-        public enum ActivationFunction { ReLU, Sigmoid, TanH }
+        public enum ActivationFunction { None, ReLU, Sigmoid, TanH }
 
         /// <summary>
         /// Parse the given string into a value from the ActivationFunction enum
@@ -1056,6 +1135,8 @@ namespace MachineLearning {
         /// <returns></returns>
         public static double TriggerActivationFunction(ActivationFunction activationFunction, double value) {
             switch (activationFunction) {
+                case ActivationFunction.None:
+                    return value;
                 case ActivationFunction.ReLU:
                     return ReLU(value);
                 case ActivationFunction.Sigmoid:
@@ -1075,6 +1156,8 @@ namespace MachineLearning {
         /// <returns></returns>
         public static double TriggerDerativeFunction(ActivationFunction activationFunction, double value) {
             switch (activationFunction) {
+                case ActivationFunction.None:
+                    return value;
                 case ActivationFunction.ReLU:
                     return ReLUDerivative(value);
                 case ActivationFunction.Sigmoid:
