@@ -103,6 +103,15 @@ public class AgentController : MonoBehaviour {
                 CollectedData collectedData = JsonUtility.FromJson<CollectedData>(data);
                 mapGenerator.RecreateMap(collectedData);
                 playbackActions = new Queue<string>(collectedData.recordedActions);
+                if (isTraining) {
+                    if (cnnSaver == null || string.IsNullOrEmpty(cnnSaver.serializedCNN)) {
+                        cnn = new CNN();
+                        if (debugAI) MLDebugger.EnableDebugging(cnn);
+                        AddCNNFilters(cnn);
+                    } else {
+                        cnn = MLSerializer.DeserializeCNN(cnnSaver.serializedCNN);
+                    }
+                }
                 break;
         }
 
@@ -421,10 +430,12 @@ public class AgentController : MonoBehaviour {
 
         switch (testComb) {
             case TestCombination.Test1:
-                //List<double> outputs = cnn.Train(visibleMap, givenInput);
-                List<double> outputs = cnn.Run(visibleMap);
+                //PrintFilters(cnn.GetFilters());
+                List<double> outputs = cnn.Train(visibleMap, givenInput);
+                //List<double> outputs = cnn.Run(visibleMap);
                 moveSuggestion.text = "Suggested move: " + GetMoveFromInt(GetIndexOfMaxOutput(outputs));
                 MLDebugger.Print();
+                PrintFilters(cnn.GetFilters());
                 break;
             case TestCombination.Test2:
 
@@ -660,5 +671,12 @@ public class AgentController : MonoBehaviour {
         };
         cnn.AddNewFilter(goalLowerLeftCorner, "Goal Lower Left Corner");
         #endregion
+    }
+
+    void PrintFilters(List<CNN.CNNFilter> filters) {
+        Debug.Log(filters[0].GetSerializedFilter());
+        //foreach (CNN.CNNFilter f in filters) {
+        //    Debug.Log(f.GetSerializedFilter());
+        //}
     }
 }

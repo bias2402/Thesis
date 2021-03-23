@@ -3,9 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
-#if UNITY_EDITOR
-using UnityEngine;
-#endif
 
 namespace MachineLearning {
     public class CNN {
@@ -91,11 +88,11 @@ namespace MachineLearning {
             cnnFilters.Add(new CNNFilter(filter, filterName));
         }
 
-        //CNN methods for generating outputs and training network
+        //CNN methods for generating outputs and training the network
         #region
         /// <summary>
         /// Run the CNN on the given <paramref name="input"/> using default settings and return outputs.
-        /// Default settings: padding = 0, convolution stride = 1, pooling kernel = 2, pooling stride = 2, outputs = 3, ActivationFunction = ReLU
+        /// Default settings: padding = 0, convolution stride = 1, pooling kernel = 2, pooling stride = 2, outputs = 3, ActivationFunction = Sigmoid
         /// Flow: Convolution, Pooling, Fully Connected (Decision Making)
         /// </summary>
         /// <param name="input"></param>
@@ -105,9 +102,9 @@ namespace MachineLearning {
                 MLDebugger.AddToDebugOutput("Starting CNN default Running", false);
             }
 
-            Convolution(input, ActivationFunctionHandler.ActivationFunction.ReLU);
+            Convolution(input, ActivationFunctionHandler.ActivationFunction.Sigmoid);
 
-            MaxPooling(ActivationFunctionHandler.ActivationFunction.ReLU);
+            MaxPooling(ActivationFunctionHandler.ActivationFunction.Sigmoid);
 
             FullyConnected(pooledMaps, "pooled maps", desiredNumberOfOutputs);
             return outputs;
@@ -116,7 +113,7 @@ namespace MachineLearning {
         /// <summary>
         /// Train the CNN on the given <paramref name="input"/> using default settings and return outputs.
         /// Default settings: padding = 0, convolution stride = 1, pooling kernel = 2, pooling stride = 2, outputs = <paramref name="desiredOutputs"/>.Count,
-        /// ActivationFunction = ReLU
+        /// ActivationFunction = Sigmoid
         /// Flow: Convolution, Pooling, Fully Connected (Decision Making)
         /// </summary>
         /// <param name="input"></param>
@@ -127,8 +124,8 @@ namespace MachineLearning {
                 MLDebugger.Start();
                 MLDebugger.AddToDebugOutput("Starting CNN default Training", false);
             }
-            Convolution(input, ActivationFunctionHandler.ActivationFunction.ReLU);
-            MaxPooling(ActivationFunctionHandler.ActivationFunction.ReLU);
+            Convolution(input, ActivationFunctionHandler.ActivationFunction.Sigmoid);
+            MaxPooling(ActivationFunctionHandler.ActivationFunction.Sigmoid);
 
             FullyConnected(pooledMaps, "pooled maps", desiredOutputs.Count);
             Backpropagation(desiredOutputs);
@@ -287,7 +284,7 @@ namespace MachineLearning {
                     if (newMapCoord.Increment()) break;
                 }
                 pooledMaps.Add(ApplyActivationFunctionToMap(newMap, af));
-                executionMemory.Push(new ExecutionStep(ExecutionStep.Operation.MaxPooling, derivedMap));
+                executionMemory.Push(new ExecutionStep(ExecutionStep.Operation.MaxPooling, derivedMap, af));
             }
 
             if (isDebugging) MLDebugger.AddToDebugOutput("Pooling Layer complete", true);
@@ -356,50 +353,60 @@ namespace MachineLearning {
         /// Perform the backpropagation of the CNN to update values of the ANN's and filters
         /// </summary>
         public void Backpropagation(List<double> desiredOutputs) {
+            if (isDebugging) {
+                MLDebugger.Start();
+                MLDebugger.AddToDebugOutput("Starting backpropagation", false);
+                MLDebugger.RestartOperationWatch();
+            }
+
             Stack<double> annErrorAdjustedInputs = null;                        //This is a stack, as the values are outputted in the order they were inputted (not flipped)
             Queue<float[,]> annErrorMaps = new Queue<float[,]>();               //This is a queue, as the process will flip the order along the way
-            float[,] errorMap;
+            float[,] currentErrorMap;
             float[,] filter;
             Coord pos;
             Queue<float[,]> errorMaps = new Queue<float[,]>();
+            int convCount = 0, maxPoolCount = 0, fcCount = 0, avgPoolCount = 0, inGenCount = 0;
 
             while (executionMemory.Count > 0) {
                 ExecutionStep exeStep = executionMemory.Pop();
                 switch (exeStep.operation) {
                     case ExecutionStep.Operation.AveragePooling:
                         //TO DO: Generate error masks
+                        avgPoolCount++;
                         break;
                     case ExecutionStep.Operation.Convolution:
-                        errorMap = errorMaps.Dequeue();
+                        currentErrorMap = errorMaps.Dequeue();
                         filter = cnnFilters[exeStep.filterIndex].filter;
 
                         //Apply the derivative activation function to each value of the mask
-                        for (int y = 0; y < errorMap.GetLength(1); y++) {
-                            for (int x = 0; x < errorMap.GetLength(0); x++) {
-                                errorMap[x, y] = (float)ActivationFunctionHandler.TriggerDerativeFunction(exeStep.af, errorMap[x, y]);
+                        for (int y = 0; y < currentErrorMap.GetLength(1); y++) {
+                            for (int x = 0; x < currentErrorMap.GetLength(0); x++) {
+                                currentErrorMap[x, y] = (float)ActivationFunctionHandler.TriggerDerativeFunction(exeStep.af, currentErrorMap[x, y]);
                             }
                         }
 
                         //Pos is the current upper-left corner of the input map and the current position in the filter (because of positional relation when doing the comparison process)
-                        pos = new Coord(0, 0, exeStep.inputMap.GetLength(0) - errorMap.GetLength(0),
-                                                                 exeStep.inputMap.GetLength(1) - errorMap.GetLength(1));
+                        pos = new Coord(0, 0, exeStep.inputMap.GetLength(0) - currentErrorMap.GetLength(0),
+                                                                 exeStep.inputMap.GetLength(1) - currentErrorMap.GetLength(1));
                         float delta = 0;
 
                         //While pos doesn't reach its end, for each position of pos iterate through the errorMask and multiply with the input value at the same position
                         do {
                             for (int y = 0; y < exeStep.outputMap.GetLength(1); y++) {
                                 for (int x = 0; x < exeStep.outputMap.GetLength(0); x++) {
-                                    delta += errorMap[x, y] * exeStep.inputMap[pos.x + x, pos.y + y];
+                                    delta += currentErrorMap[x, y] * exeStep.inputMap[pos.x + x, pos.y + y];
                                 }
                             }
                             filter[pos.x, pos.y] += delta;
                         } while (!pos.Increment());
 
                         cnnFilters[exeStep.filterIndex].filter = filter;
+                        convCount++;
                         break;
                     case ExecutionStep.Operation.FullyConnected:
                         exeStep.ann.Backpropagation(desiredOutputs, true);
                         annErrorAdjustedInputs = new Stack<double>(ann.inputErrors);
+                        fcCount++;
                         break;
                     case ExecutionStep.Operation.GenerateANNInputs:
                         float[,] newErrorMap = new float[exeStep.mapDimensions, exeStep.mapDimensions];
@@ -409,9 +416,16 @@ namespace MachineLearning {
                             }
                         }
                         annErrorMaps.Enqueue(newErrorMap);
+                        inGenCount++;
                         break;
                     case ExecutionStep.Operation.MaxPooling:
                         float[,] currentAnnErrorMap = annErrorMaps.Dequeue();
+                        for (int y = 0; y < currentAnnErrorMap.GetLength(1); y++) {
+                            for (int x = 0; x < currentAnnErrorMap.GetLength(0); x++) {
+                                currentAnnErrorMap[x, y] = (float)ActivationFunctionHandler.TriggerDerativeFunction(exeStep.af, currentAnnErrorMap[x, y]);
+                            }
+                        }
+
                         Coord errorMapCoord = new Coord(0, 0, currentAnnErrorMap.GetLength(0), currentAnnErrorMap.GetLength(1));
                         float[,] newMap = new float[exeStep.mask.GetLength(0), exeStep.mask.GetLength(1)];
                         for (int y = 0; y < exeStep.mask.GetLength(1); y++) {
@@ -425,9 +439,12 @@ namespace MachineLearning {
                             }
                         }
                         errorMaps.Enqueue(newMap);
+                        maxPoolCount++;
                         break;
                 }
             }
+            if (isDebugging) MLDebugger.AddToDebugOutput("Backpropagation completed. " + convCount + " x Convolution, " + maxPoolCount + " x MaxPooling, " +  avgPoolCount + 
+                                                         " x AveragePooling, " + inGenCount + " x InputGeneration, " + fcCount + " x FullyConnected", true);
         }
         #endregion
 
@@ -594,6 +611,7 @@ namespace MachineLearning {
                 for (int i = 0; i < filter.GetLength(0); i++) {
                     for (int j = 0; j < filter.GetLength(1); j++) {
                         s += filter[i, j].ToString();
+                        if (i != filter.GetLength(0) && j != filter.GetLength(1)) s += "|";
                     }
                 }
                 s += ";";
@@ -601,10 +619,11 @@ namespace MachineLearning {
             }
 
             void ParseSerializedFilter(string filterString) {
+                string[] values = filterString.Split(char.Parse("|"));
                 filter = new float[(int)dimensions, (int)dimensions];
                 Coord coord = new Coord(0, 0, (int)dimensions, (int)dimensions);
-                foreach (char c in filterString) {
-                    filter[coord.x, coord.y] = int.Parse(c.ToString());
+                foreach (string s in values) {
+                    filter[coord.x, coord.y] = float.Parse(s.ToString());
                     coord.Increment();
                 }
             }
@@ -674,6 +693,11 @@ namespace MachineLearning {
                 af = ActivationFunctionHandler.ActivationFunction.None;
             }
 
+            /// <summary>
+            /// Constructor for the input generation layer
+            /// </summary>
+            /// <param name="operation"></param>
+            /// <param name="mapDimensions"></param>
             public ExecutionStep(Operation operation, int mapDimensions) {
                 this.operation = operation;
                 this.mapDimensions = mapDimensions;
@@ -714,12 +738,12 @@ namespace MachineLearning {
             /// <param name="outputMap"></param>
             /// <param name="af"></param>
             /// <param name="filterIndex"></param>
-            public ExecutionStep(Operation operation, float[,] mask) {
+            public ExecutionStep(Operation operation, float[,] mask, ActivationFunctionHandler.ActivationFunction af) {
                 this.operation = operation;
                 this.mask = mask;
+                this.af = af;
                 inputMap = null;
                 outputMap = null;
-                af = ActivationFunctionHandler.ActivationFunction.None;
                 filterIndex = 0;
                 mapDimensions = 0;
                 ann = null;
@@ -967,7 +991,7 @@ namespace MachineLearning {
 
         /// <summary>
         /// Backpropagation for the ANN to update weights and biases of the neurons. If <paramref name="saveWeightSumForEachInputNeurons"/> is true, a list is generated to save the
-        /// value of weights that are connected to input neurons (used for CNN backpropagation)
+        /// error of the inputs (used for CNN backpropagation)
         /// </summary>
         /// <param name="desiredOutputs"></param>
         /// <param name="saveWeightSumForEachInputNeurons"
@@ -983,6 +1007,7 @@ namespace MachineLearning {
                 //Calculate the error and errorGradient
                 double error = desiredOutputs[i] - neuron.outputValue;
                 double errorGradient = ActivationFunctionHandler.TriggerDerativeFunction(neuron.activationFunction, neuron.outputValue * error);
+                //UnityEngine.Debug.Log("E: " + error);
 
                 //Update the neuron's weights
                 for (int j = 0; j < neuron.weights.Count; j++) neuron.weights[j] += alpha * neuron.inputValue * error;
@@ -1021,9 +1046,14 @@ namespace MachineLearning {
             //If the backpropgation is part of the CNN, this will be required for extracting the errors
             if (saveWeightSumForEachInputNeurons) {
                 inputErrors = new List<double>();
-                double errorSum = 0;
-                foreach (Neuron n in layers[1].neurons) errorSum += n.errorGradient;
-                foreach (Neuron n in layers[0].neurons) inputErrors.Add(errorSum * n.inputValue);
+                double value;
+                for (int i = 0; i < layers[0].neurons.Count; i++) {
+                    value = 0;
+                    foreach (Neuron n in layers[1].neurons) {
+                        value += layers[0].neurons[i].inputValue * n.weights[i] * alpha;
+                    }
+                    inputErrors.Add(value);
+                }
             }
         }
         #endregion

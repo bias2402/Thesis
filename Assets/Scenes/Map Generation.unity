@@ -7382,10 +7382,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   agentType: 0
   testComb: 0
-  debugAI: 1
+  debugAI: 0
   moveSuggestion: {fileID: 1924056784}
   isTraining: 1
-  cnnSaver: {fileID: 11400000, guid: c7d821e6d3633fe469094392cba2885a, type: 2}
+  cnnSaver: {fileID: 0}
   dataCollector: {fileID: 0}
   isRecordingData: 0
   playerData: {fileID: 4900000, guid: 2b914456e4e9c474d84af42531483d7a, type: 3}

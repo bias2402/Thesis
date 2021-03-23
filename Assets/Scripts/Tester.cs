@@ -1,12 +1,10 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 using MachineLearning;
-using System.IO;
 
 public class Tester : MonoBehaviour {
     private CNN cnn = new CNN();
     [SerializeField] private CNNSaver cnnSaver = null;
-    private int saveCounter = 0;
 
     void Start() {
         float[,] filter1 = new float[3, 3] {
@@ -47,25 +45,31 @@ public class Tester : MonoBehaviour {
         }
 
         if (Input.GetKeyDown(KeyCode.Return)) {
-            float[,] map = new float[9, 9] {
-                { 0, 0, 0, 1, 0, 1, 0, 1, 0 },
-                { 0, 0, 1, 0, 0, 1, 0, 0, 1 },
-                { 0, 1, 0, 1, 0, 0, 0, 1, 1 },
-                { 1, 0, 0, 1, 0, 0, 0, 0, 0 },
-                { 0, 0, 1, 0, 1, 1, 1, 1, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-                { 0, 1, 0, 1, 0, 0, 0, 1, 0 },
-                { 0, 0, 1, 0, 1, 0, 1, 0, 1 },
-                { 1, 1, 0, 1, 0, 1, 0, 1, 0 }
-            };
-            map = cnn.Padding(map);
-            List<double> desiredOutputs = new List<double>() { 0, 0.25, -0.1, 0.75 };
-            List<double> outputs = cnn.Train(map, desiredOutputs);
-            string s = "";
-            foreach (double d in outputs) {
-                s += d + " ";
+            Debug.Log(cnn.GetFilters()[0].GetSerializedFilter());
+            for (int i = 0; i < 1000; i++) {
+                float[,] map = new float[9, 9] {
+                    { 0, 0, 0, 1, 0, 1, 0, 1, 0 },
+                    { 0, 0, 1, 0, 0, 1, 0, 0, 1 },
+                    { 0, 1, 0, 1, 0, 0, 0, 1, 1 },
+                    { 1, 0, 0, 1, 0, 0, 0, 0, 0 },
+                    { 0, 0, 1, 0, 1, 1, 1, 1, 0 },
+                    { 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+                    { 0, 1, 0, 1, 0, 0, 0, 1, 0 },
+                    { 0, 0, 1, 0, 1, 0, 1, 0, 1 },
+                    { 1, 1, 0, 1, 0, 1, 0, 1, 0 }
+                };
+                //map = cnn.Padding(map);
+                List<double> desiredOutputs = new List<double>() { 0, 0.25, -0.1, 0.75 };
+                List<double> outputs = cnn.Train(map, desiredOutputs);
+                if (i % 100 == 0) {
+                    Debug.Log(cnn.GetFilters()[0].GetSerializedFilter());
+                    string s = "Outputs: ";
+                    foreach (double d in outputs) {
+                        s += d + " | ";
+                    }
+                    Debug.Log(s);
+                }
             }
-            Debug.Log(s);
         }
 
         if (Input.GetKeyDown(KeyCode.Space)) {
@@ -129,7 +133,7 @@ public class Tester : MonoBehaviour {
             Debug.Log(s);
 
             List<double> desiredOutputs = new List<double>() { 0, 0.25, -0.1, 0.75 };
-            //outputs = cnn.Train(map, desiredOutputs);
+            outputs = cnn.Train(map, desiredOutputs);
             Debug.Log("Train. #Neurons: " + cnn.GetANN().GetNeuronCount() + ". Outputs generated: " + outputs.Count);
             s = "";
             foreach (double d in outputs) {
