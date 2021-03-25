@@ -62,6 +62,8 @@ public class Tester : MonoBehaviour {
         }
 
         if (Input.GetKeyDown(KeyCode.T)) {
+            MLDebugger.EnableDebugging(cnn, 3);
+
             float[,] map = new float[7, 7] {
                 { 0, 0, 0, 1, 0, 1, 0 },
                 { 0, 0, 1, 0, 0, 1, 0 },
@@ -74,10 +76,8 @@ public class Tester : MonoBehaviour {
             List<double> desiredOutputs = new List<double>() { 0, 0.25, -0.1, 0.75 };
             List<double> outputs = cnn.Train(map, desiredOutputs);
 
+            test += MLDebugger.GetOutputAndReset();
             test += MLSerializer.SerializeCNN(cnn);
-            test += "\nOutputs: | " + outputs[0] + " | " + outputs[1] + " | " + outputs[2] + " | " + outputs[3] + " | ";
-            test += "\ndesiredOutputs: | " + desiredOutputs[0] + " | " + desiredOutputs[1] + " | " + desiredOutputs[2] + " | " + desiredOutputs[3] + " | ";
-            test += MLDebugger.test;
             cnnSaver.serializedCNN = test;
             test = "";
         }

@@ -434,7 +434,7 @@ public class AgentController : MonoBehaviour {
                 List<double> outputs = cnn.Train(visibleMap, givenInput);
                 //List<double> outputs = cnn.Run(visibleMap);
                 moveSuggestion.text = "Suggested move: " + GetMoveFromInt(GetIndexOfMaxOutput(outputs));
-                MLDebugger.Print();
+                MLDebugger.GetOutputAndReset();
                 PrintFilters(cnn.GetFilters());
                 break;
             case TestCombination.Test2:

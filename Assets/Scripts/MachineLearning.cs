@@ -353,7 +353,6 @@ namespace MachineLearning {
         /// Perform the backpropagation of the CNN to update values of the ANN's and filters
         /// </summary>
         public void Backpropagation(List<double> desiredOutputs) {
-            MLDebugger.test = "";
             if (isDebugging) {
                 MLDebugger.Start();
                 MLDebugger.AddToDebugOutput("Starting backpropagation", false);
@@ -380,15 +379,14 @@ namespace MachineLearning {
                         currentErrorMap = errorMaps.Dequeue();
                         filter = cnnFilters[exeStep.filterIndex].filter;
 
-                        debug += "\nPre-AF errorMap: " + SerializeMap(currentErrorMap);
+                        if (isDebugging && MLDebugger.depth >= 3) debug += "\nPre-AF errorMap: " + SerializeMap(currentErrorMap);
                         //Apply the derivative activation function to each value of the mask
                         for (int y = 0; y < currentErrorMap.GetLength(1); y++) {
                             for (int x = 0; x < currentErrorMap.GetLength(0); x++) {
                                 currentErrorMap[x, y] = (float)ActivationFunctionHandler.TriggerDerativeFunction(exeStep.af, currentErrorMap[x, y]);
                             }
                         }
-                        debug += "\nPost-AF errorMap: " + SerializeMap(currentErrorMap);
-
+                        if (isDebugging && MLDebugger.depth >= 3) debug += "\nPost-AF errorMap: " + SerializeMap(currentErrorMap);
 
                         //Pos is the current upper-left corner of the input map and the current position in the filter (because of positional relation when doing the comparison process)
                         pos = new Coord(0, 0, exeStep.inputMap.GetLength(0) - currentErrorMap.GetLength(0),
@@ -396,7 +394,7 @@ namespace MachineLearning {
                         float delta = 0;
 
                         //While pos doesn't reach its end, for each position of pos iterate through the errorMask and multiply with the input value at the same position
-                        debug += "\nPre-FilterUpdate: " + SerializeMap(filter);
+                        if (isDebugging && MLDebugger.depth >= 3) debug += "\nPre-FilterUpdate: " + SerializeMap(filter);
                         do {
                             for (int y = 0; y < exeStep.outputMap.GetLength(1); y++) {
                                 for (int x = 0; x < exeStep.outputMap.GetLength(0); x++) {
@@ -405,7 +403,7 @@ namespace MachineLearning {
                             }
                             filter[pos.x, pos.y] += delta;
                         } while (!pos.Increment());
-                        debug += "\nPost-FilterUpdate: " + SerializeMap(filter);
+                        if (isDebugging && MLDebugger.depth >= 2) debug += "\nPost-FilterUpdate: " + SerializeMap(filter);
 
                         cnnFilters[exeStep.filterIndex].filter = filter;
                         convCount++;
@@ -414,9 +412,11 @@ namespace MachineLearning {
                         exeStep.ann.Backpropagation(desiredOutputs, true);
                         annErrorAdjustedInputs = new Stack<double>(ann.inputErrors);
 
-                        debug += "\nannErrorAdjustedInputs: | ";
-                        foreach (double d in annErrorAdjustedInputs) {
-                            debug += d + " | ";
+                        if (isDebugging && MLDebugger.depth >= 3) {
+                            debug += "\nAnnErrorAdjustedInputs: | ";
+                            foreach (double d in annErrorAdjustedInputs) {
+                                debug += d + " | ";
+                            }
                         }
 
                         fcCount++;
@@ -430,21 +430,21 @@ namespace MachineLearning {
                         }
                         annErrorMaps.Enqueue(newErrorMap);
 
-                        debug += "\nInputErrorMap: " + SerializeMap(newErrorMap);
+                        if (isDebugging && MLDebugger.depth >= 2) debug += "\nInputErrorMap: " + SerializeMap(newErrorMap);
 
                         inGenCount++;
                         break;
                     case ExecutionStep.Operation.MaxPooling:
                         float[,] currentAnnErrorMap = annErrorMaps.Dequeue();
-                        debug += "\nPre-AF InputErrorMap: " + SerializeMap(currentAnnErrorMap);
+                        if (isDebugging && MLDebugger.depth >= 3) debug += "\nPre-AF InputErrorMap: " + SerializeMap(currentAnnErrorMap);
                         for (int y = 0; y < currentAnnErrorMap.GetLength(1); y++) {
                             for (int x = 0; x < currentAnnErrorMap.GetLength(0); x++) {
                                 currentAnnErrorMap[x, y] = (float)ActivationFunctionHandler.TriggerDerativeFunction(exeStep.af, currentAnnErrorMap[x, y]);
                             }
                         }
-                        debug += "\nPost-AF InputErrorMap: " + SerializeMap(currentAnnErrorMap);
+                        if (isDebugging && MLDebugger.depth >= 3) debug += "\nPost-AF InputErrorMap: " + SerializeMap(currentAnnErrorMap);
 
-                        debug += "\nPre-Mask: " + SerializeMap(exeStep.mask);
+                        if (isDebugging && MLDebugger.depth >= 3) debug += "\nPre-Mask: " + SerializeMap(exeStep.mask);
                         Coord errorMapCoord = new Coord(0, 0, currentAnnErrorMap.GetLength(0), currentAnnErrorMap.GetLength(1));
                         float[,] newMap = new float[exeStep.mask.GetLength(0), exeStep.mask.GetLength(1)];
                         for (int y = 0; y < exeStep.mask.GetLength(1); y++) {
@@ -458,15 +458,17 @@ namespace MachineLearning {
                             }
                         }
                         errorMaps.Enqueue(newMap);
-                        debug += "\nPost-Mask: " + SerializeMap(newMap);
+                        if (isDebugging && MLDebugger.depth >= 2) debug += "\nPost-Mask: " + SerializeMap(newMap);
 
                         maxPoolCount++;
                         break;
                 }
             }
-            if (isDebugging) MLDebugger.AddToDebugOutput("Backpropagation completed. " + convCount + " x Convolution, " + maxPoolCount + " x MaxPooling, " + avgPoolCount +
+            if (isDebugging) {
+                MLDebugger.AddToDebugOutput("CNN Backpropagation:" + debug + "\n", false, false);
+                MLDebugger.AddToDebugOutput("Backpropagation completed. " + convCount + " x Convolution, " + maxPoolCount + " x MaxPooling, " + avgPoolCount +
                                                          " x AveragePooling, " + inGenCount + " x InputGeneration, " + fcCount + " x FullyConnected", true);
-            MLDebugger.test += debug;
+            }
         }
         #endregion
 
@@ -1033,39 +1035,64 @@ namespace MachineLearning {
             Neuron neuron;
 
             string output = "";
+            if (isDebugging && MLDebugger.depth >= 2) {
+                output += "\nDesiredOuputs: | ";
+                foreach (double d in desiredOutputs) {
+                    output += d + " | ";
+                }
+                output += "\nActualOutputs: | ";
+                foreach (Neuron n in layers[outputLayer].neurons) {
+                    output += n.outputValue + " | ";
+                }
+            }
+
             //Output layer
             for (int i = 0; i < layers[outputLayer].neurons.Count; i++) {
-                output += "\nOutputBackprop: | ";
+                if (isDebugging && MLDebugger.depth >= 2) output += "\nOutNeuronBackprop: | ";
                 neuron = layers[outputLayer].neurons[i];
 
                 //Calculate the error and errorGradient
                 double error = desiredOutputs[i] - neuron.outputValue;
-                output += "E: " + error + " | ";
                 double errorGradient = ActivationFunctionHandler.TriggerDerativeFunction(neuron.activationFunction, neuron.outputValue * error);
-                output += "Gradient: " + errorGradient + " | ";
 
-                output += "Weights: | ";
+                if (isDebugging && MLDebugger.depth >= 2) {
+                    output += "Error: " + error + " | ";
+                    output += "Gradient: " + errorGradient + " | ";
+                }
+                if (isDebugging && MLDebugger.depth >= 3) {
+                    output += "OldWeights: | ";
+                    foreach (double w in neuron.weights) {
+                        output += w + " | ";
+                    }
+                }
+                if (isDebugging && MLDebugger.depth >= 3) output += "UpdatedWeights: | ";
+
                 //Update the neuron's weights
                 for (int j = 0; j < neuron.weights.Count; j++) {
                     neuron.weights[j] += alpha * neuron.inputValue * error;
-                    output += neuron.weights[j] + " | ";
+                    if (isDebugging && MLDebugger.depth >= 3) output += neuron.weights[j] + " | ";
                 }
 
                 //Update the neuron's bias and errorGradient
                 neuron.bias = alpha * -1 * errorGradient;
-                output += "Bias: " + neuron.bias + " | ";
                 neuron.errorGradient = errorGradient;
+
+                if (isDebugging && MLDebugger.depth >= 2) output += "Bias: " + neuron.bias + " | ";
             }
-            MLDebugger.test += output;
 
             //Hidden layers
             if (hiddenLayers != 0) {
                 for (int i = hiddenLayers; i > 0; i--) {
+                    if (isDebugging && MLDebugger.depth >= 2) output += "\nHidden" + (layers.Count - 1 - i) + "NeuronBackprop: | ";
+
                     //Calculate the errorGradientSum for the previous layer
                     double errorGradientSum = 0;
                     for (int j = 0; j < layers[i + 1].neurons.Count; j++) {
                         errorGradientSum += layers[i + 1].neurons[j].errorGradient;
                     }
+
+                    if (isDebugging && MLDebugger.depth >= 2) output += "GradientSum: " + errorGradientSum + " | ";
+                    if (isDebugging && MLDebugger.depth >= 3) output += "UpdatedWeights: | ";
 
                     //Update the neurons in this hidden layer
                     for (int j = 0; j < layers[i].neurons.Count; j++) {
@@ -1075,14 +1102,24 @@ namespace MachineLearning {
                         double errorGradient = ActivationFunctionHandler.TriggerDerativeFunction(neuron.activationFunction, outputLayer) * errorGradientSum;
 
                         //Update the neuron's weights
-                        for (int k = 0; k < neuron.weights.Count; k++) neuron.weights[k] += alpha * neuron.inputValue * errorGradient;
+                        for (int k = 0; k < neuron.weights.Count; k++) {
+                            neuron.weights[k] += alpha * neuron.inputValue * errorGradient;
+                            if (isDebugging && MLDebugger.depth >= 3) output += neuron.weights[k] + " | ";
+                        }
 
                         //Update the neuron's bias and errorGradient
                         neuron.bias = alpha * -1 * neuron.errorGradient;
                         neuron.errorGradient = errorGradient;
+
+                        if (isDebugging && MLDebugger.depth >= 2) {
+                            output += "Gradient: " + errorGradient + " | ";
+                            output += "Bias: " + neuron.bias + " | ";
+                        }
                     }
                 }
             }
+
+            if (isDebugging && MLDebugger.depth >= 2) MLDebugger.AddToDebugOutput("ANN Backpropagation:" + output + "\n", false, false);
 
             //If the backpropgation is part of the CNN, this will be required for extracting the errors
             if (saveWeightSumForEachInputNeurons) {
@@ -1371,20 +1408,45 @@ namespace MachineLearning {
         private static readonly Stopwatch operationStopwatch = new Stopwatch();
         private static readonly Stopwatch totalStopwatch = new Stopwatch();
         private static string output = "";
+        private static string deepOutput = "";
         private static int outputLineLength = 135;
-        public static string test = "";
+        /// <summary>
+        /// The depth of the debugger decides the amount of details that are included
+        /// 1: Operations and times; 
+        /// 2: Include stats and results from operations; 
+        /// 3: Include every detail from the operations;
+        /// </summary>
+        public static int depth { get; private set; } = 1;
 
         /// <summary>
-        /// Enables debugging of the given CNN. This also enables debugging of the CNN's internal ANN
+        /// Set the depth of the debugger, thereby including more details. 
+        /// 1: Operations and times; 
+        /// 2: Include stats and results from operations; 
+        /// 3: Include every detail from the operations;
+        /// </summary>
+        public static void SetDepth(int depth) => MLDebugger.depth = depth <= 1 ? 1 : depth >= 3 ? 3 : depth;
+
+        /// <summary>
+        /// Enables debugging of the given CNN. This also enables debugging of the CNN's internal ANN. 
+        /// Set <paramref name="depth"/> to increase the amount of details that are recorded
         /// </summary>
         /// <param name="cnn"></param>
-        public static void EnableDebugging(CNN cnn) => cnn.EnableDebugging();
+        /// <param name="depth"></param>
+        public static void EnableDebugging(CNN cnn, int? depth = null) {
+            cnn.EnableDebugging();
+            if (depth != null) SetDepth((int)depth);
+        }
 
         /// <summary>
-        /// Enables debugging of the given ANN
+        /// Enables debugging of the given ANN.
+        /// Set <paramref name="depth"/> to increase the amount of details that are recorded
         /// </summary>
         /// <param name="ann"></param>
-        public static void EnableDebugging(ANN ann) => ann.EnableDebugging();
+        /// <param name="depth"></param>
+        public static void EnableDebugging(ANN ann, int? depth = null) {
+            ann.EnableDebugging();
+            if (depth != null) SetDepth((int)depth);
+        }
 
         /// <summary>
         /// Start the total watch
@@ -1410,17 +1472,19 @@ namespace MachineLearning {
         /// </summary>
         /// <param name="state"></param>
         /// <param name="includeDurationTime"></param>
-        public static void AddToDebugOutput(string state, bool includeDurationTime) {
-            state = "|   Operation: " + state;
-            if (includeDurationTime) {
-                state += "   |   Duration: " + operationStopwatch.ElapsedMilliseconds + "ms";
-                RestartOperationWatch();
-            }
+        public static void AddToDebugOutput(string state, bool includeDurationTime, bool isOperation = true) {
+            if (isOperation) {
+                state = "|   Operation: " + state;
+                if (includeDurationTime) {
+                    state += "   |   Duration: " + operationStopwatch.ElapsedMilliseconds + "ms";
+                    RestartOperationWatch();
+                }
 
-            state += "   |   Total time: " + totalStopwatch.ElapsedMilliseconds + "ms   |";
+                state += "   |   Total time: " + totalStopwatch.ElapsedMilliseconds + "ms   |";
 
-            output += state + "\n";
-            AddLineToOutput();
+                output += state + "\n";
+                AddLineToOutput();
+            } else deepOutput += state;
         }
 
         static void AddLineToOutput() {
@@ -1432,23 +1496,22 @@ namespace MachineLearning {
         }
 
         /// <summary>
-        /// Print the generated output string to the console. Can write to either the default console or to Unity Developer Console
+        /// Resets the debugger and returns the output string
         /// </summary>
-        public static void Print() {
-#if UNITY_EDITOR
-            UnityEngine.Debug.Log(output);
-#else
-            Console.WriteLine(output);
-#endif
+        public static string GetOutputAndReset() {
+            string temp = output + deepOutput;
+
             totalStopwatch.Reset();
             operationStopwatch.Reset();
             output = "";
+            deepOutput = "";
             isRunning = false;
+
+            return temp;
         }
     }
 
     public static class MLSerializer {
-
         /// <summary>
         /// Serialize the given <paramref name="cnn"/> object and return the resulting string
         /// </summary>
