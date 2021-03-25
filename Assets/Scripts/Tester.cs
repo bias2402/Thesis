@@ -5,6 +5,7 @@ using MachineLearning;
 public class Tester : MonoBehaviour {
     private CNN cnn = new CNN();
     [SerializeField] private CNNSaver cnnSaver = null;
+    string test = "";
 
     void Start() {
         float[,] filter1 = new float[3, 3] {
@@ -45,31 +46,40 @@ public class Tester : MonoBehaviour {
         }
 
         if (Input.GetKeyDown(KeyCode.Return)) {
-            Debug.Log(cnn.GetFilters()[0].GetSerializedFilter());
-            for (int i = 0; i < 1000; i++) {
-                float[,] map = new float[9, 9] {
-                    { 0, 0, 0, 1, 0, 1, 0, 1, 0 },
-                    { 0, 0, 1, 0, 0, 1, 0, 0, 1 },
-                    { 0, 1, 0, 1, 0, 0, 0, 1, 1 },
-                    { 1, 0, 0, 1, 0, 0, 0, 0, 0 },
-                    { 0, 0, 1, 0, 1, 1, 1, 1, 0 },
-                    { 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-                    { 0, 1, 0, 1, 0, 0, 0, 1, 0 },
-                    { 0, 0, 1, 0, 1, 0, 1, 0, 1 },
-                    { 1, 1, 0, 1, 0, 1, 0, 1, 0 }
-                };
-                //map = cnn.Padding(map);
+            for (int i = 0; i < 100; i++) {
+                float[,] map = new float[7, 7] {
+                { 0, 0, 0, 1, 0, 1, 0 },
+                { 0, 0, 1, 0, 0, 1, 0 },
+                { 0, 1, 0, 1, 0, 0, 0 },
+                { 1, 0, 0, 1, 0, 0, 0 },
+                { 0, 0, 1, 0, 1, 1, 1 },
+                { 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 1, 0, 1, 0, 0, 0 }
+            };
                 List<double> desiredOutputs = new List<double>() { 0, 0.25, -0.1, 0.75 };
-                List<double> outputs = cnn.Train(map, desiredOutputs);
-                if (i % 100 == 0) {
-                    Debug.Log(cnn.GetFilters()[0].GetSerializedFilter());
-                    string s = "Outputs: ";
-                    foreach (double d in outputs) {
-                        s += d + " | ";
-                    }
-                    Debug.Log(s);
-                }
+                cnn.Train(map, desiredOutputs);
             }
+        }
+
+        if (Input.GetKeyDown(KeyCode.T)) {
+            float[,] map = new float[7, 7] {
+                { 0, 0, 0, 1, 0, 1, 0 },
+                { 0, 0, 1, 0, 0, 1, 0 },
+                { 0, 1, 0, 1, 0, 0, 0 },
+                { 1, 0, 0, 1, 0, 0, 0 },
+                { 0, 0, 1, 0, 1, 1, 1 },
+                { 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 1, 0, 1, 0, 0, 0 }
+            };
+            List<double> desiredOutputs = new List<double>() { 0, 0.25, -0.1, 0.75 };
+            List<double> outputs = cnn.Train(map, desiredOutputs);
+
+            test += MLSerializer.SerializeCNN(cnn);
+            test += "\nOutputs: | " + outputs[0] + " | " + outputs[1] + " | " + outputs[2] + " | " + outputs[3] + " | ";
+            test += "\ndesiredOutputs: | " + desiredOutputs[0] + " | " + desiredOutputs[1] + " | " + desiredOutputs[2] + " | " + desiredOutputs[3] + " | ";
+            test += MLDebugger.test;
+            cnnSaver.serializedCNN = test;
+            test = "";
         }
 
         if (Input.GetKeyDown(KeyCode.Space)) {

@@ -236,7 +236,7 @@ namespace MachineLearning {
             pooledMaps.Clear();
 
             float[,] newMap;
-            float[,] derivedMap;
+            float?[,] derivedMap;
             Coord newMapCoord;
             Coord mapCoord;
             float maxValue = 0;
@@ -254,7 +254,7 @@ namespace MachineLearning {
                     throw new ArgumentException("Output calculation didn't result in an integer! Adjust your stride or kernel dimension so: outputMapSize = 1 + (inputMapSize - filterSize) / stride = integer");
 
                 newMap = new float[(int)dimx, (int)dimy];                                                   //The map will shrink during pooling, so the new map is smaller in both dimensions
-                derivedMap = new float[map.GetLength(0), map.GetLength(1)];                                 //This map is created and saved for later use during backpropagation
+                derivedMap = new float?[map.GetLength(0), map.GetLength(1)];                                //This map is created and saved for later use during backpropagation
                 newMapCoord = new Coord(0, 0, newMap.GetLength(0), newMap.GetLength(1));                    //Coordinates on the new map, where a the calculated value will be placed
                 mapCoord = new Coord(0, 0, map.GetLength(0) - kernelDimension, map.GetLength(1) - kernelDimension); //Coordinates on the old map, from which the filter is applied
 
@@ -268,9 +268,9 @@ namespace MachineLearning {
                                 derivedMap[x, y] = maxValue = map[x, y];
 
                                 if ((x - 1) < mapCoord.x) {
-                                    derivedMap[x, y - 1] = 0;
+                                    derivedMap[x, y - 1] = null;
                                 } else {
-                                    derivedMap[x - 1, y] = 0;
+                                    derivedMap[x - 1, y] = null;
                                 }
                             }
                         }
@@ -314,7 +314,7 @@ namespace MachineLearning {
 
             //Create a new ANN if one doesn't exist already
             if (ann == null) ann = new ANN(inputs.Count, 0, 0, nOutputs,
-                ActivationFunctionHandler.ActivationFunction.ReLU, ActivationFunctionHandler.ActivationFunction.ReLU);
+                ActivationFunctionHandler.ActivationFunction.Sigmoid, ActivationFunctionHandler.ActivationFunction.Sigmoid);
 
             if (isDebugging) MLDebugger.EnableDebugging(ann);
             outputs = ann.Run(inputs);
@@ -353,6 +353,7 @@ namespace MachineLearning {
         /// Perform the backpropagation of the CNN to update values of the ANN's and filters
         /// </summary>
         public void Backpropagation(List<double> desiredOutputs) {
+            MLDebugger.test = "";
             if (isDebugging) {
                 MLDebugger.Start();
                 MLDebugger.AddToDebugOutput("Starting backpropagation", false);
@@ -366,6 +367,7 @@ namespace MachineLearning {
             Coord pos;
             Queue<float[,]> errorMaps = new Queue<float[,]>();
             int convCount = 0, maxPoolCount = 0, fcCount = 0, avgPoolCount = 0, inGenCount = 0;
+            string debug = "";
 
             while (executionMemory.Count > 0) {
                 ExecutionStep exeStep = executionMemory.Pop();
@@ -378,12 +380,15 @@ namespace MachineLearning {
                         currentErrorMap = errorMaps.Dequeue();
                         filter = cnnFilters[exeStep.filterIndex].filter;
 
+                        debug += "\nPre-AF errorMap: " + SerializeMap(currentErrorMap);
                         //Apply the derivative activation function to each value of the mask
                         for (int y = 0; y < currentErrorMap.GetLength(1); y++) {
                             for (int x = 0; x < currentErrorMap.GetLength(0); x++) {
                                 currentErrorMap[x, y] = (float)ActivationFunctionHandler.TriggerDerativeFunction(exeStep.af, currentErrorMap[x, y]);
                             }
                         }
+                        debug += "\nPost-AF errorMap: " + SerializeMap(currentErrorMap);
+
 
                         //Pos is the current upper-left corner of the input map and the current position in the filter (because of positional relation when doing the comparison process)
                         pos = new Coord(0, 0, exeStep.inputMap.GetLength(0) - currentErrorMap.GetLength(0),
@@ -391,6 +396,7 @@ namespace MachineLearning {
                         float delta = 0;
 
                         //While pos doesn't reach its end, for each position of pos iterate through the errorMask and multiply with the input value at the same position
+                        debug += "\nPre-FilterUpdate: " + SerializeMap(filter);
                         do {
                             for (int y = 0; y < exeStep.outputMap.GetLength(1); y++) {
                                 for (int x = 0; x < exeStep.outputMap.GetLength(0); x++) {
@@ -399,6 +405,7 @@ namespace MachineLearning {
                             }
                             filter[pos.x, pos.y] += delta;
                         } while (!pos.Increment());
+                        debug += "\nPost-FilterUpdate: " + SerializeMap(filter);
 
                         cnnFilters[exeStep.filterIndex].filter = filter;
                         convCount++;
@@ -406,6 +413,12 @@ namespace MachineLearning {
                     case ExecutionStep.Operation.FullyConnected:
                         exeStep.ann.Backpropagation(desiredOutputs, true);
                         annErrorAdjustedInputs = new Stack<double>(ann.inputErrors);
+
+                        debug += "\nannErrorAdjustedInputs: | ";
+                        foreach (double d in annErrorAdjustedInputs) {
+                            debug += d + " | ";
+                        }
+
                         fcCount++;
                         break;
                     case ExecutionStep.Operation.GenerateANNInputs:
@@ -416,21 +429,27 @@ namespace MachineLearning {
                             }
                         }
                         annErrorMaps.Enqueue(newErrorMap);
+
+                        debug += "\nInputErrorMap: " + SerializeMap(newErrorMap);
+
                         inGenCount++;
                         break;
                     case ExecutionStep.Operation.MaxPooling:
                         float[,] currentAnnErrorMap = annErrorMaps.Dequeue();
+                        debug += "\nPre-AF InputErrorMap: " + SerializeMap(currentAnnErrorMap);
                         for (int y = 0; y < currentAnnErrorMap.GetLength(1); y++) {
                             for (int x = 0; x < currentAnnErrorMap.GetLength(0); x++) {
                                 currentAnnErrorMap[x, y] = (float)ActivationFunctionHandler.TriggerDerativeFunction(exeStep.af, currentAnnErrorMap[x, y]);
                             }
                         }
+                        debug += "\nPost-AF InputErrorMap: " + SerializeMap(currentAnnErrorMap);
 
+                        debug += "\nPre-Mask: " + SerializeMap(exeStep.mask);
                         Coord errorMapCoord = new Coord(0, 0, currentAnnErrorMap.GetLength(0), currentAnnErrorMap.GetLength(1));
                         float[,] newMap = new float[exeStep.mask.GetLength(0), exeStep.mask.GetLength(1)];
                         for (int y = 0; y < exeStep.mask.GetLength(1); y++) {
                             for (int x = 0; x < exeStep.mask.GetLength(0); x++) {
-                                if (exeStep.mask[x, y] == 0) {
+                                if (exeStep.mask[x, y] == null) {
                                     newMap[x, y] = 0;
                                 } else {
                                     newMap[x, y] = currentAnnErrorMap[errorMapCoord.x, errorMapCoord.y];
@@ -439,22 +458,36 @@ namespace MachineLearning {
                             }
                         }
                         errorMaps.Enqueue(newMap);
+                        debug += "\nPost-Mask: " + SerializeMap(newMap);
+
                         maxPoolCount++;
                         break;
                 }
             }
-            if (isDebugging) MLDebugger.AddToDebugOutput("Backpropagation completed. " + convCount + " x Convolution, " + maxPoolCount + " x MaxPooling, " +  avgPoolCount + 
+            if (isDebugging) MLDebugger.AddToDebugOutput("Backpropagation completed. " + convCount + " x Convolution, " + maxPoolCount + " x MaxPooling, " + avgPoolCount +
                                                          " x AveragePooling, " + inGenCount + " x InputGeneration, " + fcCount + " x FullyConnected", true);
+            MLDebugger.test += debug;
         }
         #endregion
 
         //Serilization and deserialization methods, used by the MLSerializer
         #region
         public string SerializeMap(float[,] map) {
-            string output = "";
-            for (int i = 0; i < map.GetLength(0); i++) {
-                for (int j = 0; j < map.GetLength(1); j++) {
-                    output += map[i, j].ToString();
+            string output = " | ";
+            for (int j = 0; j < map.GetLength(1); j++) {
+                for (int i = 0; i < map.GetLength(0); i++) {
+                    output += map[i, j].ToString() + " | ";
+                }
+            }
+            return output;
+        }
+
+        public string SerializeMap(float?[,] map) {
+            string output = " | ";
+            for (int j = 0; j < map.GetLength(1); j++) {
+                for (int i = 0; i < map.GetLength(0); i++) {
+                    if (map[i, j] == null) output += "null | ";
+                    else output += map[i, j].ToString() + " | ";
                 }
             }
             return output;
@@ -607,11 +640,10 @@ namespace MachineLearning {
             public string GetSerializedFilter() {
                 string s = "name:" + filterName + ";";
                 s += "dimension:" + dimensions + ";";
-                s += "filter:";
+                s += "filter: | ";
                 for (int i = 0; i < filter.GetLength(0); i++) {
                     for (int j = 0; j < filter.GetLength(1); j++) {
-                        s += filter[i, j].ToString();
-                        if (i != filter.GetLength(0) && j != filter.GetLength(1)) s += "|";
+                        s += filter[i, j].ToString() + " | ";
                     }
                 }
                 s += ";";
@@ -670,7 +702,7 @@ namespace MachineLearning {
             public float[,] inputMap { get; }
             public float[,] outputMap { get; }
             public int filterIndex { get; }
-            public float[,] mask { get; }
+            public float?[,] mask { get; }
             public int mapDimensions { get; }
             public ActivationFunctionHandler.ActivationFunction af { get; }
             public Queue<double> annInputs { get; }
@@ -738,7 +770,7 @@ namespace MachineLearning {
             /// <param name="outputMap"></param>
             /// <param name="af"></param>
             /// <param name="filterIndex"></param>
-            public ExecutionStep(Operation operation, float[,] mask, ActivationFunctionHandler.ActivationFunction af) {
+            public ExecutionStep(Operation operation, float?[,] mask, ActivationFunctionHandler.ActivationFunction af) {
                 this.operation = operation;
                 this.mask = mask;
                 this.af = af;
@@ -756,7 +788,7 @@ namespace MachineLearning {
         private int epochs = 1000;
         private double alpha = 0.05;
         private List<Layer> layers = new List<Layer>();
-        private static System.Random random = new System.Random();
+        private static Random random = new Random();
         private bool isDebugging = false;
         public List<double> inputErrors { get; private set; }
 
@@ -1000,22 +1032,31 @@ namespace MachineLearning {
             int hiddenLayers = layers.Count > 2 ? layers.Count - 2 : 0;
             Neuron neuron;
 
+            string output = "";
             //Output layer
             for (int i = 0; i < layers[outputLayer].neurons.Count; i++) {
+                output += "\nOutputBackprop: | ";
                 neuron = layers[outputLayer].neurons[i];
 
                 //Calculate the error and errorGradient
                 double error = desiredOutputs[i] - neuron.outputValue;
+                output += "E: " + error + " | ";
                 double errorGradient = ActivationFunctionHandler.TriggerDerativeFunction(neuron.activationFunction, neuron.outputValue * error);
-                //UnityEngine.Debug.Log("E: " + error);
+                output += "Gradient: " + errorGradient + " | ";
 
+                output += "Weights: | ";
                 //Update the neuron's weights
-                for (int j = 0; j < neuron.weights.Count; j++) neuron.weights[j] += alpha * neuron.inputValue * error;
+                for (int j = 0; j < neuron.weights.Count; j++) {
+                    neuron.weights[j] += alpha * neuron.inputValue * error;
+                    output += neuron.weights[j] + " | ";
+                }
 
                 //Update the neuron's bias and errorGradient
                 neuron.bias = alpha * -1 * errorGradient;
+                output += "Bias: " + neuron.bias + " | ";
                 neuron.errorGradient = errorGradient;
             }
+            MLDebugger.test += output;
 
             //Hidden layers
             if (hiddenLayers != 0) {
@@ -1062,8 +1103,8 @@ namespace MachineLearning {
         #region
         public string SerializeANN() {
             string output = "";
-            output += "alpha:" + alpha + ";\n";
-            output += "epochs:" + epochs + ";\n";
+            output += "alpha:" + alpha + "; ";
+            output += "epochs:" + epochs + "; ";
             return output;
         }
 
@@ -1134,9 +1175,10 @@ namespace MachineLearning {
                 string output = "";
 
                 for (int i = 0; i < neurons.Count; i++) {
-                    output += "neuron[\n";
+                    output += "neuron[ ";
                     output += neurons[i].SerializeNeuron();
-                    output += "]\n";
+                    output += "]";
+                    if (i != neurons.Count - 1) output += "\n";
                 }
                 return output;
             }
@@ -1194,14 +1236,14 @@ namespace MachineLearning {
             /// <returns></returns>
             public string SerializeNeuron() {
                 string output = "";
-                output += "AF:" + activationFunction + ";\n";
-                output += "isInput:" + isInputNeuron + ";\n";
-                output += "inputValue:" + inputValue + ";\n";
-                output += "bias:" + bias + ";\n";
-                output += "outputValue:" + outputValue + ";\n";
-                output += "errorGradient:" + errorGradient + ";\n";
-                for (int i = 0; i < weights.Count; i++) output += "weight:" + weights[i] + ";\n";
-                for (int i = 0; i < inputs.Count; i++) output += "input:" + inputs[i] + ";\n";
+                output += "AF:" + activationFunction + "; ";
+                output += "isInput:" + isInputNeuron + "; ";
+                output += "inputValue:" + inputValue + "; ";
+                output += "bias:" + bias + "; ";
+                output += "outputValue:" + outputValue + "; ";
+                output += "errorGradient:" + errorGradient + "; ";
+                for (int i = 0; i < weights.Count; i++) output += "weight:" + weights[i] + "; ";
+                for (int i = 0; i < inputs.Count; i++) output += "input:" + inputs[i] + "; ";
                 return output;
             }
 
@@ -1330,6 +1372,7 @@ namespace MachineLearning {
         private static readonly Stopwatch totalStopwatch = new Stopwatch();
         private static string output = "";
         private static int outputLineLength = 135;
+        public static string test = "";
 
         /// <summary>
         /// Enables debugging of the given CNN. This also enables debugging of the CNN's internal ANN
@@ -1416,51 +1459,49 @@ namespace MachineLearning {
             string serializedCNN = "";
 
             //From this point, CNN informations are saved
-            serializedCNN += "CNN{}\n";     //CNN (doesn't contain anything, since it doesn't have any single fields that are saved directly (only lists)
+            serializedCNN += "CNN { }\n";     //CNN (doesn't contain anything, since it doesn't have any single fields that are saved directly (only lists)
 
             //Filters
             foreach (CNN.CNNFilter filter in cnn.GetFilters()) {
-                serializedCNN += "filter{";
+                serializedCNN += "filter { ";
                 serializedCNN += filter.GetSerializedFilter();
-                serializedCNN += "}\n";
+                serializedCNN += " }\n";
             }
 
             //Convoluted maps
             foreach (float[,] map in cnn.GetConvolutedMaps()) {
-                serializedCNN += "convolutedMap{";
+                serializedCNN += "convolutedMap { ";
                 serializedCNN += cnn.SerializeMap(map);
-                serializedCNN += "}\n";
+                serializedCNN += " }\n";
             }
 
             //Pooled map
             foreach (float[,] map in cnn.GetPooledMaps()) {
-                serializedCNN += "pooledMap{";
+                serializedCNN += "pooledMap { ";
                 serializedCNN += cnn.SerializeMap(map);
-                serializedCNN += "}\n";
+                serializedCNN += " }\n";
             }
 
             //Outputs
-            serializedCNN += "outputs{";
+            serializedCNN += "outputs { ";
             for (int i = 0; i < cnn.GetOutputs().Count; i++) {
                 serializedCNN += cnn.GetOutputs()[i];
                 if (i != cnn.GetOutputs().Count - 1) serializedCNN += ";";
             }
-            serializedCNN += "}\n";
+            serializedCNN += " }\n";
 
-            //From this point, ANN informtaions are saved
+            //From this point, ANN informations are saved
             ANN ann = cnn.GetANN();
-            serializedCNN += "ANN{\n";     //Start ANN. Opposite the CNN, the ANN contains some single fields, while also having lists
+            serializedCNN += "ANN { ";     //Start ANN. Opposite the CNN, the ANN contains some single fields, while also having lists
             serializedCNN += cnn.GetANN().SerializeANN();
-            serializedCNN += "}";           //End ANN
 
             //Layers
             foreach (ANN.Layer layer in ann.GetLayers()) {
-                serializedCNN += "layer{\n";
+                serializedCNN += "layer { \n";
                 serializedCNN += layer.SerializeLayer();
-                serializedCNN += "}\n";
+                serializedCNN += " } ";
             }
-
-
+            serializedCNN += " } ";           //End ANN
 
             return serializedCNN;
         }
