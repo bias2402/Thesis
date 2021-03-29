@@ -445,11 +445,10 @@ namespace MachineLearning {
             }
 
             Stack<double> annErrorAdjustedInputs = null;                        //This is a stack, as the values are outputted in the order they were inputted (not flipped)
-            Queue<float[,]> annErrorMaps = new Queue<float[,]>();               //This is a queue, as the process will flip the order along the way
+            Queue<float[,]> errorMaps = new Queue<float[,]>();                  //This is a queue, as the process will flip the order along the way
             float[,] currentErrorMap;
             float[,] filter;
             Coord pos;
-            Queue<float[,]> errorMaps = new Queue<float[,]>();
             int convCount = 0, maxPoolCount = 0, fcCount = 0, avgPoolCount = 0, inGenCount = 0, currentErrorMapIndex = 0;
             string debug = "";
 
@@ -519,14 +518,15 @@ namespace MachineLearning {
                                 newErrorMap[x, y] = (float)annErrorAdjustedInputs.Pop();
                             }
                         }
-                        annErrorMaps.Enqueue(newErrorMap);
+                        errorMaps.Enqueue(newErrorMap);
 
                         if (isDebugging && MLDebugger.depth >= 2) debug += "\nInputErrorMap: " + SerializeMap(newErrorMap);
 
                         inGenCount++;
                         break;
                     case LayerType.MaxPooling:
-                        float[,] currentAnnErrorMap = annErrorMaps.Dequeue();
+                        float[,] currentAnnErrorMap = errorMaps.Dequeue();
+
                         if (isDebugging && MLDebugger.depth >= 3) debug += "\nPre-AF InputErrorMap: " + SerializeMap(currentAnnErrorMap);
                         for (int y = 0; y < currentAnnErrorMap.GetLength(1); y++) {
                             for (int x = 0; x < currentAnnErrorMap.GetLength(0); x++) {

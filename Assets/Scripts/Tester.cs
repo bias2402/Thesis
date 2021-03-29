@@ -38,6 +38,7 @@ public class Tester : MonoBehaviour {
         cnnConfig.AddLayer(ActivationFunctionHandler.ActivationFunction.Sigmoid, 1);    //Convolutional layer
         cnnConfig.AddLayer(ActivationFunctionHandler.ActivationFunction.ReLU, 1);       //Convolutioanl layer
         cnnConfig.AddLayer(ActivationFunctionHandler.ActivationFunction.Sigmoid, 2, 2); //Max-pooling layer
+        cnnConfig.AddLayer(ActivationFunctionHandler.ActivationFunction.Sigmoid, 2, 2); //Max-pooling layer
         cnnConfig.AddLayer(annConfig);                                                  //Fully-connected layer
     }
 
