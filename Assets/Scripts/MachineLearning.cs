@@ -5,7 +5,9 @@ using System.Diagnostics;
 using System.Text.RegularExpressions;
 
 namespace MachineLearning {
+    public enum AITypes { None, ANN, CNN }
     public class CNN {
+        public enum LayerType { None, AveragePooling, Convolution, FullyConnected, GenerateANNInputs, MaxPooling, Padding }
         private bool isDebugging = false;
         //Calculation fields
         private List<CNNFilter> cnnFilters = new List<CNNFilter>();
@@ -15,6 +17,45 @@ namespace MachineLearning {
         private ANN ann = null;
         //Execution memory fields
         private Stack<ExecutionStep> executionMemory = new Stack<ExecutionStep>();
+
+        /// <summary>
+        /// Allows setting a custom made ANN as the CNN's internal ANN for the Fully-Connected layer calculations
+        /// </summary>
+        /// <param name="ann"></param>
+        public void SetANN(ANN ann) => this.ann = ann;
+
+        /// <summary>
+        /// Enables debugging. This method should never be called from anything but the MLDebugger!
+        /// </summary>
+        public void EnableDebugging() => isDebugging = true;
+
+        /// <summary>
+        /// Clear the CNN completely. Set the parameters to only clear some parts
+        /// </summary>
+        /// <param name="clearExecutionMemory"></param>
+        /// <param name="clearOutputs"></param>
+        /// <param name="clearGeneratedMaps"></param>
+        /// <param name="clearFilters"></param>
+        /// <param name="clearANN"></param>
+        public void Clear(bool clearExecutionMemory = true, bool clearOutputs = true, bool clearGeneratedMaps = true, bool clearFilters = true, bool clearANN = true) {
+            if (isDebugging) MLDebugger.AddToDebugOutput("Clearing specified data from the CNN", false);
+            if (clearExecutionMemory) executionMemory.Clear();
+            if (clearOutputs) outputs.Clear();
+            if (clearGeneratedMaps) convolutedMaps.Clear();
+            if (clearFilters) cnnFilters.Clear();
+            if (clearANN) ann = null;
+        }
+
+        /// <summary>
+        /// Create a new <paramref name="filter"/> with dimensions equal to the given array's length. Filter must have the same length in both dimensions!
+        /// </summary>
+        /// <param name="filter"></param>
+        public void AddNewFilter(float[,] filter, string filterName = "") {
+            if (cnnFilters.Find(x => x.filterName == filterName) != null) return;
+
+            if (filter.GetLength(0) != filter.GetLength(1)) throw new ArgumentException("Filter dimensions must be equal in both x and y direction!");
+            cnnFilters.Add(new CNNFilter(filter, filterName));
+        }
 
         //Get methods
         #region
@@ -49,47 +90,55 @@ namespace MachineLearning {
         public List<double> GetOutputs() { return outputs; }
         #endregion
 
-        /// <summary>
-        /// Allows setting a custom made ANN as the CNN's internal ANN for the Fully-Connected layer calculations
-        /// </summary>
-        /// <param name="ann"></param>
-        public void SetANN(ANN ann) => this.ann = ann;
-
-        /// <summary>
-        /// Enables debugging. This method should never be called from anything but the MLDebugger!
-        /// </summary>
-        internal void EnableDebugging() => isDebugging = true;
-
-        /// <summary>
-        /// Clear the CNN completely. Set the parameters to only clear some parts
-        /// </summary>
-        /// <param name="clearExecutionMemory"></param>
-        /// <param name="clearOutputs"></param>
-        /// <param name="clearGeneratedMaps"></param>
-        /// <param name="clearFilters"></param>
-        /// <param name="clearANN"></param>
-        public void Clear(bool clearExecutionMemory = true, bool clearOutputs = true, bool clearGeneratedMaps = true, bool clearFilters = true, bool clearANN = true) {
-            if (isDebugging) MLDebugger.AddToDebugOutput("Clearing specified data from the CNN", false);
-            if (clearExecutionMemory) executionMemory.Clear();
-            if (clearOutputs) outputs.Clear();
-            if (clearGeneratedMaps) convolutedMaps.Clear();
-            if (clearFilters) cnnFilters.Clear();
-            if (clearANN) ann = null;
-        }
-
-        /// <summary>
-        /// Create a new <paramref name="filter"/> with dimensions equal to the given array's length. Filter must have the same length in both dimensions!
-        /// </summary>
-        /// <param name="filter"></param>
-        public void AddNewFilter(float[,] filter, string filterName = "") {
-            if (cnnFilters.Find(x => x.filterName == filterName) != null) return;
-
-            if (filter.GetLength(0) != filter.GetLength(1)) throw new ArgumentException("Filter dimensions must be equal in both x and y direction!");
-            cnnFilters.Add(new CNNFilter(filter, filterName));
-        }
-
         //CNN methods for generating outputs and training the network
         #region
+        /// <summary>
+        /// Run the CNN on the given <paramref name="input"/> using the given <paramref name="cnnConfig"/>
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="cnnConfig"></param>
+        /// <returns></returns>
+        public List<double> Run(float[,] input, Configuration.CNNConfig cnnConfig) {
+            LayerType prevLayer = LayerType.None;
+            while (cnnConfig.layers.Count > 0) {
+                Configuration.CNNConfig.LayerInfo layer = cnnConfig.GetLayerInfo();
+                switch (layer.layerType) {
+                    case LayerType.AveragePooling:
+                        //TO DO
+                        break;
+                    case LayerType.Convolution:
+                        if (prevLayer == LayerType.Convolution) Convolution(new List<float[,]>(convolutedMaps), layer.af, layer.stride);
+                        else Convolution(new List<float[,]> { input }, layer.af, layer.stride);
+                        break;
+                    case LayerType.FullyConnected:
+                        List<float[,]> mapsForANN = prevLayer == LayerType.MaxPooling ? GetPooledMaps() : GetConvolutedMaps();
+                        ann = new ANN(layer.annConfig, GetPixelCount(mapsForANN));
+                        FullyConnected(GetPooledMaps(), "Pooled maps");
+                        break;
+                    case LayerType.MaxPooling:
+                        if (prevLayer == LayerType.MaxPooling) MaxPooling(new List<float[,]>(convolutedMaps), layer.af, layer.kernelDimension, layer.stride);
+                        else MaxPooling(new List<float[,]>(pooledMaps), layer.af, layer.kernelDimension, layer.stride);
+                        break;
+                    case LayerType.Padding:
+                        switch (prevLayer) {
+                            case LayerType.Convolution:
+                                for (int i = 0; i < convolutedMaps.Count; i++) convolutedMaps[i] = Padding(convolutedMaps[i]);
+                                break;
+                            case LayerType.MaxPooling:
+                                for (int i = 0; i < pooledMaps.Count; i++) pooledMaps[i] = Padding(pooledMaps[i]);
+                                break;
+                            case LayerType.None:
+                            case LayerType.Padding:
+                                input = Padding(input);
+                                break;
+                        }
+                        break;
+                }
+                prevLayer = layer.layerType;
+            }
+            return outputs;
+        }
+
         /// <summary>
         /// Run the CNN on the given <paramref name="input"/> using default settings and return outputs.
         /// Default settings: padding = 0, convolution stride = 1, pooling kernel = 2, pooling stride = 2, outputs = 3, ActivationFunction = Sigmoid
@@ -102,11 +151,25 @@ namespace MachineLearning {
                 MLDebugger.AddToDebugOutput("Starting CNN default Running", false);
             }
 
-            Convolution(input, ActivationFunctionHandler.ActivationFunction.Sigmoid);
+            Convolution(new List<float[,]> { input }, ActivationFunctionHandler.ActivationFunction.Sigmoid);
 
-            MaxPooling(ActivationFunctionHandler.ActivationFunction.Sigmoid);
+            MaxPooling(convolutedMaps, ActivationFunctionHandler.ActivationFunction.Sigmoid);
 
             FullyConnected(pooledMaps, "pooled maps", desiredNumberOfOutputs);
+            return outputs;
+        }
+
+        /// <summary>
+        /// Train the CNN using the given <paramref name="input"/> and correcting for the given <paramref name="desiredOutputs"/>.
+        /// The CNN is run using the given <paramref name="cnnConfig"/>
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="desiredOutputs"></param>
+        /// <param name="cnnConfig"></param>
+        /// <returns></returns>
+        public List<double> Train(float[,] input, List<double> desiredOutputs, Configuration.CNNConfig cnnConfig) {
+            outputs = Run(input, cnnConfig);
+            Backpropagation(desiredOutputs);
             return outputs;
         }
 
@@ -124,8 +187,8 @@ namespace MachineLearning {
                 MLDebugger.Start();
                 MLDebugger.AddToDebugOutput("Starting CNN default Training", false);
             }
-            Convolution(input, ActivationFunctionHandler.ActivationFunction.Sigmoid);
-            MaxPooling(ActivationFunctionHandler.ActivationFunction.Sigmoid);
+            Convolution(new List<float[,]> { input }, ActivationFunctionHandler.ActivationFunction.Sigmoid);
+            MaxPooling(convolutedMaps, ActivationFunctionHandler.ActivationFunction.Sigmoid);
 
             FullyConnected(pooledMaps, "pooled maps", desiredOutputs.Count);
             Backpropagation(desiredOutputs);
@@ -166,10 +229,10 @@ namespace MachineLearning {
         /// <param name="map"></param>
         /// <param name="af"></param>
         /// <param name="stride"></param>
-        public List<float[,]> Convolution(float[,] map, ActivationFunctionHandler.ActivationFunction af, int stride = 1) {
+        public List<float[,]> Convolution(List<float[,]> maps, ActivationFunctionHandler.ActivationFunction af, int stride = 1) {
             if (isDebugging) {
                 MLDebugger.Start();
-                MLDebugger.AddToDebugOutput("Starting convolution with a map of size " + map.GetLength(0) + "x" + map.GetLength(1) + ", " + cnnFilters.Count +
+                MLDebugger.AddToDebugOutput("Starting convolution with " + maps.Count + " maps, " + cnnFilters.Count +
                                             " filters, and a stride of " + stride, false);
                 MLDebugger.RestartOperationWatch();
             }
@@ -179,40 +242,43 @@ namespace MachineLearning {
             Coord newMapCoord, mapCoord;
             float[,] newMap;
 
-            foreach (CNNFilter filter in cnnFilters) {
-                //The dimensions for the output map is calculated using this formula: OutputDimension = 1 + (inputDimension - filterDimension) / Stride   <=>   0 = 1 + (N - F) / S
-                //It is described and reference in the article: Albawi, Al-Zawi, & Mohammed. 2017. Understanding of a Convolutional Neural Network
-                dimx = (1 + (map.GetLength(0) - filter.dimensions) / stride);
-                dimy = (1 + (map.GetLength(1) - filter.dimensions) / stride);
+            foreach (float[,] map in maps) {
+                if (isDebugging) MLDebugger.AddToDebugOutput("Current map size: " + map.GetLength(0) + "x" + map.GetLength(1), false);
+                foreach (CNNFilter filter in cnnFilters) {
+                    //The dimensions for the output map is calculated using this formula: OutputDimension = 1 + (inputDimension - filterDimension) / Stride   <=>   0 = 1 + (N - F) / S
+                    //It is described and reference in the article: Albawi, Al-Zawi, & Mohammed. 2017. Understanding of a Convolutional Neural Network
+                    dimx = (1 + (map.GetLength(0) - filter.dimensions) / stride);
+                    dimy = (1 + (map.GetLength(1) - filter.dimensions) / stride);
 
-                //A check is performed to ensure the new dimensions are integers since the new map can't be made using floating points! If floating points were used and rounded, the
-                //new map could have the wrong dimensions, which would break the convolution!
-                if (Math.Abs(Math.Round(dimx) - dimx) > 0.000001f || Math.Abs(Math.Round(dimy) - dimy) > 0.000001)
-                    throw new ArgumentException("Output calculation didn't result in an integer! Adjust your stride or filter(s) so: outputMapSize = 1 + (inputMapSize - filterSize) / stride = integer");
+                    //A check is performed to ensure the new dimensions are integers since the new map can't be made using floating points! If floating points were used and rounded, the
+                    //new map could have the wrong dimensions, which would break the convolution!
+                    if (Math.Abs(Math.Round(dimx) - dimx) > 0.000001f || Math.Abs(Math.Round(dimy) - dimy) > 0.000001)
+                        throw new ArgumentException("Output calculation didn't result in an integer! Adjust your stride or filter(s) so: outputMapSize = 1 + (inputMapSize - filterSize) / stride = integer");
 
-                newMap = new float[(int)dimx, (int)dimy];                                                       //The map is created using the dimensions calculated above
-                newMapCoord = new Coord(0, 0, newMap.GetLength(0), newMap.GetLength(1));                        //Coordinates on the new map, where a the calculated value will be placed
-                mapCoord = new Coord(0, 0, map.GetLength(0) - filter.dimensions, map.GetLength(1) - filter.dimensions); //Coordinates on the old map, from which the filter is applied
+                    newMap = new float[(int)dimx, (int)dimy];                                                       //The map is created using the dimensions calculated above
+                    newMapCoord = new Coord(0, 0, newMap.GetLength(0), newMap.GetLength(1));                        //Coordinates on the new map, where a the calculated value will be placed
+                    mapCoord = new Coord(0, 0, map.GetLength(0) - filter.dimensions, map.GetLength(1) - filter.dimensions); //Coordinates on the old map, from which the filter is applied
 
-                while (true) {
-                    value = 0;                                                                                      //Value that is calculated during convolution and applied to the new map at newMapCoord
-                    //Apply filter from current mapCoord
-                    for (int y = mapCoord.y, fy = 0; y < mapCoord.y + filter.dimensions; y++, fy++) {
-                        for (int x = mapCoord.x, fx = 0; x < mapCoord.x + filter.dimensions; x++, fx++) {
-                            value += map[x, y] * filter.filter[fx, fy];
+                    while (true) {
+                        value = 0;                                                                                      //Value that is calculated during convolution and applied to the new map at newMapCoord
+                                                                                                                        //Apply filter from current mapCoord
+                        for (int y = mapCoord.y, fy = 0; y < mapCoord.y + filter.dimensions; y++, fy++) {
+                            for (int x = mapCoord.x, fx = 0; x < mapCoord.x + filter.dimensions; x++, fx++) {
+                                value += map[x, y] * filter.filter[fx, fy];
+                            }
                         }
+
+                        //Increment mapCoord
+                        mapCoord.Increment(stride);
+
+                        //Apply the value to newMap and increment newMapCoord
+                        newMap[newMapCoord.x, newMapCoord.y] = value;
+                        if (newMapCoord.Increment()) break;
                     }
+                    convolutedMaps.Add(ApplyActivationFunctionToMap(newMap, af));
 
-                    //Increment mapCoord
-                    mapCoord.Increment(stride);
-
-                    //Apply the value to newMap and increment newMapCoord
-                    newMap[newMapCoord.x, newMapCoord.y] = value;
-                    if (newMapCoord.Increment()) break;
+                    executionMemory.Push(new ExecutionStep(LayerType.Convolution, map, convolutedMaps[convolutedMaps.Count - 1], af, cnnFilters.FindIndex(x => x == filter)));
                 }
-                convolutedMaps.Add(ApplyActivationFunctionToMap(newMap, af));
-
-                executionMemory.Push(new ExecutionStep(ExecutionStep.Operation.Convolution, map, convolutedMaps[convolutedMaps.Count - 1], af, cnnFilters.FindIndex(x => x == filter)));
             }
 
             if (isDebugging) MLDebugger.AddToDebugOutput("Convolution Layer complete", true);
@@ -226,7 +292,7 @@ namespace MachineLearning {
         /// <param name="af"></param>
         /// <param name="kernelDimension"></param>
         /// <param name="stride"></param>
-        public List<float[,]> MaxPooling(ActivationFunctionHandler.ActivationFunction af, int kernelDimension = 2, int stride = 2) {
+        public List<float[,]> MaxPooling(List<float[,]> maps, ActivationFunctionHandler.ActivationFunction af, int kernelDimension = 2, int stride = 2) {
             if (isDebugging) {
                 MLDebugger.Start();
                 MLDebugger.AddToDebugOutput("Starting pooling of all maps with a kernel with dimensions of " + kernelDimension + ", and a stride of " + stride, false);
@@ -242,7 +308,7 @@ namespace MachineLearning {
             float maxValue = 0;
 
 
-            foreach (float[,] map in convolutedMaps) {
+            foreach (float[,] map in maps) {
                 //The dimensions for the output map is calculated using this formula: OutputDimension = 1 + (inputDimension - filterDimension) / Stride   <=>   0 = 1 + (N - F) / S
                 //The formula is described and referenced in the article: Albawi, Al-Zawi, & Mohammed. 2017. Understanding of a Convolutional Neural Network
                 float dimx = (1 + (map.GetLength(0) - kernelDimension) / stride);
@@ -284,7 +350,7 @@ namespace MachineLearning {
                     if (newMapCoord.Increment()) break;
                 }
                 pooledMaps.Add(ApplyActivationFunctionToMap(newMap, af));
-                executionMemory.Push(new ExecutionStep(ExecutionStep.Operation.MaxPooling, derivedMap, af));
+                executionMemory.Push(new ExecutionStep(LayerType.MaxPooling, derivedMap, af));
             }
 
             if (isDebugging) MLDebugger.AddToDebugOutput("Pooling Layer complete", true);
@@ -301,7 +367,7 @@ namespace MachineLearning {
         }
 
         /// <summary>
-        /// Run the list of <paramref name="maps"/> through the ANN (creates a new using the <paramref name="nOutputs"/> parameter if necessary)
+        /// Run the list of <paramref name="maps"/> through the ANN (creates a new ANN using the <paramref name="nOutputs"/> parameter if necessary)
         /// and return the calculated outputs from the ANN. <paramref name="mapListsName"/> is used by the MLDebugger
         /// </summary>
         /// <param name="maps"></param>
@@ -318,7 +384,7 @@ namespace MachineLearning {
 
             if (isDebugging) MLDebugger.EnableDebugging(ann);
             outputs = ann.Run(inputs);
-            executionMemory.Push(new ExecutionStep(ExecutionStep.Operation.FullyConnected, ann));
+            executionMemory.Push(new ExecutionStep(LayerType.FullyConnected, ann));
 
             if (isDebugging) MLDebugger.AddToDebugOutput("Fully Connected Layer complete", false);
             return outputs;
@@ -337,7 +403,7 @@ namespace MachineLearning {
 
             List<double> inputs = new List<double>();
             for (int i = 0; i < maps.Count; i++) {
-                executionMemory.Push(new ExecutionStep(ExecutionStep.Operation.GenerateANNInputs, maps[i].GetLength(0)));
+                executionMemory.Push(new ExecutionStep(LayerType.GenerateANNInputs, maps[i].GetLength(0)));
                 for (int x = 0; x < maps[i].GetLength(0); x++) {
                     for (int y = 0; y < maps[i].GetLength(1); y++) {
                         inputs.Add(maps[i][x, y]);
@@ -347,6 +413,28 @@ namespace MachineLearning {
 
             if (isDebugging) MLDebugger.AddToDebugOutput("Input generation complete with " + inputs.Count + " inputs for the ANN", false);
             return inputs;
+        }
+
+        int GetPixelCount(float[,] map) {
+            int counter = 0;
+            for (int y = 0; y < map.GetLength(1); y++) {
+                for (int x = 0; x < map.GetLength(0); x++) {
+                    counter++;
+                }
+            }
+            return counter;
+        }
+
+        int GetPixelCount(List<float[,]> maps) {
+            int counter = 0;
+            foreach (float[,] map in maps) {
+                for (int y = 0; y < map.GetLength(1); y++) {
+                    for (int x = 0; x < map.GetLength(0); x++) {
+                        counter++;
+                    }
+                }
+            }
+            return counter;
         }
 
         /// <summary>
@@ -371,11 +459,11 @@ namespace MachineLearning {
             while (executionMemory.Count > 0) {
                 ExecutionStep exeStep = executionMemory.Pop();
                 switch (exeStep.operation) {
-                    case ExecutionStep.Operation.AveragePooling:
+                    case LayerType.AveragePooling:
                         //TO DO: Generate error masks
                         avgPoolCount++;
                         break;
-                    case ExecutionStep.Operation.Convolution:
+                    case LayerType.Convolution:
                         currentErrorMap = errorMaps.Dequeue();
                         filter = cnnFilters[exeStep.filterIndex].filter;
 
@@ -408,7 +496,7 @@ namespace MachineLearning {
                         cnnFilters[exeStep.filterIndex].filter = filter;
                         convCount++;
                         break;
-                    case ExecutionStep.Operation.FullyConnected:
+                    case LayerType.FullyConnected:
                         exeStep.ann.Backpropagation(desiredOutputs, true);
                         annErrorAdjustedInputs = new Stack<double>(ann.inputErrors);
 
@@ -421,7 +509,7 @@ namespace MachineLearning {
 
                         fcCount++;
                         break;
-                    case ExecutionStep.Operation.GenerateANNInputs:
+                    case LayerType.GenerateANNInputs:
                         float[,] newErrorMap = new float[exeStep.mapDimensions, exeStep.mapDimensions];
                         for (int y = 0; y < newErrorMap.GetLength(1); y++) {
                             for (int x = 0; x < newErrorMap.GetLength(0); x++) {
@@ -434,7 +522,7 @@ namespace MachineLearning {
 
                         inGenCount++;
                         break;
-                    case ExecutionStep.Operation.MaxPooling:
+                    case LayerType.MaxPooling:
                         float[,] currentAnnErrorMap = annErrorMaps.Dequeue();
                         if (isDebugging && MLDebugger.depth >= 3) debug += "\nPre-AF InputErrorMap: " + SerializeMap(currentAnnErrorMap);
                         for (int y = 0; y < currentAnnErrorMap.GetLength(1); y++) {
@@ -699,8 +787,7 @@ namespace MachineLearning {
         }
 
         struct ExecutionStep {
-            public enum Operation { AveragePooling, Convolution, FullyConnected, GenerateANNInputs, MaxPooling }
-            public Operation operation { get; }
+            public LayerType operation { get; }
             public float[,] inputMap { get; }
             public float[,] outputMap { get; }
             public int filterIndex { get; }
@@ -715,7 +802,7 @@ namespace MachineLearning {
             /// </summary>
             /// <param name="operation"></param>
             /// <param name="ann"></param>
-            public ExecutionStep(Operation operation, ANN ann) {
+            public ExecutionStep(LayerType operation, ANN ann) {
                 this.ann = ann;
                 this.operation = operation;
                 annInputs = null;
@@ -732,7 +819,7 @@ namespace MachineLearning {
             /// </summary>
             /// <param name="operation"></param>
             /// <param name="mapDimensions"></param>
-            public ExecutionStep(Operation operation, int mapDimensions) {
+            public ExecutionStep(LayerType operation, int mapDimensions) {
                 this.operation = operation;
                 this.mapDimensions = mapDimensions;
                 ann = null;
@@ -752,7 +839,7 @@ namespace MachineLearning {
             /// <param name="outputMap"></param>
             /// <param name="af"></param>
             /// <param name="filterIndex"></param>
-            public ExecutionStep(Operation operation, float[,] inputMap, float[,] outputMap, ActivationFunctionHandler.ActivationFunction af, int filterIndex) {
+            public ExecutionStep(LayerType operation, float[,] inputMap, float[,] outputMap, ActivationFunctionHandler.ActivationFunction af, int filterIndex) {
                 this.operation = operation;
                 this.inputMap = inputMap;
                 this.outputMap = outputMap;
@@ -772,7 +859,7 @@ namespace MachineLearning {
             /// <param name="outputMap"></param>
             /// <param name="af"></param>
             /// <param name="filterIndex"></param>
-            public ExecutionStep(Operation operation, float?[,] mask, ActivationFunctionHandler.ActivationFunction af) {
+            public ExecutionStep(LayerType operation, float?[,] mask, ActivationFunctionHandler.ActivationFunction af) {
                 this.operation = operation;
                 this.mask = mask;
                 this.af = af;
@@ -808,7 +895,8 @@ namespace MachineLearning {
         /// <param name="outputLAF"></param>
         /// <param name="epochs"></param>
         /// <param name="alpha"></param>
-        public ANN(int nInputsN, int nHiddenL, int nhiddenN, int nOutputN, ActivationFunctionHandler.ActivationFunction hiddenLAF, ActivationFunctionHandler.ActivationFunction outputLAF, int epochs = 1000, double alpha = 0.05) {
+        public ANN(int nInputsN, int nHiddenL, int nhiddenN, int nOutputN, ActivationFunctionHandler.ActivationFunction hiddenLAF,
+            ActivationFunctionHandler.ActivationFunction outputLAF, int epochs = 1000, double alpha = 0.05) {
             this.epochs = epochs;
             this.alpha = alpha;
 
@@ -825,10 +913,35 @@ namespace MachineLearning {
         }
 
         /// <summary>
+        /// Create a new ANN based on the given <paramref name="annConfig"/>
+        /// </summary>
+        /// <param name="annConfig"></param>
+        public ANN(Configuration.ANNConfig annConfig, int nInputNeurons) {
+            epochs = annConfig.epochs;
+            alpha = annConfig.alpha;
+
+            //Create the input layer
+            layers.Add(new Layer(nInputNeurons));
+
+            //Create the hidden layers
+            for (int i = 0; i < annConfig.nHiddenLayers; i++) {
+                layers.Add(new Layer(annConfig.nHiddenNeuronsPerLayer, layers[layers.Count - 1], annConfig.hiddenAF));
+            }
+
+            //Create the output layer
+            layers.Add(new Layer(annConfig.nOutputNeurons, layers[layers.Count - 1], annConfig.outputAF));
+        }
+
+        /// <summary>
         /// Creates a new ANN from an <paramref name="annString"/> by deserializing the ANN
         /// </summary>
         /// <param name="annString"></param>
         public ANN(string annString) => DeserializeANN(annString);
+
+        /// <summary>
+        /// Enables debugging. This method should never be called from anything but the MLDebugger!
+        /// </summary>
+        public void EnableDebugging() => isDebugging = true;
 
         //Get methods
         #region
@@ -874,11 +987,6 @@ namespace MachineLearning {
         /// <returns></returns>
         public double GetAlpha() { return alpha; }
         #endregion
-
-        /// <summary>
-        /// Enables debugging. This method should never be called from anything but the MLDebugger!
-        /// </summary>
-        internal void EnableDebugging() => isDebugging = true;
 
         //ANN methods for calculating outputs and training network
         #region
@@ -1606,6 +1714,124 @@ namespace MachineLearning {
             }
 
             return cnn;
+        }
+    }
+
+    public class Configuration {
+        public AITypes aiType { get; private set; } = AITypes.None;
+        public string id { get; private set; }
+
+        public Configuration(AITypes aiType, string id) {
+            this.aiType = aiType;
+            this.id = id;
+        }
+
+        public class CNNConfig : Configuration {
+            public Queue<LayerInfo> layers { get; private set; }
+
+            public CNNConfig(AITypes aiType, string id) : base(aiType, id) {
+                layers = new Queue<LayerInfo>();
+            }
+
+            /// <summary>
+            /// Configure and add a new padding layer
+            /// </summary>
+            public void AddLayer() => layers.Enqueue(new LayerInfo(CNN.LayerType.Padding));
+
+            /// <summary>
+            /// Configure and add a new convolutional layer
+            /// </summary>
+            /// <param name="af"></param>
+            /// <param name="stride"></param>
+            public void AddLayer(ActivationFunctionHandler.ActivationFunction af, int stride) =>
+                layers.Enqueue(new LayerInfo(CNN.LayerType.Convolution, af, stride));
+
+            /// <summary>
+            /// Configure and add a new max-pooling layer
+            /// </summary>
+            /// <param name="af"></param>
+            /// <param name="stride"></param>
+            /// <param name="kernelDimension"></param>
+            public void AddLayer(ActivationFunctionHandler.ActivationFunction af, int stride, int kernelDimension) =>
+                layers.Enqueue(new LayerInfo(CNN.LayerType.MaxPooling, af, stride, kernelDimension));
+
+            /// <summary>
+            /// Configure and add a new fully-connected layer
+            /// </summary>
+            /// <param name="annConfig"></param>
+            public void AddLayer(ANNConfig annConfig) => layers.Enqueue(new LayerInfo(CNN.LayerType.FullyConnected, annConfig));
+
+            /// <summary>
+            /// Get the next layer of the config
+            /// </summary>
+            /// <returns></returns>
+            public LayerInfo GetLayerInfo() { return layers.Dequeue(); }
+
+            public class LayerInfo {
+                public CNN.LayerType layerType { get; }
+                public ActivationFunctionHandler.ActivationFunction af { get; }
+                public int stride { get; }
+                public int kernelDimension { get; }
+                public ANNConfig annConfig { get; }
+
+                public LayerInfo(CNN.LayerType layerType, ActivationFunctionHandler.ActivationFunction af, int stride) {
+                    this.layerType = layerType;
+                    this.af = af;
+                    this.stride = stride;
+                }
+
+                public LayerInfo(CNN.LayerType layerType, ActivationFunctionHandler.ActivationFunction af, int stride, int kernelDimension) {
+                    this.layerType = layerType;
+                    this.af = af;
+                    this.stride = stride;
+                    this.kernelDimension = kernelDimension;
+                }
+
+                public LayerInfo(CNN.LayerType layerType, ANNConfig annConfig) {
+                    this.layerType = layerType;
+                    this.annConfig = annConfig;
+                }
+
+                public LayerInfo(CNN.LayerType layerType) => this.layerType = layerType;
+            }
+        }
+
+        public class ANNConfig : Configuration {
+            public double alpha { get; private set; }
+            public int epochs { get; private set; }
+            public int nHiddenNeuronsPerLayer { get; private set; }
+            public int nHiddenLayers { get; private set; }
+            public int nOutputNeurons { get; private set; }
+            public ActivationFunctionHandler.ActivationFunction hiddenAF { get; private set; }
+            public ActivationFunctionHandler.ActivationFunction outputAF { get; private set; }
+
+            public ANNConfig(AITypes aiType, string id) : base(aiType, id) { }
+
+            public ANNConfig(AITypes aiType, string id, int nHiddenNeuronsPerLayer, int nHiddenLayers, int nOutputNeurons,
+                ActivationFunctionHandler.ActivationFunction hiddenAF, ActivationFunctionHandler.ActivationFunction outputAF,
+                int epochs, double alpha) : base(aiType, id) {
+                this.alpha = alpha;
+                this.epochs = epochs;
+                this.nHiddenNeuronsPerLayer = nHiddenNeuronsPerLayer;
+                this.nHiddenLayers = nHiddenLayers;
+                this.nOutputNeurons = nOutputNeurons;
+                this.hiddenAF = hiddenAF;
+                this.outputAF = outputAF;
+            }
+
+            public void SetAlpha(double alpha) => this.alpha = alpha;
+
+            public void SetEpochs(int epochs) => this.epochs = epochs;
+
+            public void SetNHiddenNeuronsPerLayer(int nHiddenNeuronsPerLayer) => this.nHiddenNeuronsPerLayer = nHiddenNeuronsPerLayer;
+
+            public void SetNHiddenLayers(int nHiddenLayers) => this.nHiddenLayers = nHiddenLayers;
+
+            public void SetNOuputNeurons(int nOutputNeurons) => this.nOutputNeurons = nOutputNeurons;
+
+            public void SetHiddenActivationFunction(ActivationFunctionHandler.ActivationFunction af) => hiddenAF = af;
+
+            public void SetOutputActivationFunction(ActivationFunctionHandler.ActivationFunction af) => outputAF = af;
         }
     }
 }

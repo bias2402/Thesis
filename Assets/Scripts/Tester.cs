@@ -6,6 +6,7 @@ public class Tester : MonoBehaviour {
     private CNN cnn = new CNN();
     [SerializeField] private CNNSaver cnnSaver = null;
     string test = "";
+    Configuration.CNNConfig cnnConfig = null;
 
     void Start() {
         float[,] filter1 = new float[3, 3] {
@@ -28,6 +29,15 @@ public class Tester : MonoBehaviour {
                 { 0, 0, 1 }
             };
         cnn.AddNewFilter(filter3);
+
+        Configuration.ANNConfig annConfig = new Configuration.ANNConfig(AITypes.ANN, "Test - Internal ANN", 0, 0, 4,
+            ActivationFunctionHandler.ActivationFunction.None, ActivationFunctionHandler.ActivationFunction.Sigmoid, 1, 0.05);
+        cnnConfig = new Configuration.CNNConfig(AITypes.CNN, "Test");
+        cnnConfig.AddLayer();                                                           //Padding layer
+        cnnConfig.AddLayer(ActivationFunctionHandler.ActivationFunction.Sigmoid, 1);    //Convolutional layer
+        cnnConfig.AddLayer(ActivationFunctionHandler.ActivationFunction.ReLU, 1);       //Convolutioanl layer
+        cnnConfig.AddLayer(ActivationFunctionHandler.ActivationFunction.Sigmoid, 2, 2); //Max-pooling layer
+        cnnConfig.AddLayer(annConfig);                                                  //Fully-connected layer
     }
 
     void Update() {
@@ -48,17 +58,31 @@ public class Tester : MonoBehaviour {
         if (Input.GetKeyDown(KeyCode.Return)) {
             for (int i = 0; i < 100; i++) {
                 float[,] map = new float[7, 7] {
-                { 0, 0, 0, 1, 0, 1, 0 },
-                { 0, 0, 1, 0, 0, 1, 0 },
-                { 0, 1, 0, 1, 0, 0, 0 },
-                { 1, 0, 0, 1, 0, 0, 0 },
-                { 0, 0, 1, 0, 1, 1, 1 },
-                { 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 1, 0, 1, 0, 0, 0 }
-            };
+                    { 0, 0, 0, 1, 0, 1, 0 },
+                    { 0, 0, 1, 0, 0, 1, 0 },
+                    { 0, 1, 0, 1, 0, 0, 0 },
+                    { 1, 0, 0, 1, 0, 0, 0 },
+                    { 0, 0, 1, 0, 1, 1, 1 },
+                    { 0, 0, 0, 0, 0, 0, 0 },
+                    { 0, 1, 0, 1, 0, 0, 0 }
+                };
                 List<double> desiredOutputs = new List<double>() { 0, 0.25, -0.1, 0.75 };
                 cnn.Train(map, desiredOutputs);
             }
+        }
+
+        if (Input.GetKeyDown(KeyCode.R)) {
+            float[,] map = new float[7, 7] {
+                    { 0, 0, 0, 1, 0, 1, 0 },
+                    { 0, 0, 1, 0, 0, 1, 0 },
+                    { 0, 1, 0, 1, 0, 0, 0 },
+                    { 1, 0, 0, 1, 0, 0, 0 },
+                    { 0, 0, 1, 0, 1, 1, 1 },
+                    { 0, 0, 0, 0, 0, 0, 0 },
+                    { 0, 1, 0, 1, 0, 0, 0 }
+                };
+            List<double> desiredOutputs = new List<double>() { 0, 0.25, -0.1, 0.75 };
+            cnn.Train(map, desiredOutputs, cnnConfig);
         }
 
         if (Input.GetKeyDown(KeyCode.T)) {
@@ -80,76 +104,6 @@ public class Tester : MonoBehaviour {
             test += MLSerializer.SerializeCNN(cnn);
             cnnSaver.serializedCNN = test;
             test = "";
-        }
-
-        if (Input.GetKeyDown(KeyCode.Space)) {
-            cnn.Clear(true, true, false, false);
-
-            Debug.Log("Running...\nStart map size is: [9,9]");
-            float[,] map = new float[9, 9] {
-                { 0, 0, 0, 1, 0, 1, 0, 1, 0 },
-                { 0, 0, 1, 0, 0, 1, 0, 0, 1 },
-                { 0, 1, 0, 1, 0, 0, 0, 1, 1 },
-                { 1, 0, 0, 1, 0, 0, 0, 0, 0 },
-                { 0, 0, 1, 0, 1, 1, 1, 1, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-                { 0, 1, 0, 1, 0, 0, 0, 1, 0 },
-                { 0, 0, 1, 0, 1, 0, 1, 0, 1 },
-                { 1, 1, 0, 1, 0, 1, 0, 1, 0 }
-            };
-            string s = "";
-
-            map = cnn.Padding(map);
-            Debug.Log("Padded map's size: [" + map.GetLength(0) + "," + map.GetLength(1) + "]");
-            for (int i = 0; i < map.GetLength(0); i++) {
-                for (int j = 0; j < map.GetLength(1); j++) {
-                    s += map[i, j].ToString();
-                    if (j != map.GetLength(1) - 1) s += ",";
-                }
-                s += "\n";
-            }
-            Debug.Log(s);
-
-            List<float[,]> maps = cnn.Convolution(map, ActivationFunctionHandler.ActivationFunction.ReLU);
-            Debug.Log("Count: " + maps.Count + ", first map's size: [" + maps[0].GetLength(0) + "," + maps[0].GetLength(1) + "]");
-            s = "";
-            for (int i = 0; i < maps[0].GetLength(0); i++) {
-                for (int j = 0; j < maps[0].GetLength(1); j++) {
-                    s += maps[0][i, j].ToString();
-                    if (j != maps[0].GetLength(1) - 1) s += ",";
-                }
-                s += "\n";
-            }
-            Debug.Log(s);
-
-            cnn.MaxPooling(ActivationFunctionHandler.ActivationFunction.ReLU);
-            Debug.Log("First pooled map's size: [" + cnn.GetPooledMaps()[0].GetLength(0) + "," + cnn.GetPooledMaps()[0].GetLength(1) + "]");
-            s = "";
-            for (int i = 0; i < cnn.GetPooledMaps()[0].GetLength(0); i++) {
-                for (int j = 0; j < cnn.GetPooledMaps()[0].GetLength(1); j++) {
-                    s += cnn.GetPooledMaps()[0][i, j].ToString();
-                    if (j != cnn.GetPooledMaps()[0].GetLength(1) - 1) s += ",";
-                }
-                s += "\n";
-            }
-            Debug.Log(s);
-
-            List<double> outputs = cnn.FullyConnected(cnn.GetPooledMaps(), "pooled maps", 4);
-            Debug.Log("Run. #Neurons: " + cnn.GetANN().GetNeuronCount() + ". Outputs generated: " + outputs.Count);
-            s = "";
-            foreach (double d in outputs) {
-                s += d + " ";
-            }
-            Debug.Log(s);
-
-            List<double> desiredOutputs = new List<double>() { 0, 0.25, -0.1, 0.75 };
-            outputs = cnn.Train(map, desiredOutputs);
-            Debug.Log("Train. #Neurons: " + cnn.GetANN().GetNeuronCount() + ". Outputs generated: " + outputs.Count);
-            s = "";
-            foreach (double d in outputs) {
-                s += d + " ";
-            }
-            Debug.Log(s);
         }
     }
 }
