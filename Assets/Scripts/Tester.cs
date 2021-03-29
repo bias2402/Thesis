@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 using MachineLearning;
+using System.Collections;
 
 public class Tester : MonoBehaviour {
     private CNN cnn = new CNN();

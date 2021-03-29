@@ -98,10 +98,9 @@ namespace MachineLearning {
         /// <param name="input"></param>
         /// <param name="cnnConfig"></param>
         /// <returns></returns>
-        public List<double> Run(float[,] input, Configuration.CNNConfig cnnConfig) {
+        public List<double> Run(float[,] input, in Configuration.CNNConfig cnnConfig) {
             LayerType prevLayer = LayerType.None;
-            while (cnnConfig.layers.Count > 0) {
-                Configuration.CNNConfig.LayerInfo layer = cnnConfig.GetLayerInfo();
+            while (!cnnConfig.GetLayerInfo(out Configuration.CNNConfig.LayerInfo layer)) {        //While the end isn't reached
                 switch (layer.layerType) {
                     case LayerType.AveragePooling:
                         //TO DO
@@ -116,8 +115,8 @@ namespace MachineLearning {
                         FullyConnected(GetPooledMaps(), "Pooled maps");
                         break;
                     case LayerType.MaxPooling:
-                        if (prevLayer == LayerType.MaxPooling) MaxPooling(new List<float[,]>(convolutedMaps), layer.af, layer.kernelDimension, layer.stride);
-                        else MaxPooling(new List<float[,]>(pooledMaps), layer.af, layer.kernelDimension, layer.stride);
+                        if (prevLayer == LayerType.MaxPooling) MaxPooling(new List<float[,]>(pooledMaps), layer.af, layer.kernelDimension, layer.stride);
+                        else MaxPooling(new List<float[,]>(convolutedMaps), layer.af, layer.kernelDimension, layer.stride);
                         break;
                     case LayerType.Padding:
                         switch (prevLayer) {
@@ -152,9 +151,7 @@ namespace MachineLearning {
             }
 
             Convolution(new List<float[,]> { input }, ActivationFunctionHandler.ActivationFunction.Sigmoid);
-
             MaxPooling(convolutedMaps, ActivationFunctionHandler.ActivationFunction.Sigmoid);
-
             FullyConnected(pooledMaps, "pooled maps", desiredNumberOfOutputs);
             return outputs;
         }
@@ -167,7 +164,7 @@ namespace MachineLearning {
         /// <param name="desiredOutputs"></param>
         /// <param name="cnnConfig"></param>
         /// <returns></returns>
-        public List<double> Train(float[,] input, List<double> desiredOutputs, Configuration.CNNConfig cnnConfig) {
+        public List<double> Train(float[,] input, List<double> desiredOutputs, in Configuration.CNNConfig cnnConfig) {
             outputs = Run(input, cnnConfig);
             Backpropagation(desiredOutputs);
             return outputs;
@@ -189,7 +186,6 @@ namespace MachineLearning {
             }
             Convolution(new List<float[,]> { input }, ActivationFunctionHandler.ActivationFunction.Sigmoid);
             MaxPooling(convolutedMaps, ActivationFunctionHandler.ActivationFunction.Sigmoid);
-
             FullyConnected(pooledMaps, "pooled maps", desiredOutputs.Count);
             Backpropagation(desiredOutputs);
 
@@ -277,7 +273,8 @@ namespace MachineLearning {
                     }
                     convolutedMaps.Add(ApplyActivationFunctionToMap(newMap, af));
 
-                    executionMemory.Push(new ExecutionStep(LayerType.Convolution, map, convolutedMaps[convolutedMaps.Count - 1], af, cnnFilters.FindIndex(x => x == filter)));
+                    executionMemory.Push(new ExecutionStep(LayerType.Convolution, map, convolutedMaps[convolutedMaps.Count - 1], 
+                        af, cnnFilters.FindIndex(x => x == filter), map.GetLength(0)));
                 }
             }
 
@@ -453,11 +450,12 @@ namespace MachineLearning {
             float[,] filter;
             Coord pos;
             Queue<float[,]> errorMaps = new Queue<float[,]>();
-            int convCount = 0, maxPoolCount = 0, fcCount = 0, avgPoolCount = 0, inGenCount = 0;
+            int convCount = 0, maxPoolCount = 0, fcCount = 0, avgPoolCount = 0, inGenCount = 0, currentErrorMapIndex = 0;
             string debug = "";
 
             while (executionMemory.Count > 0) {
                 ExecutionStep exeStep = executionMemory.Pop();
+                UnityEngine.Debug.Log(exeStep.operation.ToString());
                 switch (exeStep.operation) {
                     case LayerType.AveragePooling:
                         //TO DO: Generate error masks
@@ -466,6 +464,7 @@ namespace MachineLearning {
                     case LayerType.Convolution:
                         currentErrorMap = errorMaps.Dequeue();
                         filter = cnnFilters[exeStep.filterIndex].filter;
+                        float[,] newErrorMap = exeStep.inputMap;
 
                         if (isDebugging && MLDebugger.depth >= 3) debug += "\nPre-AF errorMap: " + SerializeMap(currentErrorMap);
                         //Apply the derivative activation function to each value of the mask
@@ -487,6 +486,7 @@ namespace MachineLearning {
                             for (int y = 0; y < exeStep.outputMap.GetLength(1); y++) {
                                 for (int x = 0; x < exeStep.outputMap.GetLength(0); x++) {
                                     delta += currentErrorMap[x, y] * exeStep.inputMap[pos.x + x, pos.y + y];
+                                    newErrorMap[pos.x + x, pos.y + y] += delta;
                                 }
                             }
                             filter[pos.x, pos.y] += delta;
@@ -495,6 +495,9 @@ namespace MachineLearning {
 
                         cnnFilters[exeStep.filterIndex].filter = filter;
                         convCount++;
+
+                        if (exeStep.mapDimensions != currentErrorMap.GetLength(0)) errorMaps.Enqueue(Padding(newErrorMap));
+                        else errorMaps.Enqueue(newErrorMap);
                         break;
                     case LayerType.FullyConnected:
                         exeStep.ann.Backpropagation(desiredOutputs, true);
@@ -510,7 +513,7 @@ namespace MachineLearning {
                         fcCount++;
                         break;
                     case LayerType.GenerateANNInputs:
-                        float[,] newErrorMap = new float[exeStep.mapDimensions, exeStep.mapDimensions];
+                        newErrorMap = new float[exeStep.mapDimensions, exeStep.mapDimensions];
                         for (int y = 0; y < newErrorMap.GetLength(1); y++) {
                             for (int x = 0; x < newErrorMap.GetLength(0); x++) {
                                 newErrorMap[x, y] = (float)annErrorAdjustedInputs.Pop();
@@ -832,21 +835,22 @@ namespace MachineLearning {
             }
 
             /// <summary>
-            /// Constructor for the convulutional layer
+            /// Constructor for the convolutional layer
             /// </summary>
             /// <param name="operation"></param>
             /// <param name="inputMap"></param>
             /// <param name="outputMap"></param>
             /// <param name="af"></param>
             /// <param name="filterIndex"></param>
-            public ExecutionStep(LayerType operation, float[,] inputMap, float[,] outputMap, ActivationFunctionHandler.ActivationFunction af, int filterIndex) {
+            public ExecutionStep(LayerType operation, float[,] inputMap, float[,] outputMap, ActivationFunctionHandler.ActivationFunction af, int filterIndex,
+                int mapDimensions) {
                 this.operation = operation;
                 this.inputMap = inputMap;
                 this.outputMap = outputMap;
                 this.af = af;
                 this.filterIndex = filterIndex;
                 mask = null;
-                mapDimensions = 0;
+                this.mapDimensions = mapDimensions;
                 ann = null;
                 annInputs = null;
             }
@@ -1727,16 +1731,15 @@ namespace MachineLearning {
         }
 
         public class CNNConfig : Configuration {
-            public Queue<LayerInfo> layers { get; private set; }
+            public List<LayerInfo> layers { get; private set; }
+            private int index = 0;
 
-            public CNNConfig(AITypes aiType, string id) : base(aiType, id) {
-                layers = new Queue<LayerInfo>();
-            }
+            public CNNConfig(AITypes aiType, string id) : base(aiType, id) => layers = new List<LayerInfo>();
 
             /// <summary>
             /// Configure and add a new padding layer
             /// </summary>
-            public void AddLayer() => layers.Enqueue(new LayerInfo(CNN.LayerType.Padding));
+            public void AddLayer() => layers.Add(new LayerInfo(CNN.LayerType.Padding));
 
             /// <summary>
             /// Configure and add a new convolutional layer
@@ -1744,7 +1747,7 @@ namespace MachineLearning {
             /// <param name="af"></param>
             /// <param name="stride"></param>
             public void AddLayer(ActivationFunctionHandler.ActivationFunction af, int stride) =>
-                layers.Enqueue(new LayerInfo(CNN.LayerType.Convolution, af, stride));
+                layers.Add(new LayerInfo(CNN.LayerType.Convolution, af, stride));
 
             /// <summary>
             /// Configure and add a new max-pooling layer
@@ -1753,19 +1756,28 @@ namespace MachineLearning {
             /// <param name="stride"></param>
             /// <param name="kernelDimension"></param>
             public void AddLayer(ActivationFunctionHandler.ActivationFunction af, int stride, int kernelDimension) =>
-                layers.Enqueue(new LayerInfo(CNN.LayerType.MaxPooling, af, stride, kernelDimension));
+                layers.Add(new LayerInfo(CNN.LayerType.MaxPooling, af, stride, kernelDimension));
 
             /// <summary>
             /// Configure and add a new fully-connected layer
             /// </summary>
             /// <param name="annConfig"></param>
-            public void AddLayer(ANNConfig annConfig) => layers.Enqueue(new LayerInfo(CNN.LayerType.FullyConnected, annConfig));
+            public void AddLayer(ANNConfig annConfig) => layers.Add(new LayerInfo(CNN.LayerType.FullyConnected, annConfig));
 
             /// <summary>
             /// Get the next layer of the config
             /// </summary>
             /// <returns></returns>
-            public LayerInfo GetLayerInfo() { return layers.Dequeue(); }
+            public bool GetLayerInfo(out LayerInfo layer) {
+                bool endReached = false;
+                if (index >= layers.Count) {
+                    index = 0;
+                    endReached = true;
+                }
+                layer = layers[index];
+                index++;
+                return endReached;
+            }
 
             public class LayerInfo {
                 public CNN.LayerType layerType { get; }
