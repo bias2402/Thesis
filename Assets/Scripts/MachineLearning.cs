@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+using System.IO;
 
 namespace MachineLearning {
     public enum AITypes { None, ANN, CNN }
@@ -273,7 +274,7 @@ namespace MachineLearning {
                     }
                     convolutedMaps.Add(ApplyActivationFunctionToMap(newMap, af));
 
-                    executionMemory.Push(new ExecutionStep(LayerType.Convolution, map, convolutedMaps[convolutedMaps.Count - 1], 
+                    executionMemory.Push(new ExecutionStep(LayerType.Convolution, map, convolutedMaps[convolutedMaps.Count - 1],
                         af, cnnFilters.FindIndex(x => x == filter), map.GetLength(0)));
                 }
             }
@@ -1721,7 +1722,8 @@ namespace MachineLearning {
         }
     }
 
-    public class Configuration {
+    public abstract class Configuration {
+        protected static bool isDeserializingCNN = false;
         public AITypes aiType { get; private set; } = AITypes.None;
         public string id { get; private set; }
 
@@ -1729,6 +1731,70 @@ namespace MachineLearning {
             this.aiType = aiType;
             this.id = id;
         }
+
+        /// <summary>
+        /// Serialize the given <paramref name="cnnConfig"/>
+        /// </summary>
+        /// <param name="cnnConfig"></param>
+        /// <returns></returns>
+        public static string Serialize(CNNConfig cnnConfig) { return "<!---" + "\n" + cnnConfig.SerializeCNN() + "\n" + "---!>"; }
+
+        /// <summary>
+        /// Serialize the given <paramref name="annConfig"/>
+        /// </summary>
+        /// <param name="annConfig"></param>
+        /// <returns></returns>
+        public static string Serialize(ANNConfig annConfig) { return "<!---" + "\n" + annConfig.SerializeANN() + "\n" + "---!>"; }
+
+        protected abstract string SerializeCNN();
+
+        protected abstract string SerializeANN();
+
+        public static CNNConfig DeserializeCNN(string path, StreamReader sr = null) {
+            isDeserializingCNN = true;
+            CNNConfig cnnConfig = null;
+            if (sr == null) sr = new StreamReader(path);
+            string input;
+            string[] inputParts;
+
+            while ((input = sr.ReadLine()) != "---!>") {
+                if (input == null) break;
+                inputParts = input.Split(':');
+                switch (inputParts[0]) {
+                    case "#CNNConfig":
+                        cnnConfig = new CNNConfig(AITypes.CNN, inputParts[1].Trim());
+                        break;
+                    case "Layer":
+                        cnnConfig.Deserialize(sr, inputParts[1].Trim());
+                        break;
+                }
+            }
+
+            isDeserializingCNN = false;
+            sr.Close();
+            return cnnConfig;
+        }
+
+        public static ANNConfig DeserializeANN(string path, StreamReader sr = null) {
+            if (sr == null) sr = new StreamReader(path);
+            ANNConfig annConfig = null;
+            string input;
+            string[] inputParts;
+
+            while ((input = sr.ReadLine()) != "---!>") {
+                inputParts = input.Split(':');
+                switch (inputParts[0]) {
+                    case "#ANNConfig":
+                        annConfig = new ANNConfig(AITypes.CNN, inputParts[1].Trim());
+                        annConfig.Deserialize(sr);
+                        break;
+                }
+            }
+            if (!isDeserializingCNN) sr.Close();
+            return annConfig;
+        }
+
+        protected abstract void Deserialize(StreamReader sr, string additionalInfo = "");
 
         public class CNNConfig : Configuration {
             public List<LayerInfo> layers { get; private set; }
@@ -1779,6 +1845,46 @@ namespace MachineLearning {
                 return endReached;
             }
 
+            protected override string SerializeCNN() {
+                string output = "#CNNConfig:" + id + "\n";
+                foreach (LayerInfo l in layers) {
+                    output += l.Serialize() + "\n";
+                }
+                return output;
+            }
+
+            protected override string SerializeANN() => throw new AccessViolationException("You shouldn't reach this with a CNNConfig!");
+
+            protected override void Deserialize(StreamReader sr, string layer) {
+                CNN.LayerType layerType = Parse(layer);
+                ActivationFunctionHandler.ActivationFunction af = ActivationFunctionHandler.ActivationFunction.None;
+                switch (layerType) {
+                    case CNN.LayerType.AveragePooling:
+                    case CNN.LayerType.MaxPooling:
+                        AddLayer(af.Parse(sr.ReadLine().Split(':')[1].Trim()),
+                                 int.Parse(sr.ReadLine().Split(':')[1].Trim()),
+                                 int.Parse(sr.ReadLine().Split(':')[1].Trim()));
+                        break;
+                    case CNN.LayerType.Convolution:
+                        AddLayer(af.Parse(sr.ReadLine().Split(':')[1].Trim()),
+                                 int.Parse(sr.ReadLine().Split(':')[1].Trim()));
+                        break;
+                    case CNN.LayerType.FullyConnected:
+                        AddLayer(DeserializeANN("", sr));
+                        break;
+                    case CNN.LayerType.Padding:
+                        AddLayer();
+                        break;
+                }
+            }
+
+            private CNN.LayerType Parse(string value) {
+                foreach (CNN.LayerType lt in Enum.GetValues(typeof(CNN.LayerType))) {
+                    if (lt.ToString().Equals(value)) return lt;
+                }
+                throw new TypeLoadException("Couldn't find the requested value (" + value + ") in the LayerType enum");
+            }
+
             public class LayerInfo {
                 public CNN.LayerType layerType { get; }
                 public ActivationFunctionHandler.ActivationFunction af { get; }
@@ -1805,6 +1911,30 @@ namespace MachineLearning {
                 }
 
                 public LayerInfo(CNN.LayerType layerType) => this.layerType = layerType;
+
+                public string Serialize() {
+                    string output = "Layer: " + layerType.ToString() + "\n";
+                    switch (layerType) {
+                        case CNN.LayerType.AveragePooling:
+                        case CNN.LayerType.MaxPooling:
+                            output += "ActivationFunction: " + af + "\n";
+                            output += "Stride: " + stride + "\n";
+                            output += "KernelDimension: " + kernelDimension + "\n";
+                            break;
+                        case CNN.LayerType.Convolution:
+                            output += "ActivationFunction: " + af + "\n";
+                            output += "Stride: " + stride + "\n";
+                            break;
+                        case CNN.LayerType.FullyConnected:
+                            output += "ANNConfig:\n" + annConfig.SerializeANN();
+                            break;
+                        case CNN.LayerType.GenerateANNInputs:
+                        case CNN.LayerType.Padding:
+                        case CNN.LayerType.None:
+                            break;
+                    }
+                    return output;
+                }
             }
         }
 
@@ -1844,6 +1974,52 @@ namespace MachineLearning {
             public void SetHiddenActivationFunction(ActivationFunctionHandler.ActivationFunction af) => hiddenAF = af;
 
             public void SetOutputActivationFunction(ActivationFunctionHandler.ActivationFunction af) => outputAF = af;
+
+            protected override string SerializeANN() {
+                string output = "#ANNConfig: " + id + "\n";
+                output += "Alpha: " + alpha + "\n";
+                output += "Epochs: " + epochs + "\n";
+                output += "NumberOfHiddenLayers: " + nHiddenLayers + "\n";
+                output += "NumberOfHiddenNeuronsPerLayer: " + nHiddenNeuronsPerLayer + "\n";
+                output += "NumberOfOutputNeurons: " + nOutputNeurons + "\n";
+                output += "HiddenActivationFunction: " + hiddenAF + "\n";
+                output += "OutputActivationFunction: " + outputAF + "\n";
+                return output;
+            }
+
+            protected override string SerializeCNN() => throw new AccessViolationException("You shouldn't reach this with an ANNConfig!");
+
+            protected override void Deserialize(StreamReader sr, string additionalInfo = "") {
+                string input;
+                string[] inputParts;
+
+                while ((input = sr.ReadLine()) != "") {
+                    inputParts = input.Split(':');
+                    switch (inputParts[0]) {
+                        case "Alpha":
+                            alpha = double.Parse(inputParts[1].Trim());
+                            break;
+                        case "Epochs":
+                            epochs = int.Parse(inputParts[1].Trim());
+                            break;
+                        case "NumberOfHiddenLayers":
+                            nHiddenLayers = int.Parse(inputParts[1].Trim());
+                            break;
+                        case "NumberOfHiddenNeuronsPerLayer":
+                            nHiddenNeuronsPerLayer = int.Parse(inputParts[1].Trim());
+                            break;
+                        case "NumberOfOutputNeurons":
+                            nOutputNeurons = int.Parse(inputParts[1].Trim());
+                            break;
+                        case "HiddenActivationFunction":
+                            hiddenAF.Parse(inputParts[1].Trim());
+                            break;
+                        case "OutputActivationFunction":
+                            outputAF.Parse(inputParts[1].Trim());
+                            break;
+                    }
+                }
+            }
         }
     }
 }

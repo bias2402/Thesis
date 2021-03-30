@@ -2,6 +2,7 @@
 using UnityEngine;
 using MachineLearning;
 using System.Collections;
+using System.Configuration;
 
 public class Tester : MonoBehaviour {
     private CNN cnn = new CNN();
@@ -40,6 +41,18 @@ public class Tester : MonoBehaviour {
         cnnConfig.AddLayer(ActivationFunctionHandler.ActivationFunction.Sigmoid, 2, 2); //Max-pooling layer
         cnnConfig.AddLayer(ActivationFunctionHandler.ActivationFunction.Sigmoid, 2, 2); //Max-pooling layer
         cnnConfig.AddLayer(annConfig);                                                  //Fully-connected layer
+
+        System.IO.StreamWriter sw = new System.IO.StreamWriter("Assets/config-test.txt");
+        sw.Write(Configuration.Serialize(cnnConfig));
+        sw.Flush();
+        sw.Close();
+
+        Configuration.DeserializeCNN("Assets/config-test.txt");
+
+        sw = new System.IO.StreamWriter("Assets/config-test2.txt");
+        sw.Write(Configuration.Serialize(cnnConfig));
+        sw.Flush();
+        sw.Close();
     }
 
     void Update() {
