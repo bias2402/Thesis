@@ -47,7 +47,7 @@ public class Tester : MonoBehaviour {
         sw.Flush();
         sw.Close();
 
-        Configuration.DeserializeCNN("Assets/config-test.txt");
+        cnnConfig = Configuration.DeserializeCNN("Assets/config-test.txt");
 
         sw = new System.IO.StreamWriter("Assets/config-test2.txt");
         sw.Write(Configuration.Serialize(cnnConfig));
@@ -113,7 +113,7 @@ public class Tester : MonoBehaviour {
                 { 0, 1, 0, 1, 0, 0, 0 }
             };
             List<double> desiredOutputs = new List<double>() { 0, 0.25, -0.1, 0.75 };
-            List<double> outputs = cnn.Train(map, desiredOutputs);
+            cnn.Train(map, desiredOutputs, cnnConfig);
 
             test += MLDebugger.GetOutputAndReset();
             test += MLSerializer.SerializeCNN(cnn);

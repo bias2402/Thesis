@@ -322,30 +322,34 @@ namespace MachineLearning {
                 newMapCoord = new Coord(0, 0, newMap.GetLength(0), newMap.GetLength(1));                    //Coordinates on the new map, where a the calculated value will be placed
                 mapCoord = new Coord(0, 0, map.GetLength(0) - kernelDimension, map.GetLength(1) - kernelDimension); //Coordinates on the old map, from which the filter is applied
 
-                while (true) {
-                    //Store values found through the kernel from current mapCoord
-                    for (int y = mapCoord.y; y < mapCoord.y + kernelDimension; y++) {
-                        for (int x = mapCoord.x; x < mapCoord.x + kernelDimension; x++) {
-                            if (x == mapCoord.x && y == mapCoord.y) {
-                                derivedMap[x, y] = maxValue = map[x, y];
-                            } else if (map[x, y] > maxValue) {
-                                derivedMap[x, y] = maxValue = map[x, y];
+                if (map.GetLength(0) == 1 && map.GetLength(1) == 1) {
+                    newMap[0, 0] = map[0, 0];
+                } else {
+                    while (true) {
+                        //Store values found through the kernel from current mapCoord
+                        for (int y = mapCoord.y; y < mapCoord.y + kernelDimension; y++) {
+                            for (int x = mapCoord.x; x < mapCoord.x + kernelDimension; x++) {
+                                if (x == mapCoord.x && y == mapCoord.y) {
+                                    derivedMap[x, y] = maxValue = map[x, y];
+                                } else if (map[x, y] > maxValue) {
+                                    derivedMap[x, y] = maxValue = map[x, y];
 
-                                if ((x - 1) < mapCoord.x) {
-                                    derivedMap[x, y - 1] = null;
-                                } else {
-                                    derivedMap[x - 1, y] = null;
+                                    if ((x - 1) < mapCoord.x) {
+                                        derivedMap[x, y - 1] = null;
+                                    } else {
+                                        derivedMap[x - 1, y] = null;
+                                    }
                                 }
                             }
                         }
+
+                        //Increment mapCoord
+                        mapCoord.Increment(stride);
+
+                        //Apply the value to newMap and increment newMapCoord
+                        newMap[newMapCoord.x, newMapCoord.y] = maxValue;
+                        if (newMapCoord.Increment()) break;
                     }
-
-                    //Increment mapCoord
-                    mapCoord.Increment(stride);
-
-                    //Apply the value to newMap and increment newMapCoord
-                    newMap[newMapCoord.x, newMapCoord.y] = maxValue;
-                    if (newMapCoord.Increment()) break;
                 }
                 pooledMaps.Add(ApplyActivationFunctionToMap(newMap, af));
                 executionMemory.Push(new ExecutionStep(LayerType.MaxPooling, derivedMap, af));
@@ -455,7 +459,6 @@ namespace MachineLearning {
 
             while (executionMemory.Count > 0) {
                 ExecutionStep exeStep = executionMemory.Pop();
-                UnityEngine.Debug.Log(exeStep.operation.ToString());
                 switch (exeStep.operation) {
                     case LayerType.AveragePooling:
                         //TO DO: Generate error masks

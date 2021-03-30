@@ -29,7 +29,7 @@ NumberOfHiddenLayers: 0
 NumberOfHiddenNeuronsPerLayer: 0
 NumberOfOutputNeurons: 4
 HiddenActivationFunction: None
-OutputActivationFunction: Sigmoid
+OutputActivationFunction: None
 
 
 ---!>
