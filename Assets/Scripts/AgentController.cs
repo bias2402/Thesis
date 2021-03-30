@@ -21,6 +21,8 @@ public class AgentController : MonoBehaviour {
     [SerializeField] private Text moveSuggestion = null;
     [SerializeField] private bool isTraining = false;
     [SerializeField] private CNNSaver cnnSaver = null;
+    [SerializeField] private TextAsset cnnConfigFile = null;
+    private Configuration.CNNConfig cnnConfig = null;
     private CNN cnn = null;
 
     [Header("Recording & Playback")]
@@ -61,19 +63,6 @@ public class AgentController : MonoBehaviour {
     [SerializeField] private Text explorationText = null;
     [SerializeField] private Text treasureText = null;
 
-    //Public get/Set methods
-    #region
-    public void SetPlayerName() {
-        if (nameInput.text == null || nameInput.text == "") return;
-        playerName = nameInput.text;
-        isNameSet = true;
-    }
-
-    public bool GetReadyToMoveState() { return isReadyToMove; }
-
-    public int SetMaxTreasures(int max) => maxTreasuresInMap = max;
-    #endregion
-
     void Start() {
         audioSource = GetComponent<AudioSource>();
         if (mapGenerator == null) mapGenerator = FindObjectOfType<MapGenerator>();
@@ -89,7 +78,11 @@ public class AgentController : MonoBehaviour {
                         if (debugAI) MLDebugger.EnableDebugging(cnn);
                         AddCNNFilters(cnn);
                     } else {
-                        cnn = MLSerializer.DeserializeCNN(cnnSaver.serializedCNN);
+                        //cnn = MLSerializer.DeserializeCNN(cnnSaver.serializedCNN);
+                        cnn = new CNN();
+                        cnnConfig = Configuration.DeserializeCNN("Assets/" + cnnConfigFile.name + ".txt");
+                        if (debugAI) MLDebugger.EnableDebugging(cnn);
+                        AddCNNFilters(cnn);
                     }
                 }
                 break;
@@ -224,6 +217,19 @@ public class AgentController : MonoBehaviour {
             }
         }
     }
+
+    //Public Get/Set methods
+    #region
+    public void SetPlayerName() {
+        if (nameInput.text == null || nameInput.text == "") return;
+        playerName = nameInput.text;
+        isNameSet = true;
+    }
+
+    public bool GetReadyToMoveState() { return isReadyToMove; }
+
+    public int SetMaxTreasures(int max) => maxTreasuresInMap = max;
+    #endregion
 
     //Movement and environment handling
     #region
@@ -412,6 +418,8 @@ public class AgentController : MonoBehaviour {
     }
     #endregion
 
+    //CNN methods
+    #region
     void FeedDataToCNN(List<double> givenInput) {
         float[,] visibleMap = new float[11, 11];
         LayerMask blockMask = LayerMask.GetMask("Block");
@@ -430,12 +438,9 @@ public class AgentController : MonoBehaviour {
 
         switch (testComb) {
             case TestCombination.Test1:
-                //PrintFilters(cnn.GetFilters());
-                List<double> outputs = cnn.Train(visibleMap, givenInput);
-                //List<double> outputs = cnn.Run(visibleMap);
+                List<double> outputs = cnn.Train(visibleMap, givenInput, cnnConfig);
                 moveSuggestion.text = "Suggested move: " + GetMoveFromInt(GetIndexOfMaxOutput(outputs));
-                MLDebugger.GetOutputAndReset();
-                PrintFilters(cnn.GetFilters());
+                cnnSaver.serializedCNN = MLDebugger.GetOutputAndReset();
                 break;
             case TestCombination.Test2:
 
@@ -448,15 +453,20 @@ public class AgentController : MonoBehaviour {
 
     int GetIndexOfMaxOutput(List<double> outputs) {
         if (outputs == null) return -1;
-        double max = -5;
-        int index = -1;
+        double? max = null;
+        int? index = null;
         for (int i = 0; i < outputs.Count; i++) {
+            if (index == null) {
+                index = i;
+                continue;
+            }
+
             if (outputs[i] > max) {
                 max = outputs[i];
                 index = i;
             }
         }
-        return index;
+        return (int)index;
     }
 
     string GetMoveFromInt(int i) {
@@ -672,11 +682,5 @@ public class AgentController : MonoBehaviour {
         cnn.AddNewFilter(goalLowerLeftCorner, "Goal Lower Left Corner");
         #endregion
     }
-
-    void PrintFilters(List<CNN.CNNFilter> filters) {
-        Debug.Log(filters[0].GetSerializedFilter());
-        //foreach (CNN.CNNFilter f in filters) {
-        //    Debug.Log(f.GetSerializedFilter());
-        //}
-    }
+    #endregion
 }

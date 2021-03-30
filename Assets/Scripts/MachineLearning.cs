@@ -560,7 +560,7 @@ namespace MachineLearning {
                 }
             }
             if (isDebugging) {
-                MLDebugger.AddToDebugOutput("CNN Backpropagation:" + debug + "\n", false, false);
+                if (MLDebugger.depth == 2) MLDebugger.AddToDebugOutput("CNN Backpropagation:" + debug + "\n", false, false);
                 MLDebugger.AddToDebugOutput("Backpropagation completed. " + convCount + " x Convolution, " + maxPoolCount + " x MaxPooling, " + avgPoolCount +
                                                          " x AveragePooling, " + inGenCount + " x InputGeneration, " + fcCount + " x FullyConnected", true);
             }

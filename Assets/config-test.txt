@@ -6,10 +6,6 @@ Layer: Convolution
 ActivationFunction: Sigmoid
 Stride: 1
 
-Layer: Convolution
-ActivationFunction: ReLU
-Stride: 1
-
 Layer: MaxPooling
 ActivationFunction: Sigmoid
 Stride: 2
