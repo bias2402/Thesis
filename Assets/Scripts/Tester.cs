@@ -32,27 +32,27 @@ public class Tester : MonoBehaviour {
             };
         cnn.AddNewFilter(filter3);
 
-        Configuration.ANNConfig annConfig = new Configuration.ANNConfig(AITypes.ANN, "Test - Internal ANN", 0, 0, 4,
-            ActivationFunctionHandler.ActivationFunction.None, ActivationFunctionHandler.ActivationFunction.Sigmoid, 1, 0.05);
-        cnnConfig = new Configuration.CNNConfig(AITypes.CNN, "Test");
-        cnnConfig.AddLayer();                                                           //Padding layer
-        cnnConfig.AddLayer(ActivationFunctionHandler.ActivationFunction.Sigmoid, 1);    //Convolutional layer
-        cnnConfig.AddLayer(ActivationFunctionHandler.ActivationFunction.ReLU, 1);       //Convolutioanl layer
-        cnnConfig.AddLayer(ActivationFunctionHandler.ActivationFunction.Sigmoid, 2, 2); //Max-pooling layer
-        cnnConfig.AddLayer(ActivationFunctionHandler.ActivationFunction.Sigmoid, 2, 2); //Max-pooling layer
-        cnnConfig.AddLayer(annConfig);                                                  //Fully-connected layer
+        //Configuration.ANNConfig annConfig = new Configuration.ANNConfig(AITypes.ANN, "Test - Internal ANN", 0, 0, 4,
+        //    ActivationFunctionHandler.ActivationFunction.None, ActivationFunctionHandler.ActivationFunction.Sigmoid, 1, 0.05);
+        //cnnConfig = new Configuration.CNNConfig(AITypes.CNN, "Test");
+        //cnnConfig.AddLayer();                                                           //Padding layer
+        //cnnConfig.AddLayer(ActivationFunctionHandler.ActivationFunction.Sigmoid, 1);    //Convolutional layer
+        //cnnConfig.AddLayer(ActivationFunctionHandler.ActivationFunction.ReLU, 1);       //Convolutioanl layer
+        //cnnConfig.AddLayer(ActivationFunctionHandler.ActivationFunction.Sigmoid, 2, 2); //Max-pooling layer
+        //cnnConfig.AddLayer(ActivationFunctionHandler.ActivationFunction.Sigmoid, 2, 2); //Max-pooling layer
+        //cnnConfig.AddLayer(annConfig);                                                  //Fully-connected layer
 
-        System.IO.StreamWriter sw = new System.IO.StreamWriter("Assets/config-test.txt");
-        sw.Write(Configuration.Serialize(cnnConfig));
-        sw.Flush();
-        sw.Close();
+        //System.IO.StreamWriter sw = new System.IO.StreamWriter("Assets/config-test.txt");
+        //sw.Write(Configuration.Serialize(cnnConfig));
+        //sw.Flush();
+        //sw.Close();
 
-        cnnConfig = Configuration.DeserializeCNN("Assets/config-test.txt");
+        cnnConfig = Configuration.DeserializeCNN("Assets/config-test2.txt");
 
-        sw = new System.IO.StreamWriter("Assets/config-test2.txt");
-        sw.Write(Configuration.Serialize(cnnConfig));
-        sw.Flush();
-        sw.Close();
+        //sw = new System.IO.StreamWriter("Assets/config-test2.txt");
+        //sw.Write(Configuration.Serialize(cnnConfig));
+        //sw.Flush();
+        //sw.Close();
     }
 
     void Update() {

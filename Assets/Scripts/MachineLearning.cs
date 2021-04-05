@@ -15,15 +15,15 @@ namespace MachineLearning {
         private List<float[,]> convolutedMaps = new List<float[,]>();
         private List<float[,]> pooledMaps = new List<float[,]>();
         private List<double> outputs = new List<double>();
-        private ANN ann = null;
-        //Execution memory fields
+        private ANN currentANN = null;
+        private List<ANN> ANNs = new List<ANN>();
         private Stack<ExecutionStep> executionMemory = new Stack<ExecutionStep>();
 
         /// <summary>
         /// Allows setting a custom made ANN as the CNN's internal ANN for the Fully-Connected layer calculations
         /// </summary>
         /// <param name="ann"></param>
-        public void SetANN(ANN ann) => this.ann = ann;
+        public void SetANN(ANN ann) => this.currentANN = ann;
 
         /// <summary>
         /// Enables debugging. This method should never be called from anything but the MLDebugger!
@@ -44,7 +44,7 @@ namespace MachineLearning {
             if (clearOutputs) outputs.Clear();
             if (clearGeneratedMaps) convolutedMaps.Clear();
             if (clearFilters) cnnFilters.Clear();
-            if (clearANN) ann = null;
+            if (clearANN) currentANN = null;
         }
 
         /// <summary>
@@ -82,7 +82,7 @@ namespace MachineLearning {
         /// Return the internal ANN of this CNN
         /// </summary>
         /// <returns></returns>
-        public ANN GetANN() { return ann; }
+        public ANN GetANN() { return currentANN; }
 
         /// <summary>
         /// Return the list of outputs from this CNN
@@ -101,6 +101,7 @@ namespace MachineLearning {
         /// <returns></returns>
         public List<double> Run(float[,] input, in Configuration.CNNConfig cnnConfig) {
             LayerType prevLayer = LayerType.None;
+            int fcCount = 0;
             while (!cnnConfig.GetLayerInfo(out Configuration.CNNConfig.LayerInfo layer)) {        //While the end isn't reached
                 switch (layer.layerType) {
                     case LayerType.AveragePooling:
@@ -108,12 +109,31 @@ namespace MachineLearning {
                         break;
                     case LayerType.Convolution:
                         if (prevLayer == LayerType.Convolution) Convolution(new List<float[,]>(convolutedMaps), layer.af, layer.stride);
+                        else if (prevLayer == LayerType.MaxPooling || prevLayer == LayerType.AveragePooling)
+                            Convolution(new List<float[,]>(pooledMaps), layer.af, layer.stride);
                         else Convolution(new List<float[,]> { input }, layer.af, layer.stride);
                         break;
                     case LayerType.FullyConnected:
-                        List<float[,]> mapsForANN = prevLayer == LayerType.MaxPooling ? GetPooledMaps() : GetConvolutedMaps();
-                        ann = new ANN(layer.annConfig, GetPixelCount(mapsForANN));
-                        FullyConnected(GetPooledMaps(), "Pooled maps");
+                        fcCount++;
+                        if (prevLayer == LayerType.FullyConnected) {
+                            UnityEngine.Debug.Log("here");
+                            if (ANNs.Count < fcCount) ANNs.Add(currentANN = new ANN(layer.annConfig, ANNs[fcCount - 1].GetOutputs().Count));
+                        } else {
+                            List<float[,]> mapsForANN = prevLayer == LayerType.MaxPooling ? GetPooledMaps() : GetConvolutedMaps();
+                            if (currentANN == null) if (ANNs.Count == 0) ANNs.Add(currentANN = new ANN(layer.annConfig, GetPixelCount(mapsForANN)));
+                        }
+                        switch (prevLayer) {
+                            case LayerType.AveragePooling:
+                            case LayerType.MaxPooling:
+                                FullyConnected(GetPooledMaps(), "Pooled maps");
+                                break;
+                            case LayerType.Convolution:
+                                FullyConnected(GetConvolutedMaps(), "Convoluted maps");
+                                break;
+                            case LayerType.FullyConnected:
+                                FullyConnected(ANNs[fcCount - 1], ANNs[fcCount - 2].GetOutputs());
+                                break;
+                        }
                         break;
                     case LayerType.MaxPooling:
                         if (prevLayer == LayerType.MaxPooling) MaxPooling(new List<float[,]>(pooledMaps), layer.af, layer.kernelDimension, layer.stride);
@@ -370,7 +390,7 @@ namespace MachineLearning {
 
         /// <summary>
         /// Run the list of <paramref name="maps"/> through the ANN (creates a new ANN using the <paramref name="nOutputs"/> parameter if necessary)
-        /// and return the calculated outputs from the ANN. <paramref name="mapListsName"/> is used by the MLDebugger
+        /// and return the calculated outputs from the ANN. <paramref name="mapListsName"/> is used by the MLDebugger for debugging
         /// </summary>
         /// <param name="maps"></param>
         /// <param name="mapListsName"></param>
@@ -381,12 +401,30 @@ namespace MachineLearning {
             List<double> inputs = GenerateANNInputs(maps, mapListsName);
 
             //Create a new ANN if one doesn't exist already
-            if (ann == null) ann = new ANN(inputs.Count, 0, 0, nOutputs,
+            if (currentANN == null) currentANN = new ANN(inputs.Count, 0, 0, nOutputs,
                 ActivationFunctionHandler.ActivationFunction.Sigmoid, ActivationFunctionHandler.ActivationFunction.Sigmoid);
 
-            if (isDebugging) MLDebugger.EnableDebugging(ann);
-            outputs = ann.Run(inputs);
-            executionMemory.Push(new ExecutionStep(LayerType.FullyConnected, ann));
+            if (isDebugging) MLDebugger.EnableDebugging(currentANN);
+            outputs = currentANN.Run(inputs);
+            executionMemory.Push(new ExecutionStep(LayerType.FullyConnected, currentANN));
+
+            if (isDebugging) MLDebugger.AddToDebugOutput("Fully Connected Layer complete", false);
+            return outputs;
+        }
+
+        /// <summary>
+        /// Run a premade <paramref name="ann"/> with the given <paramref name="inputs"/>
+        /// </summary>
+        /// <param name="ann"></param>
+        /// <param name="inputs"></param>
+        /// <returns></returns>
+        public List<double> FullyConnected(ANN ann, List<double> inputs) {
+            currentANN = ann;
+            if (!ANNs.Contains(ann)) ANNs.Add(ann);
+
+            if (isDebugging) MLDebugger.EnableDebugging(currentANN);
+            outputs = currentANN.Run(inputs);
+            executionMemory.Push(new ExecutionStep(LayerType.FullyConnected, currentANN));
 
             if (isDebugging) MLDebugger.AddToDebugOutput("Fully Connected Layer complete", false);
             return outputs;
@@ -449,12 +487,13 @@ namespace MachineLearning {
                 MLDebugger.RestartOperationWatch();
             }
 
+            int annIndex = ANNs.Count - 1;
             Stack<double> annErrorAdjustedInputs = null;                        //This is a stack, as the values are outputted in the order they were inputted (not flipped)
             Queue<float[,]> errorMaps = new Queue<float[,]>();                  //This is a queue, as the process will flip the order along the way
             float[,] currentErrorMap;
             float[,] filter;
             Coord pos;
-            int convCount = 0, maxPoolCount = 0, fcCount = 0, avgPoolCount = 0, inGenCount = 0, currentErrorMapIndex = 0;
+            int convCount = 0, maxPoolCount = 0, fcCount = 0, avgPoolCount = 0, inGenCount = 0;
             string debug = "";
 
             while (executionMemory.Count > 0) {
@@ -503,8 +542,10 @@ namespace MachineLearning {
                         else errorMaps.Enqueue(newErrorMap);
                         break;
                     case LayerType.FullyConnected:
-                        exeStep.ann.Backpropagation(desiredOutputs, true);
-                        annErrorAdjustedInputs = new Stack<double>(ann.inputErrors);
+                        currentANN = ANNs[annIndex];
+                        annIndex--;
+                        exeStep.ann.Backpropagation(annErrorAdjustedInputs == null ? desiredOutputs : annErrorAdjustedInputs.ToList(), true);
+                        annErrorAdjustedInputs = new Stack<double>(currentANN.inputErrors);
 
                         if (isDebugging && MLDebugger.depth >= 3) {
                             debug += "\nAnnErrorAdjustedInputs: | ";
@@ -664,7 +705,7 @@ namespace MachineLearning {
         /// Pass a serialized <paramref name="annString"/> to deserialize and add a new ANN to the CNN
         /// </summary>
         /// <param name="annString"></param>
-        public void ParseANN(string annString) => ann = new ANN(annString);
+        public void ParseANN(string annString) => currentANN = new ANN(annString);
         #endregion
 
         public class CNNFilter {
@@ -1134,6 +1175,9 @@ namespace MachineLearning {
                         //Subtract the neuron's bias and run the value through the chosen activation function to get the neuron's final output
                         value -= neuron.bias;
                         neuron.outputValue = ActivationFunctionHandler.TriggerActivationFunction(neuron.activationFunction, value);
+
+                        //Ensure that the neuron's output is above the threshold for activation
+                        if (neuron.outputValue < neuron.activationThreshold) neuron.outputValue = 0;
                     }
                 }
             }
@@ -1358,6 +1402,7 @@ namespace MachineLearning {
             public double errorGradient = 0;
             public List<double> weights = new List<double>();
             public List<double> inputs = new List<double>();
+            public double activationThreshold = 0;
 
             /// <summary>
             /// Create a new input neuron
@@ -1365,16 +1410,19 @@ namespace MachineLearning {
             public Neuron() => isInputNeuron = true;
 
             /// <summary>
-            /// Create a new hidden or output neuron. <paramref name="nInputsToNeuron"/> defines the number of weights generated for neuron
+            /// Create a new hidden or output neuron. <paramref name="nInputsToNeuron"/> defines the number of weights generated for neuron.
+            /// The <paramref name="activationThreshold"/> can be set to adjust the required value for the neuron to activate
             /// </summary>
             /// <param name="nInputsToNeuron"></param>
-            public Neuron(int nInputsToNeuron) {
+            /// <param name="activationThreshold"></param>
+            public Neuron(int nInputsToNeuron, double activationThreshold = 0) {
                 if (nInputsToNeuron <= 0) return;
 
                 bias = random.NextDouble() * (1 + 1) - 1;
                 for (int i = 0; i < nInputsToNeuron; i++) {
                     weights.Add(random.NextDouble() * (1 + 1) - 1);
                 }
+                this.activationThreshold = activationThreshold;
             }
 
             /// <summary>
@@ -1395,6 +1443,7 @@ namespace MachineLearning {
                 output += "bias:" + bias + "; ";
                 output += "outputValue:" + outputValue + "; ";
                 output += "errorGradient:" + errorGradient + "; ";
+                output += "activationThreshold:" + activationThreshold + "; ";
                 for (int i = 0; i < weights.Count; i++) output += "weight:" + weights[i] + "; ";
                 for (int i = 0; i < inputs.Count; i++) output += "input:" + inputs[i] + "; ";
                 return output;
@@ -1431,6 +1480,9 @@ namespace MachineLearning {
                             break;
                         case "input":
                             inputs.Add(double.Parse(subparts.Dequeue()));
+                            break;
+                        case "activationThreshold":
+                            activationThreshold = double.Parse(subparts.Dequeue());
                             break;
                     }
                 }
