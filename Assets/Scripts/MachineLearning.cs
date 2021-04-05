@@ -142,14 +142,14 @@ namespace MachineLearning {
                     case LayerType.Padding:
                         switch (prevLayer) {
                             case LayerType.Convolution:
-                                for (int i = 0; i < convolutedMaps.Count; i++) convolutedMaps[i] = Padding(convolutedMaps[i]);
+                                for (int i = 0; i < convolutedMaps.Count; i++) convolutedMaps[i] = Padding(convolutedMaps[i], false);
                                 break;
                             case LayerType.MaxPooling:
-                                for (int i = 0; i < pooledMaps.Count; i++) pooledMaps[i] = Padding(pooledMaps[i]);
+                                for (int i = 0; i < pooledMaps.Count; i++) pooledMaps[i] = Padding(pooledMaps[i], false);
                                 break;
                             case LayerType.None:
                             case LayerType.Padding:
-                                input = Padding(input);
+                                input = Padding(input, false);
                                 break;
                         }
                         break;
@@ -218,8 +218,8 @@ namespace MachineLearning {
         /// </summary>
         /// <param name="map"></param>
         /// <returns></returns>
-        public float[,] Padding(float[,] map) {
-            if (isDebugging) {
+        public float[,] Padding(float[,] map, bool backpropPadding) {
+            if (isDebugging && !backpropPadding) {
                 MLDebugger.Start();
                 MLDebugger.AddToDebugOutput("Starting padding with a map of size " + map.GetLength(0) + "x" + map.GetLength(1) + ", " +
                     "resulting in a map of size " + (map.GetLength(0) + 2) + "x" + (map.GetLength(1) + 2), false);
@@ -236,7 +236,7 @@ namespace MachineLearning {
                 }
             }
 
-            if (isDebugging) MLDebugger.AddToDebugOutput("Padding Layer complete", true);
+            if (isDebugging && !backpropPadding) MLDebugger.AddToDebugOutput("Padding Layer complete", true);
             return newMap;
         }
 
@@ -403,6 +403,7 @@ namespace MachineLearning {
             //Create a new ANN if one doesn't exist already
             if (currentANN == null) currentANN = new ANN(inputs.Count, 0, 0, nOutputs,
                 ActivationFunctionHandler.ActivationFunction.Sigmoid, ActivationFunctionHandler.ActivationFunction.Sigmoid);
+            if (!ANNs.Contains(currentANN)) ANNs.Add(currentANN);
 
             if (isDebugging) MLDebugger.EnableDebugging(currentANN);
             outputs = currentANN.Run(inputs);
@@ -538,7 +539,7 @@ namespace MachineLearning {
                         cnnFilters[exeStep.filterIndex].filter = filter;
                         convCount++;
 
-                        if (exeStep.mapDimensions != currentErrorMap.GetLength(0)) errorMaps.Enqueue(Padding(newErrorMap));
+                        if (exeStep.mapDimensions != currentErrorMap.GetLength(0)) errorMaps.Enqueue(Padding(newErrorMap, true));
                         else errorMaps.Enqueue(newErrorMap);
                         break;
                     case LayerType.FullyConnected:
