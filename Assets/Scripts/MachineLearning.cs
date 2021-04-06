@@ -272,7 +272,7 @@ namespace MachineLearning {
                     if (Math.Abs(Math.Round(dimx) - dimx) > 0.000001f || Math.Abs(Math.Round(dimy) - dimy) > 0.000001)
                         throw new ArgumentException("Output calculation didn't result in an integer! Adjust your stride or filter(s) so: outputMapSize = 1 + (inputMapSize - filterSize) / stride = integer");
 
-                    newMap = new float[(int)dimx, (int)dimy];                                                       //The map is created using the dimensions calculated above
+                    newMap = new float[(int)Math.Round(dimx), (int)Math.Round(dimy)];                               //The map is created using the dimensions calculated above
                     newMapCoord = new Coord(0, 0, newMap.GetLength(0), newMap.GetLength(1));                        //Coordinates on the new map, where a the calculated value will be placed
                     mapCoord = new Coord(0, 0, map.GetLength(0) - filter.dimensions, map.GetLength(1) - filter.dimensions); //Coordinates on the old map, from which the filter is applied
 
@@ -337,7 +337,7 @@ namespace MachineLearning {
                 if (Math.Abs(Math.Round(dimx) - dimx) > 0.000001f || Math.Abs(Math.Round(dimy) - dimy) > 0.000001)
                     throw new ArgumentException("Output calculation didn't result in an integer! Adjust your stride or kernel dimension so: outputMapSize = 1 + (inputMapSize - filterSize) / stride = integer");
 
-                newMap = new float[(int)dimx, (int)dimy];                                                   //The map will shrink during pooling, so the new map is smaller in both dimensions
+                newMap = new float[(int)Math.Round(dimx), (int)Math.Round(dimy)];                           //The map will shrink during pooling, so the new map is smaller in both dimensions
                 derivedMap = new float?[map.GetLength(0), map.GetLength(1)];                                //This map is created and saved for later use during backpropagation
                 newMapCoord = new Coord(0, 0, newMap.GetLength(0), newMap.GetLength(1));                    //Coordinates on the new map, where a the calculated value will be placed
                 mapCoord = new Coord(0, 0, map.GetLength(0) - kernelDimension, map.GetLength(1) - kernelDimension); //Coordinates on the old map, from which the filter is applied

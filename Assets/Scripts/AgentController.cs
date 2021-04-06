@@ -14,7 +14,6 @@ public class AgentController : MonoBehaviour {
     [Header("Agent Setting")]
     [SerializeField] private AgentType agentType = AgentType.Human;
     private PlayStyles playstyle = PlayStyles.Speedrunner;
-    [SerializeField] private TestCombination testComb = TestCombination.Test1;
 
     [Header("AI Settings")]
     [SerializeField] private bool debugAI = false;
@@ -436,20 +435,10 @@ public class AgentController : MonoBehaviour {
             }
         }
 
-        switch (testComb) {
-            case TestCombination.Test1:
-                List<double> outputs = cnn.Train(visibleMap, givenInput);
-                //List<double> outputs = cnn.Train(visibleMap, givenInput, cnnConfig);
-                moveSuggestion.text = "Suggested move: " + GetMoveFromInt(GetIndexOfMaxOutput(outputs));
-                cnnSaver.serializedCNN = MLDebugger.GetOutputAndReset();
-                break;
-            case TestCombination.Test2:
-
-                break;
-            case TestCombination.Test3:
-
-                break;
-        }
+        //List<double> outputs = cnn.Train(visibleMap, givenInput);
+        List<double> outputs = cnn.Train(visibleMap, givenInput, cnnConfig);
+        //moveSuggestion.text = "Suggested move: " + GetMoveFromInt(GetIndexOfMaxOutput(outputs));
+        cnnSaver.serializedCNN = MLDebugger.GetOutputAndReset();
     }
 
     int GetIndexOfMaxOutput(List<double> outputs) {

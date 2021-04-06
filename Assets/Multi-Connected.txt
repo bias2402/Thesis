@@ -1,9 +1,7 @@
 <!---
 #CNNConfig:Test
-Layer: Padding
-
 Layer: Convolution
-ActivationFunction: ReLU
+ActivationFunction: Sigmoid
 Stride: 1
 
 Layer: MaxPooling
@@ -13,24 +11,24 @@ KernelDimension: 2
 
 Layer: FullyConnected
 ANNConfig:
-#ANNConfig: Test - Internal ANN
+#ANNConfig: Internal Hidden ANN
 Alpha: 0,05
 Epochs: 1
-NumberOfHiddenLayers: 2
-NumberOfHiddenNeuronsPerLayer: 8
-NumberOfOutputNeurons: 16
-HiddenActivationFunction: ReLU
-OutputActivationFunction: ReLU
+NumberOfHiddenLayers: 0
+NumberOfHiddenNeuronsPerLayer: 0
+NumberOfOutputNeurons: 8
+HiddenActivationFunction: None
+OutputActivationFunction: Sigmoid
 
 Layer: FullyConnected
 ANNConfig:
-#ANNConfig: Test - Internal ANN Final
+#ANNConfig: Internal Output ANN
 Alpha: 0,05
 Epochs: 1
 NumberOfHiddenLayers: 0
 NumberOfHiddenNeuronsPerLayer: 0
 NumberOfOutputNeurons: 4
-HiddenActivationFunction: Sigmoid
+HiddenActivationFunction: None
 OutputActivationFunction: Sigmoid
 
 
