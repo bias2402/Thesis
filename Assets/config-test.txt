@@ -2,6 +2,8 @@
 #CNNConfig:Test
 Layer: Padding
 
+Layer: Padding
+
 Layer: Convolution
 ActivationFunction: Sigmoid
 Stride: 1
@@ -10,6 +12,10 @@ Layer: MaxPooling
 ActivationFunction: Sigmoid
 Stride: 2
 KernelDimension: 2
+
+Layer: Convolution
+ActivationFunction: Sigmoid
+Stride: 1
 
 Layer: MaxPooling
 ActivationFunction: Sigmoid

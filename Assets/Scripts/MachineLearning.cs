@@ -16,7 +16,7 @@ namespace MachineLearning {
         private List<float[,]> pooledMaps = new List<float[,]>();
         private List<double> outputs = new List<double>();
         private ANN currentANN = null;
-        private List<ANN> ANNs = new List<ANN>();
+        private List<ANN> interalANNs = new List<ANN>();
         private Stack<ExecutionStep> executionMemory = new Stack<ExecutionStep>();
 
         /// <summary>
@@ -116,11 +116,10 @@ namespace MachineLearning {
                     case LayerType.FullyConnected:
                         fcCount++;
                         if (prevLayer == LayerType.FullyConnected) {
-                            UnityEngine.Debug.Log("here");
-                            if (ANNs.Count < fcCount) ANNs.Add(currentANN = new ANN(layer.annConfig, ANNs[fcCount - 1].GetOutputs().Count));
+                            if (interalANNs.Count < fcCount) interalANNs.Add(currentANN = new ANN(layer.annConfig, interalANNs[interalANNs.Count - 1].GetOutputs().Count));
                         } else {
                             List<float[,]> mapsForANN = prevLayer == LayerType.MaxPooling ? GetPooledMaps() : GetConvolutedMaps();
-                            if (currentANN == null) if (ANNs.Count == 0) ANNs.Add(currentANN = new ANN(layer.annConfig, GetPixelCount(mapsForANN)));
+                            if (currentANN == null) if (interalANNs.Count == 0) interalANNs.Add(currentANN = new ANN(layer.annConfig, GetPixelCount(mapsForANN)));
                         }
                         switch (prevLayer) {
                             case LayerType.AveragePooling:
@@ -131,7 +130,7 @@ namespace MachineLearning {
                                 FullyConnected(GetConvolutedMaps(), "Convoluted maps");
                                 break;
                             case LayerType.FullyConnected:
-                                FullyConnected(ANNs[fcCount - 1], ANNs[fcCount - 2].GetOutputs());
+                                FullyConnected(interalANNs[interalANNs.Count - 1], new List<double>(interalANNs[interalANNs.Count - 2].GetOutputs()));
                                 break;
                         }
                         break;
@@ -249,30 +248,30 @@ namespace MachineLearning {
         public List<float[,]> Convolution(List<float[,]> maps, ActivationFunctionHandler.ActivationFunction af, int stride = 1) {
             if (isDebugging) {
                 MLDebugger.Start();
-                MLDebugger.AddToDebugOutput("Starting convolution with " + maps.Count + " maps, " + cnnFilters.Count +
+                MLDebugger.AddToDebugOutput("Starting convolution with " + maps.Count + " map(s), " + cnnFilters.Count +
                                             " filters, and a stride of " + stride, false);
                 MLDebugger.RestartOperationWatch();
             }
 
             convolutedMaps.Clear();
-            float dimx, dimy, value;
+            float value;
+            double dimx, dimy;
             Coord newMapCoord, mapCoord;
             float[,] newMap;
 
-            foreach (float[,] map in maps) {
-                if (isDebugging) MLDebugger.AddToDebugOutput("Current map size: " + map.GetLength(0) + "x" + map.GetLength(1), false);
-                foreach (CNNFilter filter in cnnFilters) {
+            foreach (CNNFilter filter in cnnFilters) {
+                foreach (float[,] map in maps) {
                     //The dimensions for the output map is calculated using this formula: OutputDimension = 1 + (inputDimension - filterDimension) / Stride   <=>   0 = 1 + (N - F) / S
                     //It is described and reference in the article: Albawi, Al-Zawi, & Mohammed. 2017. Understanding of a Convolutional Neural Network
-                    dimx = (1 + (map.GetLength(0) - filter.dimensions) / stride);
-                    dimy = (1 + (map.GetLength(1) - filter.dimensions) / stride);
+                    dimx = Math.Ceiling((double)(1 + (double)(map.GetLength(0) - filter.dimensions) / stride));
+                    dimy = Math.Ceiling((double)(1 + (double)(map.GetLength(1) - filter.dimensions) / stride));
 
                     //A check is performed to ensure the new dimensions are integers since the new map can't be made using floating points! If floating points were used and rounded, the
                     //new map could have the wrong dimensions, which would break the convolution!
                     if (Math.Abs(Math.Round(dimx) - dimx) > 0.000001f || Math.Abs(Math.Round(dimy) - dimy) > 0.000001)
                         throw new ArgumentException("Output calculation didn't result in an integer! Adjust your stride or filter(s) so: outputMapSize = 1 + (inputMapSize - filterSize) / stride = integer");
 
-                    newMap = new float[(int)Math.Round(dimx), (int)Math.Round(dimy)];                               //The map is created using the dimensions calculated above
+                    newMap = new float[(int)dimx, (int)dimy];                               //The map is created using the dimensions calculated above
                     newMapCoord = new Coord(0, 0, newMap.GetLength(0), newMap.GetLength(1));                        //Coordinates on the new map, where a the calculated value will be placed
                     mapCoord = new Coord(0, 0, map.GetLength(0) - filter.dimensions, map.GetLength(1) - filter.dimensions); //Coordinates on the old map, from which the filter is applied
 
@@ -292,6 +291,7 @@ namespace MachineLearning {
                         newMap[newMapCoord.x, newMapCoord.y] = value;
                         if (newMapCoord.Increment()) break;
                     }
+                    UnityEngine.Debug.Log("Conv AF " + maps.Count);
                     convolutedMaps.Add(ApplyActivationFunctionToMap(newMap, af));
 
                     executionMemory.Push(new ExecutionStep(LayerType.Convolution, map, convolutedMaps[convolutedMaps.Count - 1],
@@ -324,20 +324,18 @@ namespace MachineLearning {
             Coord newMapCoord;
             Coord mapCoord;
             float maxValue = 0;
-
-
             foreach (float[,] map in maps) {
                 //The dimensions for the output map is calculated using this formula: OutputDimension = 1 + (inputDimension - filterDimension) / Stride   <=>   0 = 1 + (N - F) / S
                 //The formula is described and referenced in the article: Albawi, Al-Zawi, & Mohammed. 2017. Understanding of a Convolutional Neural Network
-                float dimx = (1 + (map.GetLength(0) - kernelDimension) / stride);
-                float dimy = (1 + (map.GetLength(1) - kernelDimension) / stride);
+                double dimx = Math.Ceiling((double)(1 + (double)(map.GetLength(0) - kernelDimension) / stride));
+                double dimy = Math.Ceiling((double)(1 + (double)(map.GetLength(1) - kernelDimension) / stride));
 
                 //A check is performed to ensure the new dimensions are integers since the new map can't be made using floating points! If floating points were used and rounded, the
                 //new map could have the wrong dimensions, which would break the pooling!
                 if (Math.Abs(Math.Round(dimx) - dimx) > 0.000001f || Math.Abs(Math.Round(dimy) - dimy) > 0.000001)
                     throw new ArgumentException("Output calculation didn't result in an integer! Adjust your stride or kernel dimension so: outputMapSize = 1 + (inputMapSize - filterSize) / stride = integer");
 
-                newMap = new float[(int)Math.Round(dimx), (int)Math.Round(dimy)];                           //The map will shrink during pooling, so the new map is smaller in both dimensions
+                newMap = new float[(int)dimx, (int)dimy];                           //The map will shrink during pooling, so the new map is smaller in both dimensions
                 derivedMap = new float?[map.GetLength(0), map.GetLength(1)];                                //This map is created and saved for later use during backpropagation
                 newMapCoord = new Coord(0, 0, newMap.GetLength(0), newMap.GetLength(1));                    //Coordinates on the new map, where a the calculated value will be placed
                 mapCoord = new Coord(0, 0, map.GetLength(0) - kernelDimension, map.GetLength(1) - kernelDimension); //Coordinates on the old map, from which the filter is applied
@@ -371,6 +369,7 @@ namespace MachineLearning {
                         if (newMapCoord.Increment()) break;
                     }
                 }
+                UnityEngine.Debug.Log("Pool AF");
                 pooledMaps.Add(ApplyActivationFunctionToMap(newMap, af));
                 executionMemory.Push(new ExecutionStep(LayerType.MaxPooling, derivedMap, af));
             }
@@ -403,7 +402,7 @@ namespace MachineLearning {
             //Create a new ANN if one doesn't exist already
             if (currentANN == null) currentANN = new ANN(inputs.Count, 0, 0, nOutputs,
                 ActivationFunctionHandler.ActivationFunction.Sigmoid, ActivationFunctionHandler.ActivationFunction.Sigmoid);
-            if (!ANNs.Contains(currentANN)) ANNs.Add(currentANN);
+            if (!interalANNs.Contains(currentANN)) interalANNs.Add(currentANN);
 
             if (isDebugging) MLDebugger.EnableDebugging(currentANN);
             outputs = currentANN.Run(inputs);
@@ -421,7 +420,7 @@ namespace MachineLearning {
         /// <returns></returns>
         public List<double> FullyConnected(ANN ann, List<double> inputs) {
             currentANN = ann;
-            if (!ANNs.Contains(ann)) ANNs.Add(ann);
+            if (!interalANNs.Contains(ann)) interalANNs.Add(ann);
 
             if (isDebugging) MLDebugger.EnableDebugging(currentANN);
             outputs = currentANN.Run(inputs);
@@ -488,11 +487,12 @@ namespace MachineLearning {
                 MLDebugger.RestartOperationWatch();
             }
 
-            int annIndex = ANNs.Count - 1;
+            int annIndex = interalANNs.Count - 1;
             Stack<double> annErrorAdjustedInputs = null;                        //This is a stack, as the values are outputted in the order they were inputted (not flipped)
             Queue<float[,]> errorMaps = new Queue<float[,]>();                  //This is a queue, as the process will flip the order along the way
             float[,] currentErrorMap;
             float[,] filter;
+            int prevFilterIndex = -1;
             Coord pos;
             int convCount = 0, maxPoolCount = 0, fcCount = 0, avgPoolCount = 0, inGenCount = 0;
             string debug = "";
@@ -507,7 +507,12 @@ namespace MachineLearning {
                     case LayerType.Convolution:
                         currentErrorMap = errorMaps.Dequeue();
                         filter = cnnFilters[exeStep.filterIndex].filter;
-                        float[,] newErrorMap = exeStep.inputMap;
+                        float[,] newErrorMap;
+                        if (prevFilterIndex != exeStep.filterIndex) {
+                            newErrorMap = exeStep.inputMap;
+                        } else {
+                            newErrorMap = errorMaps.ToList()[errorMaps.Count - 1];
+                        }
 
                         if (isDebugging && MLDebugger.depth >= 3) debug += "\nPre-AF errorMap: " + SerializeMap(currentErrorMap);
                         //Apply the derivative activation function to each value of the mask
@@ -521,8 +526,8 @@ namespace MachineLearning {
                         //Pos is the current upper-left corner of the input map and the current position in the filter (because of positional relation when doing the comparison process)
                         pos = new Coord(0, 0, exeStep.inputMap.GetLength(0) - currentErrorMap.GetLength(0),
                                                                  exeStep.inputMap.GetLength(1) - currentErrorMap.GetLength(1));
-                        float delta = 0;
 
+                        float delta = 0;
                         //While pos doesn't reach its end, for each position of pos iterate through the errorMask and multiply with the input value at the same position
                         if (isDebugging && MLDebugger.depth >= 3) debug += "\nPre-FilterUpdate: " + SerializeMap(filter);
                         do {
@@ -530,6 +535,8 @@ namespace MachineLearning {
                                 for (int x = 0; x < exeStep.outputMap.GetLength(0); x++) {
                                     delta += currentErrorMap[x, y] * exeStep.inputMap[pos.x + x, pos.y + y];
                                     newErrorMap[pos.x + x, pos.y + y] += delta;
+                                    if (delta > 1000 || delta < -1000) 
+                                        UnityEngine.Debug.Log("Uhm, delta? " + delta + ", " + currentErrorMap[x, y] + ", " + exeStep.inputMap[pos.x + x, pos.y + y]);
                                 }
                             }
                             filter[pos.x, pos.y] += delta;
@@ -537,13 +544,23 @@ namespace MachineLearning {
                         if (isDebugging && MLDebugger.depth >= 2) debug += "\nPost-FilterUpdate: " + SerializeMap(filter);
 
                         cnnFilters[exeStep.filterIndex].filter = filter;
+
                         convCount++;
 
-                        if (exeStep.mapDimensions != currentErrorMap.GetLength(0)) errorMaps.Enqueue(Padding(newErrorMap, true));
-                        else errorMaps.Enqueue(newErrorMap);
+                        if (prevFilterIndex != exeStep.filterIndex) {
+                            if (exeStep.mapDimensions > newErrorMap.GetLength(0)) errorMaps.Enqueue(Padding(newErrorMap, true));
+                            else errorMaps.Enqueue(newErrorMap);
+                            prevFilterIndex = exeStep.filterIndex;
+                        } else {
+                            List<float[,]> modifiedErrorMapsQueue = errorMaps.ToList();
+                            modifiedErrorMapsQueue.RemoveAt(modifiedErrorMapsQueue.Count - 1);
+                            errorMaps = new Queue<float[,]>(modifiedErrorMapsQueue);
+                            if (exeStep.mapDimensions > newErrorMap.GetLength(0)) errorMaps.Enqueue(Padding(newErrorMap, true));
+                            else errorMaps.Enqueue(newErrorMap);
+                        }
                         break;
                     case LayerType.FullyConnected:
-                        currentANN = ANNs[annIndex];
+                        currentANN = interalANNs[annIndex];
                         annIndex--;
                         exeStep.ann.Backpropagation(annErrorAdjustedInputs == null ? desiredOutputs : annErrorAdjustedInputs.ToList(), true);
                         annErrorAdjustedInputs = new Stack<double>(currentANN.inputErrors);
@@ -571,29 +588,30 @@ namespace MachineLearning {
                         inGenCount++;
                         break;
                     case LayerType.MaxPooling:
-                        float[,] currentAnnErrorMap = errorMaps.Dequeue();
+                        currentErrorMap = errorMaps.Dequeue();
 
-                        if (isDebugging && MLDebugger.depth >= 3) debug += "\nPre-AF InputErrorMap: " + SerializeMap(currentAnnErrorMap);
-                        for (int y = 0; y < currentAnnErrorMap.GetLength(1); y++) {
-                            for (int x = 0; x < currentAnnErrorMap.GetLength(0); x++) {
-                                currentAnnErrorMap[x, y] = (float)ActivationFunctionHandler.TriggerDerativeFunction(exeStep.af, currentAnnErrorMap[x, y]);
+                        if (isDebugging && MLDebugger.depth >= 3) debug += "\nPre-AF InputErrorMap: " + SerializeMap(currentErrorMap);
+                        for (int y = 0; y < currentErrorMap.GetLength(1); y++) {
+                            for (int x = 0; x < currentErrorMap.GetLength(0); x++) {
+                                currentErrorMap[x, y] = (float)ActivationFunctionHandler.TriggerDerativeFunction(exeStep.af, currentErrorMap[x, y]);
                             }
                         }
-                        if (isDebugging && MLDebugger.depth >= 3) debug += "\nPost-AF InputErrorMap: " + SerializeMap(currentAnnErrorMap);
+                        if (isDebugging && MLDebugger.depth >= 3) debug += "\nPost-AF InputErrorMap: " + SerializeMap(currentErrorMap);
 
                         if (isDebugging && MLDebugger.depth >= 3) debug += "\nPre-Mask: " + SerializeMap(exeStep.mask);
-                        Coord errorMapCoord = new Coord(0, 0, currentAnnErrorMap.GetLength(0), currentAnnErrorMap.GetLength(1));
+                        Coord errorMapCoord = new Coord(0, 0, currentErrorMap.GetLength(0), currentErrorMap.GetLength(1));
                         float[,] newMap = new float[exeStep.mask.GetLength(0), exeStep.mask.GetLength(1)];
                         for (int y = 0; y < exeStep.mask.GetLength(1); y++) {
                             for (int x = 0; x < exeStep.mask.GetLength(0); x++) {
                                 if (exeStep.mask[x, y] == null) {
                                     newMap[x, y] = 0;
                                 } else {
-                                    newMap[x, y] = currentAnnErrorMap[errorMapCoord.x, errorMapCoord.y];
+                                    newMap[x, y] = currentErrorMap[errorMapCoord.x, errorMapCoord.y];
                                     errorMapCoord.Increment();
                                 }
                             }
                         }
+
                         errorMaps.Enqueue(newMap);
                         if (isDebugging && MLDebugger.depth >= 2) debug += "\nPost-Mask: " + SerializeMap(newMap);
 
@@ -602,7 +620,7 @@ namespace MachineLearning {
                 }
             }
             if (isDebugging) {
-                if (MLDebugger.depth == 2) MLDebugger.AddToDebugOutput("CNN Backpropagation:" + debug + "\n", false, false);
+                if (MLDebugger.depth >= 2) MLDebugger.AddToDebugOutput("CNN Backpropagation:" + debug + "\n", false, false);
                 MLDebugger.AddToDebugOutput("Backpropagation completed. " + convCount + " x Convolution, " + maxPoolCount + " x MaxPooling, " + avgPoolCount +
                                                          " x AveragePooling, " + inGenCount + " x InputGeneration, " + fcCount + " x FullyConnected", true);
             }
@@ -1198,13 +1216,10 @@ namespace MachineLearning {
             string output = "";
             if (isDebugging && MLDebugger.depth >= 2) {
                 output += "\nDesiredOuputs: | ";
-                foreach (double d in desiredOutputs) {
-                    output += d + " | ";
-                }
+                foreach (double d in desiredOutputs) output += d + " | ";
+
                 output += "\nActualOutputs: | ";
-                foreach (Neuron n in layers[outputLayer].neurons) {
-                    output += n.outputValue + " | ";
-                }
+                foreach (Neuron n in layers[outputLayer].neurons) output += n.outputValue + " | ";
             }
 
             //Output layer
@@ -1553,11 +1568,13 @@ namespace MachineLearning {
 
         static double Sigmoid(double value) {
             double k = Math.Exp(value);
+            if (double.IsInfinity(k)) throw new NotFiniteNumberException("To infinity and... Oh, we already reached infinity?");
             return k / (1.0f + k);
         }
 
         static double TanH(double value) {
             double k = Math.Exp(-2 * value);
+            if (double.IsInfinity(k)) throw new NotFiniteNumberException("To infinity and... Oh, we already reached infinity?");
             return 2 / (1.0f + k) - 1;
         }
 
@@ -1604,6 +1621,7 @@ namespace MachineLearning {
         public static void EnableDebugging(CNN cnn, int? depth = null) {
             cnn.EnableDebugging();
             if (depth != null) SetDepth((int)depth);
+
         }
 
         /// <summary>
@@ -1645,11 +1663,11 @@ namespace MachineLearning {
             if (isOperation) {
                 state = "|   Operation: " + state;
                 if (includeDurationTime) {
-                    state += "   |   Duration: " + operationStopwatch.ElapsedMilliseconds + "ms";
+                    state += "   |   Duration: " + operationStopwatch.Elapsed.TotalMilliseconds * 1000 + "μs";
                     RestartOperationWatch();
                 }
 
-                state += "   |   Total time: " + totalStopwatch.ElapsedMilliseconds + "ms   |";
+                state += "   |   Total time: " + totalStopwatch.Elapsed.TotalMilliseconds * 1000 + "μs   |";
 
                 output += state + "\n";
                 AddLineToOutput();
@@ -1843,6 +1861,7 @@ namespace MachineLearning {
                     case "#ANNConfig":
                         annConfig = new ANNConfig(AITypes.CNN, inputParts[1].Trim());
                         annConfig.Deserialize(sr);
+                        if (isDeserializingCNN) return annConfig;
                         break;
                 }
             }
@@ -1891,14 +1910,14 @@ namespace MachineLearning {
             /// </summary>
             /// <returns></returns>
             public bool GetLayerInfo(out LayerInfo layer) {
-                bool endReached = false;
+                bool hasReachedEnd = false;
                 if (index >= layers.Count) {
                     index = 0;
-                    endReached = true;
+                    hasReachedEnd = true;
                 }
                 layer = layers[index];
-                index++;
-                return endReached;
+                if (!hasReachedEnd) index++;
+                return hasReachedEnd;
             }
 
             protected override string SerializeCNN() {
@@ -2073,6 +2092,8 @@ namespace MachineLearning {
                         case "OutputActivationFunction":
                             outputAF.Parse(inputParts[1].Trim());
                             break;
+                        default:
+                            return;
                     }
                 }
             }

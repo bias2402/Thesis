@@ -8,6 +8,7 @@ public class Tester : MonoBehaviour {
     private CNN cnn = new CNN();
     [SerializeField] private CNNSaver cnnSaver = null;
     string test = "";
+    [SerializeField] private TextAsset cnnConfigFile = null;
     Configuration.CNNConfig cnnConfig = null;
 
     void Start() {
@@ -47,7 +48,7 @@ public class Tester : MonoBehaviour {
         //sw.Flush();
         //sw.Close();
 
-        cnnConfig = Configuration.DeserializeCNN("Assets/config-test2.txt");
+        cnnConfig = Configuration.DeserializeCNN("Assets/" + cnnConfigFile.name + ".txt");
 
         //sw = new System.IO.StreamWriter("Assets/config-test2.txt");
         //sw.Write(Configuration.Serialize(cnnConfig));
@@ -100,7 +101,18 @@ public class Tester : MonoBehaviour {
             cnn.Train(map, desiredOutputs, cnnConfig);
         }
 
+        if (Input.GetKeyDown(KeyCode.F)) Debug.Log(2.56.ToString());
+
         if (Input.GetKeyDown(KeyCode.T)) {
+            StartCoroutine(ErrorTester(0));
+        }
+    }
+
+    private IEnumerator ErrorTester(int counter) {
+        bool gotError = false;
+        List<double> outputs = null;
+        try {
+            counter++;
             MLDebugger.EnableDebugging(cnn, 3);
 
             float[,] map = new float[7, 7] {
@@ -113,12 +125,25 @@ public class Tester : MonoBehaviour {
                 { 0, 1, 0, 1, 0, 0, 0 }
             };
             List<double> desiredOutputs = new List<double>() { 0, 0.25, -0.1, 0.75 };
-            cnn.Train(map, desiredOutputs, cnnConfig);
+            outputs = cnn.Train(map, desiredOutputs, cnnConfig);
 
-            test += MLDebugger.GetOutputAndReset();
-            test += MLSerializer.SerializeCNN(cnn);
-            cnnSaver.serializedCNN = test;
-            test = "";
+            //test += MLSerializer.SerializeCNN(cnn);
+            if (counter % 100 == 0) Debug.Log(counter + " iterations");
+        } catch (System.Exception e) {
+            Debug.Log(e);
+            Debug.Log("Infinity reached in " + counter + " iterations");
+            gotError = true;
         }
+        test += MLDebugger.GetOutputAndReset();
+        cnnSaver.serializedCNN = test;
+        test = "";
+
+        //string output = "";
+        //foreach (double d in outputs) {
+        //    output += d + ", ";
+        //}
+        //Debug.Log(output);
+        yield return new WaitForSeconds(0.1f);
+        if (!gotError) StartCoroutine(ErrorTester(counter));
     }
 }

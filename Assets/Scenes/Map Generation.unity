@@ -7381,12 +7381,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   agentType: 0
-  testComb: 0
   debugAI: 1
   moveSuggestion: {fileID: 1924056784}
   isTraining: 1
   cnnSaver: {fileID: 11400000, guid: c7d821e6d3633fe469094392cba2885a, type: 2}
-  cnnConfigFile: {fileID: 4900000, guid: 87e4647afa5a5cc4c8baeba2ae18673d, type: 3}
+  cnnConfigFile: {fileID: 4900000, guid: 896441cfc6c418340b79d99ca7ca94f7, type: 3}
   dataCollector: {fileID: 0}
   isRecordingData: 0
   playerData: {fileID: 4900000, guid: 2b914456e4e9c474d84af42531483d7a, type: 3}
