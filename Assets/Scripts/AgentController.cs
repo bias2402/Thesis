@@ -80,7 +80,7 @@ public class AgentController : MonoBehaviour {
                         //cnn = MLSerializer.DeserializeCNN(cnnSaver.serializedCNN);
                         cnn = new CNN();
                         cnnConfig = Configuration.DeserializeCNN("Assets/" + cnnConfigFile.name + ".txt");
-                        if (debugAI) MLDebugger.EnableDebugging(cnn, 1);
+                        if (debugAI) MLDebugger.EnableDebugging(cnn, 2);
                         AddCNNFilters(cnn);
                     }
                 }

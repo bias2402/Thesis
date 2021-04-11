@@ -291,7 +291,6 @@ namespace MachineLearning {
                         newMap[newMapCoord.x, newMapCoord.y] = value;
                         if (newMapCoord.Increment()) break;
                     }
-                    UnityEngine.Debug.Log("Conv AF " + maps.Count);
                     convolutedMaps.Add(ApplyActivationFunctionToMap(newMap, af));
 
                     executionMemory.Push(new ExecutionStep(LayerType.Convolution, map, convolutedMaps[convolutedMaps.Count - 1],
@@ -369,7 +368,6 @@ namespace MachineLearning {
                         if (newMapCoord.Increment()) break;
                     }
                 }
-                UnityEngine.Debug.Log("Pool AF");
                 pooledMaps.Add(ApplyActivationFunctionToMap(newMap, af));
                 executionMemory.Push(new ExecutionStep(LayerType.MaxPooling, derivedMap, af));
             }
@@ -527,19 +525,20 @@ namespace MachineLearning {
                         pos = new Coord(0, 0, exeStep.inputMap.GetLength(0) - currentErrorMap.GetLength(0),
                                                                  exeStep.inputMap.GetLength(1) - currentErrorMap.GetLength(1));
 
-                        float delta = 0;
+                        float totalDelta;
+                        float currentDelta;
                         //While pos doesn't reach its end, for each position of pos iterate through the errorMask and multiply with the input value at the same position
                         if (isDebugging && MLDebugger.depth >= 3) debug += "\nPre-FilterUpdate: " + SerializeMap(filter);
                         do {
+                            totalDelta = 0;
                             for (int y = 0; y < exeStep.outputMap.GetLength(1); y++) {
                                 for (int x = 0; x < exeStep.outputMap.GetLength(0); x++) {
-                                    delta += currentErrorMap[x, y] * exeStep.inputMap[pos.x + x, pos.y + y];
-                                    newErrorMap[pos.x + x, pos.y + y] += delta;
-                                    if (delta > 1000 || delta < -1000) 
-                                        UnityEngine.Debug.Log("Uhm, delta? " + delta + ", " + currentErrorMap[x, y] + ", " + exeStep.inputMap[pos.x + x, pos.y + y]);
+                                    currentDelta = currentErrorMap[x, y] * exeStep.inputMap[pos.x + x, pos.y + y];
+                                    newErrorMap[pos.x + x, pos.y + y] += currentDelta;
+                                    totalDelta += currentDelta;
                                 }
                             }
-                            filter[pos.x, pos.y] += delta;
+                            filter[pos.x, pos.y] += totalDelta;
                         } while (!pos.Increment());
                         if (isDebugging && MLDebugger.depth >= 2) debug += "\nPost-FilterUpdate: " + SerializeMap(filter);
 
