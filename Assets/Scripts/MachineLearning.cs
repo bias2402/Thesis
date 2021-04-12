@@ -656,58 +656,6 @@ namespace MachineLearning {
         public void ParseFilter(string filterString) => cnnFilters.Add(new CNNFilter(filterString));
 
         /// <summary>
-        /// Pass a serialized <paramref name="mapString"/> to deserialize and add a new convoluted map to the CNN
-        /// </summary>
-        /// <param name="mapString"></param>
-        public void ParseConvolutedMap(string mapString) {
-            Queue<string> parts = new Queue<string>(mapString.Split(char.Parse(",")).ToList());
-            while (parts.Count > 0) {
-                if (parts.Count < 3) break;
-                float[,] map = new float[int.Parse(parts.Dequeue()), int.Parse(parts.Dequeue())];
-                Coord coord = new Coord(0, 0, map.GetLength(0), map.GetLength(1));
-                foreach (char c in parts.Dequeue()) {
-                    switch (c.ToString()) {
-                        case ",":
-                            break;
-                        case ";":
-                            return;
-                        default:
-                            map[coord.x, coord.y] = float.Parse(c.ToString());
-                            coord.Increment();
-                            break;
-                    }
-                }
-                convolutedMaps.Add(map);
-            }
-        }
-
-        /// <summary>
-        /// Pass a serialized <paramref name="mapString"/> to deserialize and add a new pooled map to the CNN
-        /// </summary>
-        /// <param name="mapString"></param>
-        public void ParsePooledMap(string mapString) {
-            Queue<string> parts = new Queue<string>(mapString.Split(char.Parse(",")).ToList());
-            while (parts.Count > 0) {
-                if (parts.Count < 3) break;
-                float[,] map = new float[int.Parse(parts.Dequeue()), int.Parse(parts.Dequeue())];
-                Coord coord = new Coord(0, 0, map.GetLength(0), map.GetLength(1));
-                foreach (char c in parts.Dequeue()) {
-                    switch (c.ToString()) {
-                        case ",":
-                            break;
-                        case ";":
-                            return;
-                        default:
-                            map[coord.x, coord.y] = float.Parse(c.ToString());
-                            coord.Increment();
-                            break;
-                    }
-                }
-                pooledMaps.Add(map);
-            }
-        }
-
-        /// <summary>
         /// Pass a serialized <paramref name="outputString"/> to deserialize and add a new output to the CNN
         /// </summary>
         /// <param name="outputString"></param>
@@ -764,7 +712,7 @@ namespace MachineLearning {
                 Queue<string> filterParts = new Queue<string>(filterString.Split(new char[] { char.Parse(";"), char.Parse(":") }).ToList());
 
                 while (filterParts.Count > 0) {
-                    switch (filterParts.Dequeue()) {
+                    switch (filterParts.Dequeue().Trim()) {
                         case "name":
                             if (!filterParts.Peek().Equals("")) filterName = filterParts.Dequeue();
                             else {
@@ -807,10 +755,12 @@ namespace MachineLearning {
             }
 
             void ParseSerializedFilter(string filterString) {
-                string[] values = filterString.Split(char.Parse("|"));
-                filter = new float[(int)dimensions, (int)dimensions];
-                Coord coord = new Coord(0, 0, (int)dimensions, (int)dimensions);
+                filter = new float[dimensions, dimensions];
+                Coord coord = new Coord(0, 0, dimensions, dimensions);
+                string[] values = filterString.Split('|');
                 foreach (string s in values) {
+                    s.Trim();
+                    if (string.IsNullOrEmpty(s) || s.Equals("") || s.Equals(" ")) continue;
                     filter[coord.x, coord.y] = float.Parse(s.ToString());
                     coord.Increment();
                 }
@@ -1418,7 +1368,7 @@ namespace MachineLearning {
                 Queue<string> neuronStrings = new Queue<string>(layerString.Split(new char[] { char.Parse("["), char.Parse("]") }).ToList());
 
                 while (neuronStrings.Count > 0) {
-                    switch (neuronStrings.Dequeue()) {
+                    switch (neuronStrings.Dequeue().Trim()) {
                         case "neuron":
                             neurons.Add(new Neuron(neuronStrings.Dequeue()));
                             break;
@@ -1484,39 +1434,39 @@ namespace MachineLearning {
             }
 
             void DeserializeNeuron(string neuronString) {
-                Queue<string> parts = new Queue<string>(neuronString.Split(char.Parse(";")).ToList());
+                Queue<string> parts = new Queue<string>(neuronString.Split(';').ToList());
                 Queue<string> subparts;
 
                 while (parts.Count > 0) {
-                    subparts = new Queue<string>(parts.Dequeue().Split(char.Parse(":")).ToList());
+                    subparts = new Queue<string>(parts.Dequeue().Split(':').ToList());
 
-                    switch (subparts.Dequeue()) {
+                    switch (subparts.Dequeue().Trim()) {
                         case "AF":
-                            activationFunction.Parse(subparts.Dequeue());
+                            activationFunction.Parse(subparts.Dequeue().Trim());
                             break;
                         case "isInput":
-                            isInputNeuron = bool.Parse(subparts.Dequeue());
+                            isInputNeuron = bool.Parse(subparts.Dequeue().Trim());
                             break;
                         case "inputValue":
-                            inputValue = double.Parse(subparts.Dequeue());
+                            inputValue = double.Parse(subparts.Dequeue().Trim());
                             break;
                         case "bias":
-                            bias = double.Parse(subparts.Dequeue());
+                            bias = double.Parse(subparts.Dequeue().Trim());
                             break;
                         case "outputValue":
-                            outputValue = double.Parse(subparts.Dequeue());
+                            outputValue = double.Parse(subparts.Dequeue().Trim());
                             break;
                         case "errorGradient":
-                            errorGradient = double.Parse(subparts.Dequeue());
+                            errorGradient = double.Parse(subparts.Dequeue().Trim());
                             break;
                         case "weight":
-                            weights.Add(double.Parse(subparts.Dequeue()));
+                            weights.Add(double.Parse(subparts.Dequeue().Trim()));
                             break;
                         case "input":
-                            inputs.Add(double.Parse(subparts.Dequeue()));
+                            inputs.Add(double.Parse(subparts.Dequeue().Trim()));
                             break;
                         case "activationThreshold":
-                            activationThreshold = double.Parse(subparts.Dequeue());
+                            activationThreshold = double.Parse(subparts.Dequeue().Trim());
                             break;
                     }
                 }
@@ -1722,7 +1672,7 @@ namespace MachineLearning {
         /// </summary>
         /// <param name="cnn"></param>
         /// <returns></returns>
-        public static string SerializeCNN(CNN cnn) {
+        public static string SerializeCNN(CNN cnn, bool doSerializeMaps = false) {
             if (cnn == null) throw new NullReferenceException("You didn't pass a CNN for serialization");
             string serializedCNN = "";
 
@@ -1736,18 +1686,20 @@ namespace MachineLearning {
                 serializedCNN += " }\n";
             }
 
-            //Convoluted maps
-            foreach (float[,] map in cnn.GetConvolutedMaps()) {
-                serializedCNN += "convolutedMap { ";
-                serializedCNN += cnn.SerializeMap(map);
-                serializedCNN += " }\n";
-            }
+            if (doSerializeMaps) {
+                //Convoluted maps
+                foreach (float[,] map in cnn.GetConvolutedMaps()) {
+                    serializedCNN += "convolutedMap { ";
+                    serializedCNN += cnn.SerializeMap(map);
+                    serializedCNN += " }\n";
+                }
 
-            //Pooled map
-            foreach (float[,] map in cnn.GetPooledMaps()) {
-                serializedCNN += "pooledMap { ";
-                serializedCNN += cnn.SerializeMap(map);
-                serializedCNN += " }\n";
+                //Pooled map
+                foreach (float[,] map in cnn.GetPooledMaps()) {
+                    serializedCNN += "pooledMap { ";
+                    serializedCNN += cnn.SerializeMap(map);
+                    serializedCNN += " }\n";
+                }
             }
 
             //Outputs
@@ -1758,18 +1710,7 @@ namespace MachineLearning {
             }
             serializedCNN += " }\n";
 
-            //From this point, ANN informations are saved
-            ANN ann = cnn.GetANN();
-            serializedCNN += "ANN { ";     //Start ANN. Opposite the CNN, the ANN contains some single fields, while also having lists
-            serializedCNN += cnn.GetANN().SerializeANN();
-
-            //Layers
-            foreach (ANN.Layer layer in ann.GetLayers()) {
-                serializedCNN += "layer { \n";
-                serializedCNN += layer.SerializeLayer();
-                serializedCNN += " } ";
-            }
-            serializedCNN += " } ";           //End ANN
+            serializedCNN += SerializeANN(cnn.GetANN());
 
             return serializedCNN;
         }
@@ -1787,15 +1728,9 @@ namespace MachineLearning {
             CNN cnn = new CNN();
 
             while (cnnObjects.Count > 0) {
-                switch (cnnObjects.Dequeue()) {
+                switch (cnnObjects.Dequeue().Trim()) {
                     case "filter":
                         cnn.ParseFilter(cnnObjects.Dequeue());
-                        break;
-                    case "convolutedMap":
-                        cnn.ParseConvolutedMap(cnnObjects.Dequeue());
-                        break;
-                    case "pooledMap":
-                        cnn.ParsePooledMap(cnnObjects.Dequeue());
                         break;
                     case "outputs":
                         cnn.ParseOutputs(cnnObjects.Dequeue());
@@ -1817,23 +1752,38 @@ namespace MachineLearning {
             if (ann == null) throw new NullReferenceException("You didn't pass an ANN for serialization");
             string serializedANN = "";
 
-            serializedANN += "ANN { ";     //Start ANN. Opposite the CNN, the ANN contains some single fields, while also having lists
+            serializedANN += "ANN { ";     //Start ANN. Opposite to the CNN, the ANN contains some single fields, while also having its layers
             serializedANN += ann.SerializeANN();
+            serializedANN += " }\n";
 
             //Layers
             foreach (ANN.Layer layer in ann.GetLayers()) {
                 serializedANN += "layer { \n";
                 serializedANN += layer.SerializeLayer();
-                serializedANN += " } ";
+                serializedANN += "\n}\n";
             }
-            serializedANN += " } ";           //End ANN
             return serializedANN;
         }
 
         public static ANN DeserializeANN(string annString) {
             if (annString.Equals("")) throw new ArgumentException("The given ANN string is empty!");
             annString = Regex.Replace(annString, @"\t|\n|\r", "");
-            return new ANN(annString);
+            Queue<string> cnnObjects = new Queue<string>(annString.Split(new char[] { char.Parse("{"), char.Parse("}") }).ToList());
+
+            ANN ann = null;
+
+            while (cnnObjects.Count > 0) {
+                switch (cnnObjects.Dequeue().Trim()) {
+                    case "ANN":
+                        ann = new ANN(cnnObjects.Dequeue());
+                        break;
+                    case "layer":
+                        ann.DeserializeLayer(cnnObjects.Dequeue());
+                        break;
+                }
+            }
+
+            return ann;
         }
     }
 

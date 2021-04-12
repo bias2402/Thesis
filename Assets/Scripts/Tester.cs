@@ -48,7 +48,8 @@ public class Tester : MonoBehaviour {
         //sw.Flush();
         //sw.Close();
 
-        cnnConfig = Configuration.DeserializeCNN("Assets/" + cnnConfigFile.name + ".txt");
+        //cnnConfig = Configuration.DeserializeCNN("Assets/" + cnnConfigFile.name + ".txt");
+        cnn = MLSerializer.DeserializeCNN(cnnSaver.serializedCNN);
 
         //sw = new System.IO.StreamWriter("Assets/config-test2.txt");
         //sw.Write(Configuration.Serialize(cnnConfig));
@@ -71,22 +72,6 @@ public class Tester : MonoBehaviour {
             Debug.Log(cnn.GetANN().GetNeuronCount());
         }
 
-        if (Input.GetKeyDown(KeyCode.Return)) {
-            for (int i = 0; i < 100; i++) {
-                float[,] map = new float[7, 7] {
-                    { 0, 0, 0, 1, 0, 1, 0 },
-                    { 0, 0, 1, 0, 0, 1, 0 },
-                    { 0, 1, 0, 1, 0, 0, 0 },
-                    { 1, 0, 0, 1, 0, 0, 0 },
-                    { 0, 0, 1, 0, 1, 1, 1 },
-                    { 0, 0, 0, 0, 0, 0, 0 },
-                    { 0, 1, 0, 1, 0, 0, 0 }
-                };
-                List<double> desiredOutputs = new List<double>() { 0, 0.25, -0.1, 0.75 };
-                cnn.Train(map, desiredOutputs);
-            }
-        }
-
         if (Input.GetKeyDown(KeyCode.R)) {
             float[,] map = new float[7, 7] {
                     { 0, 0, 0, 1, 0, 1, 0 },
@@ -98,7 +83,8 @@ public class Tester : MonoBehaviour {
                     { 0, 1, 0, 1, 0, 0, 0 }
                 };
             List<double> desiredOutputs = new List<double>() { 0, 0.25, -0.1, 0.75 };
-            cnn.Train(map, desiredOutputs, cnnConfig);
+            cnn.Train(map, desiredOutputs);
+            cnnSaver.serializedCNN = MLSerializer.SerializeCNN(cnn);
         }
 
         if (Input.GetKeyDown(KeyCode.F)) Debug.Log(2.56.ToString());
@@ -135,7 +121,7 @@ public class Tester : MonoBehaviour {
             gotError = true;
         }
         test += MLDebugger.GetOutputAndReset();
-        cnnSaver.serializedCNN = test;
+        cnnSaver.serializedCNN = MLSerializer.SerializeCNN(cnn);
         test = "";
 
         //string output = "";

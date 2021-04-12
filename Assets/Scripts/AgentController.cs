@@ -93,7 +93,7 @@ public class AgentController : MonoBehaviour {
                 isTraining = false;
 
                 if (playerData == null) throw new System.NullReferenceException("PlayerData file wasn't set! It is needed for playback!");
-                StreamReader sr = new StreamReader("Assets/" + playerData.name + ".txt");
+                StreamReader sr = new StreamReader("Assets/Player Data/" + playerData.name + ".txt");
                 CollectedData collectedData = JsonUtility.FromJson<CollectedData>(sr.ReadToEnd());
                 mapGenerator.RecreateMap(collectedData);
                 playbackActions = new Queue<string>(collectedData.recordedActions);
@@ -120,7 +120,7 @@ public class AgentController : MonoBehaviour {
 
                 if (isTraining) {
                     if (playerData == null) throw new System.NullReferenceException("PlayerData file wasn't set! It is needed for training!");
-                    sr = new StreamReader("Assets/" + playerData.name + ".txt");
+                    sr = new StreamReader("Assets/Player Data/" + playerData.name + ".txt");
                     collectedData = JsonUtility.FromJson<CollectedData>(sr.ReadToEnd());
                     mapGenerator.RecreateMap(collectedData);
                     playbackActions = new Queue<string>(collectedData.recordedActions);
@@ -137,13 +137,12 @@ public class AgentController : MonoBehaviour {
                     cnn = new CNN();
                     if (cnnConfig != null) cnnConfig = Configuration.DeserializeCNN("Assets/" + cnnConfigFile.name + ".txt");
                     AddCNNFilters(cnn);
-                    cnnSaver.serializedCNN = MLSerializer.SerializeCNN(cnn);
                 } else cnn = MLSerializer.DeserializeCNN(cnnSaver.serializedCNN);
                 if (debugAI) MLDebugger.EnableDebugging(cnn, cnnDebugDepth);
 
                 if (isTraining) {
                     if (playerData == null) throw new System.NullReferenceException("PlayerData file wasn't set! It is needed for training!");
-                    sr = new StreamReader("Assets/" + playerData.name + ".txt");
+                    sr = new StreamReader("Assets/Player Data/" + playerData.name + ".txt");
                     collectedData = JsonUtility.FromJson<CollectedData>(sr.ReadToEnd());
                     mapGenerator.RecreateMap(collectedData);
                     playbackActions = new Queue<string>(collectedData.recordedActions);
@@ -333,6 +332,7 @@ public class AgentController : MonoBehaviour {
         if (isTraining) FeedDataToNetwork(new List<double>() { 0, 0, 0, 1 });
     }
 
+    //TO DO: When the agent reaches goal in Playback or any AI type, it should load the next file and restart!
     void AgentReachedGoal() {
         switch (agentType) {
             case AgentType.Human:
@@ -363,9 +363,14 @@ public class AgentController : MonoBehaviour {
                 }
                 break;
             case AgentType.Playback:
-                //TO DO: Allow the agent to iterate through all the different data in the form of a list of text files
                 agentType = AgentType.Human;
                 StartCoroutine(Feedback("Would you look at that. You actually made it.\nGood job!", true));
+                break;
+            case AgentType.ANN:
+                annSaver.serializedANN = MLSerializer.SerializeANN(ann);
+                break;
+            case AgentType.CNN:
+                cnnSaver.serializedCNN = MLSerializer.SerializeCNN(cnn);
                 break;
         }
     }
