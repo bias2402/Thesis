@@ -449,7 +449,7 @@ namespace MachineLearning {
                 }
             }
 
-            if (isDebugging) MLDebugger.AddToDebugOutput("Input generation complete with " + inputs.Count + " inputs for the ANN", false);
+            if (isDebugging) MLDebugger.AddToDebugOutput("Input generation complete with " + inputs.Count + " inputs for the ANN", true);
             return inputs;
         }
 
@@ -1152,6 +1152,25 @@ namespace MachineLearning {
             return GetOutputs();
         }
 
+        public List<double> GenerateANNInputs(List<float[,]> maps, string listName) {
+            if (isDebugging) {
+                MLDebugger.Start();
+                MLDebugger.AddToDebugOutput("Starting input generation from maps in " + listName, false);
+            }
+
+            List<double> inputs = new List<double>();
+            for (int i = 0; i < maps.Count; i++) {
+                for (int x = 0; x < maps[i].GetLength(0); x++) {
+                    for (int y = 0; y < maps[i].GetLength(1); y++) {
+                        inputs.Add(maps[i][x, y]);
+                    }
+                }
+            }
+
+            if (isDebugging) MLDebugger.AddToDebugOutput("Input generation complete with " + inputs.Count + " inputs for the ANN", true);
+            return inputs;
+        }
+
         /// <summary>
         /// Pass the inputs to the neuron's of the input layer.
         /// </summary>
@@ -1761,7 +1780,7 @@ namespace MachineLearning {
         /// <param name="cnnString"></param>
         /// <returns></returns>
         public static CNN DeserializeCNN(string cnnString) {
-            if (cnnString.Equals("")) throw new ArgumentException("The given CNN string is empty");
+            if (cnnString.Equals("")) throw new ArgumentException("The given CNN string is empty!");
             cnnString = Regex.Replace(cnnString, @"\t|\n|\r", "");
             Queue<string> cnnObjects = new Queue<string>(cnnString.Split(new char[] { char.Parse("{"), char.Parse("}") }).ToList());
 
@@ -1792,6 +1811,29 @@ namespace MachineLearning {
             }
 
             return cnn;
+        }
+
+        public static string SerializeANN(ANN ann) {
+            if (ann == null) throw new NullReferenceException("You didn't pass an ANN for serialization");
+            string serializedANN = "";
+
+            serializedANN += "ANN { ";     //Start ANN. Opposite the CNN, the ANN contains some single fields, while also having lists
+            serializedANN += ann.SerializeANN();
+
+            //Layers
+            foreach (ANN.Layer layer in ann.GetLayers()) {
+                serializedANN += "layer { \n";
+                serializedANN += layer.SerializeLayer();
+                serializedANN += " } ";
+            }
+            serializedANN += " } ";           //End ANN
+            return serializedANN;
+        }
+
+        public static ANN DeserializeANN(string annString) {
+            if (annString.Equals("")) throw new ArgumentException("The given ANN string is empty!");
+            annString = Regex.Replace(annString, @"\t|\n|\r", "");
+            return new ANN(annString);
         }
     }
 

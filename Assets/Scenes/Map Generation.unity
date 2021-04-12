@@ -574,7 +574,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 5
+  m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &112834560
 GameObject:
@@ -2766,12 +2766,12 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 862269670}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
-  m_Father: {fileID: 0}
-  m_RootOrder: 3
+  m_Father: {fileID: 1817389732}
+  m_RootOrder: 5
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &867391910
 GameObject:
@@ -4403,7 +4403,7 @@ RectTransform:
   - {fileID: 2085051072}
   - {fileID: 1924056783}
   m_Father: {fileID: 0}
-  m_RootOrder: 4
+  m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
@@ -6243,6 +6243,7 @@ Transform:
   - {fileID: 306701258}
   - {fileID: 1543541210}
   - {fileID: 247942459}
+  - {fileID: 862269671}
   m_Father: {fileID: 0}
   m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -6937,7 +6938,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: b31fe610e4fe4dc4c8168387837b297d, type: 3}
       propertyPath: m_RootOrder
-      value: 6
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: b31fe610e4fe4dc4c8168387837b297d, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -7384,9 +7385,15 @@ MonoBehaviour:
   debugAI: 1
   moveSuggestion: {fileID: 1924056784}
   isTraining: 1
+  annDebugDepth: 1
+  annSaver: {fileID: 11400000, guid: 25adfa02337e15f4bbff424c2d268e1f, type: 2}
+  annOutput: {fileID: 11400000, guid: e5500bd7725b6164591c9ef054a1df01, type: 2}
+  annConfigFile: {fileID: 0}
+  cnnDebugDepth: 1
   cnnSaver: {fileID: 11400000, guid: c7d821e6d3633fe469094392cba2885a, type: 2}
-  cnnConfigFile: {fileID: 4900000, guid: 896441cfc6c418340b79d99ca7ca94f7, type: 3}
-  dataCollector: {fileID: 0}
+  cnnOutput: {fileID: 11400000, guid: 20f9f7ca689dfb44e8efb14941665d41, type: 2}
+  cnnConfigFile: {fileID: 0}
+  dataCollector: {fileID: 2052454301}
   isRecordingData: 0
   playerData: {fileID: 4900000, guid: 2b914456e4e9c474d84af42531483d7a, type: 3}
   mapGenerator: {fileID: 1817389731}
@@ -7504,6 +7511,31 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &2052454301
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2052454282}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a16aca1c31a086b4da256c67f02092f5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  collectedData:
+    id: 0
+  references:
+    version: 1
+    00000000:
+      type: {class: CollectedData, ns: , asm: Assembly-CSharp}
+      data:
+        explorationPercentage: 0
+        treasures: 0
+        mapSizeX: 0
+        mapSizeZ: 0
+        recordedMap: []
+        recordedActions: []
 --- !u!4 &2052454303 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2849339999506844969, guid: b31fe610e4fe4dc4c8168387837b297d, type: 3}

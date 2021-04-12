@@ -9,7 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 59b6d7266f356004bb2a0c8bef7e5e75, type: 3}
-  m_Name: CNNSaver
+  m_Script: {fileID: 11500000, guid: fae7d3511a0e7fa42a4af3f5a516b362, type: 3}
+  m_Name: ANNOutput
   m_EditorClassIdentifier: 
-  serializedCNN: 
+  serializedANN: 

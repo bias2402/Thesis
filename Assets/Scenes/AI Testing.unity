@@ -167,7 +167,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   cnnSaver: {fileID: 11400000, guid: a5456001e9a62f44cad272110a837f87, type: 2}
-  cnnConfigFile: {fileID: 4900000, guid: b57c60cc8da58a64a85208ec6193ca5f, type: 3}
+  cnnConfigFile: {fileID: 4900000, guid: 55bca8630b06c1a4dace993d10d92e0d, type: 3}
 --- !u!1 &524473293
 GameObject:
   m_ObjectHideFlags: 0

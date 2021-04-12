@@ -5,7 +5,7 @@ using UnityEngine.UI;
 using System.IO;
 using MachineLearning;
 
-public enum AgentType { Human, ANN, Playback }
+public enum AgentType { Human, ANN, CNN, Playback }
 public enum PlayStyles { Speedrunner, Explorer, Treasurehunter, Done }
 public enum TestCombination { Test1, Test2, Test3 }
 
@@ -15,19 +15,9 @@ public class AgentController : MonoBehaviour {
     [SerializeField] private AgentType agentType = AgentType.Human;
     private PlayStyles playstyle = PlayStyles.Speedrunner;
 
-    [Header("AI Settings")]
-    [SerializeField] private bool debugAI = false;
-    [SerializeField] private Text moveSuggestion = null;
-    [SerializeField] private bool isTraining = false;
-    [SerializeField] private CNNSaver cnnSaver = null;
-    [SerializeField] private TextAsset cnnConfigFile = null;
-    private Configuration.CNNConfig cnnConfig = null;
-    private CNN cnn = null;
-
-    [Header("Recording & Playback")]
+    [Header("Recording Data")]
     [SerializeField] private DataCollector dataCollector = new DataCollector();
     [SerializeField] private bool isRecordingData = false;
-    [SerializeField] private TextAsset playerData = null;
     private int steps = 0;
     private string playerName = "";
     private bool isNameSet = false;
@@ -36,6 +26,27 @@ public class AgentController : MonoBehaviour {
     private int maxTreasuresInMap = 0;
     private float agentDelay = 0;
     private Queue<string> playbackActions;
+
+    [Header("AI Settings & Playback")]
+    [SerializeField] private TextAsset playerData = null;
+    [SerializeField] private bool debugAI = false;
+    [SerializeField] private bool isTraining = false;
+
+    [Header("ANN Settings")]
+    [SerializeField] [Range(1, 3)] private int annDebugDepth = 1;
+    [SerializeField] private ANNSaver annSaver = null;
+    [SerializeField] private ANNSaver annOutput = null;
+    [SerializeField] private TextAsset annConfigFile = null;
+    private Configuration.ANNConfig annConfig = null;
+    private ANN ann = null;
+
+    [Header("CNN Settings")]
+    [SerializeField] [Range(1, 3)] private int cnnDebugDepth = 1;
+    [SerializeField] private CNNSaver cnnSaver = null;
+    [SerializeField] private CNNSaver cnnOutput = null;
+    [SerializeField] private TextAsset cnnConfigFile = null;
+    private Configuration.CNNConfig cnnConfig = null;
+    private CNN cnn = null;
 
     [Header("Map & Agent")]
     [SerializeField] private MapGenerator mapGenerator = null;
@@ -52,8 +63,8 @@ public class AgentController : MonoBehaviour {
     private int move = 0;
     private bool isPreparing = false;
 
-
     [Header("UI")]
+    [SerializeField] private Text moveSuggestion = null;
     [SerializeField] private Text explanationText = null;
     [SerializeField] private GameObject explanationTextBackground = null;
     [SerializeField] private GameObject nameField = null;
@@ -69,40 +80,73 @@ public class AgentController : MonoBehaviour {
 
         switch (agentType) {
             case AgentType.Human:
+                isTraining = false;
                 mapGenerator.StartGeneration();
-                if (!isTraining) StartCoroutine(InformPlayer());
-                else {
-                    if (cnnSaver == null || string.IsNullOrEmpty(cnnSaver.serializedCNN)) {
-                        cnn = new CNN();
-                        if (debugAI) MLDebugger.EnableDebugging(cnn);
-                        AddCNNFilters(cnn);
-                    } else {
-                        //cnn = MLSerializer.DeserializeCNN(cnnSaver.serializedCNN);
-                        cnn = new CNN();
-                        cnnConfig = Configuration.DeserializeCNN("Assets/" + cnnConfigFile.name + ".txt");
-                        if (debugAI) MLDebugger.EnableDebugging(cnn, 2);
-                        AddCNNFilters(cnn);
-                    }
-                }
+                StartCoroutine(InformPlayer());
                 break;
             case AgentType.Playback:
                 actionsText.gameObject.SetActive(true);
                 explorationText.gameObject.SetActive(true);
                 treasureText.gameObject.SetActive(true);
+
                 isRecordingData = false;
+                isTraining = false;
+
+                if (playerData == null) throw new System.NullReferenceException("PlayerData file wasn't set! It is needed for playback!");
                 StreamReader sr = new StreamReader("Assets/" + playerData.name + ".txt");
-                string data = sr.ReadToEnd();
-                CollectedData collectedData = JsonUtility.FromJson<CollectedData>(data);
+                CollectedData collectedData = JsonUtility.FromJson<CollectedData>(sr.ReadToEnd());
                 mapGenerator.RecreateMap(collectedData);
                 playbackActions = new Queue<string>(collectedData.recordedActions);
-                if (isTraining) {
-                    if (cnnSaver == null || string.IsNullOrEmpty(cnnSaver.serializedCNN)) {
-                        cnn = new CNN();
-                        if (debugAI) MLDebugger.EnableDebugging(cnn);
-                        AddCNNFilters(cnn);
+                break;
+            case AgentType.ANN:
+                actionsText.gameObject.SetActive(true);
+                explorationText.gameObject.SetActive(true);
+                treasureText.gameObject.SetActive(true);
+
+                isRecordingData = false;
+
+                if (annSaver == null || string.IsNullOrEmpty(annSaver.serializedANN)) {
+                    if (annConfig != null) {
+                        annConfig = Configuration.DeserializeANN("Assets/" + annConfigFile.name + ".txt");
+                        ann = new ANN(annConfig, 4);
                     } else {
-                        cnn = MLSerializer.DeserializeCNN(cnnSaver.serializedCNN);
+                        ann = new ANN(4, 2, 4, 4, ActivationFunctionHandler.ActivationFunction.Sigmoid,
+                            ActivationFunctionHandler.ActivationFunction.Sigmoid, 1);
                     }
+                } else {
+                    ann = MLSerializer.DeserializeANN(annSaver.serializedANN);
+                }
+                if (debugAI) MLDebugger.EnableDebugging(ann, annDebugDepth);
+
+                if (isTraining) {
+                    if (playerData == null) throw new System.NullReferenceException("PlayerData file wasn't set! It is needed for training!");
+                    sr = new StreamReader("Assets/" + playerData.name + ".txt");
+                    collectedData = JsonUtility.FromJson<CollectedData>(sr.ReadToEnd());
+                    mapGenerator.RecreateMap(collectedData);
+                    playbackActions = new Queue<string>(collectedData.recordedActions);
+                }
+                break;
+            case AgentType.CNN:
+                actionsText.gameObject.SetActive(true);
+                explorationText.gameObject.SetActive(true);
+                treasureText.gameObject.SetActive(true);
+
+                isRecordingData = false;
+
+                if (cnnSaver == null || string.IsNullOrEmpty(cnnSaver.serializedCNN)) {
+                    cnn = new CNN();
+                    if (cnnConfig != null) cnnConfig = Configuration.DeserializeCNN("Assets/" + cnnConfigFile.name + ".txt");
+                    AddCNNFilters(cnn);
+                    cnnSaver.serializedCNN = MLSerializer.SerializeCNN(cnn);
+                } else cnn = MLSerializer.DeserializeCNN(cnnSaver.serializedCNN);
+                if (debugAI) MLDebugger.EnableDebugging(cnn, cnnDebugDepth);
+
+                if (isTraining) {
+                    if (playerData == null) throw new System.NullReferenceException("PlayerData file wasn't set! It is needed for training!");
+                    sr = new StreamReader("Assets/" + playerData.name + ".txt");
+                    collectedData = JsonUtility.FromJson<CollectedData>(sr.ReadToEnd());
+                    mapGenerator.RecreateMap(collectedData);
+                    playbackActions = new Queue<string>(collectedData.recordedActions);
                 }
                 break;
         }
@@ -110,56 +154,6 @@ public class AgentController : MonoBehaviour {
         rb = GetComponent<Rigidbody>();
         rb.isKinematic = true;
         enabled = false;
-    }
-
-    IEnumerator InformPlayer() {
-        isPreparing = true;
-        if (!isNameSet) {
-            nameField.SetActive(true);
-            yield return new WaitUntil(() => isNameSet);
-            nameField.SetActive(false);
-            explanationTextBackground.SetActive(true);
-            explanationText.text = "Thank you for helping me with my Master's\nThesis. Controls and necessary information\n" +
-                "is shown on the right, and objectives are\nshown on the left. Remember to upload\nor send the generated text files " +
-                "to me\nafter your runs!";
-            yield return new WaitForSeconds(8);
-        }
-
-        switch (playstyle) {
-            case PlayStyles.Speedrunner:
-                actionsText.gameObject.SetActive(true);
-                explanationText.text = "For this run, play as a Speedrunner!\nReach the goal in as few actions as possible!";
-                if (isRecordingData) mapGenerator.RecordMap();
-                break;
-            case PlayStyles.Explorer:
-                explorationText.gameObject.SetActive(true);
-                explanationText.text = "For this run, play as an Explorer!\nExplore the map as much as possible\nbefore you reach the goal!";
-                if (isRecordingData) mapGenerator.RecordMap();
-                break;
-            case PlayStyles.Treasurehunter:
-                treasureText.gameObject.SetActive(true);
-                explanationText.text = "For this run, play as a Treasurehunter\nFind and step on all the treasures\nbefore you reach the goal!";
-                if (isRecordingData) mapGenerator.RecordMap();
-                break;
-            case PlayStyles.Done:
-                explanationText.text = "No more playstyles. Thanks for helping!\nRemember to send or upload the files for me!";
-                break;
-        }
-        explanationTextBackground.SetActive(true);
-        yield return new WaitForSeconds(3);
-        explanationTextBackground.SetActive(false);
-        isPreparing = false;
-    }
-
-    IEnumerator Feedback(string reason, bool reset, bool continuedRecording = false) {
-        explanationText.text = reason;
-        explanationTextBackground.SetActive(true);
-        yield return new WaitForSeconds(3);
-        explanationTextBackground.SetActive(false);
-        if (reset) {
-            ResetAgent();
-            if (continuedRecording) StartCoroutine(InformPlayer());
-        }
     }
 
     void ResetAgent() {
@@ -193,7 +187,7 @@ public class AgentController : MonoBehaviour {
     void Update() {
         if (!isAlive || didReachGoal || isPreparing) return;
 
-        if (Input.GetKeyDown(KeyCode.Space)) FeedDataToCNN(new List<double>() { 0, 0, 0, 0 });
+        if (Input.GetKeyDown(KeyCode.Space)) FeedDataToNetwork(new List<double>() { 0, 0, 0, 0 });
 
         if (isReadyToMove) {
             AgentMovementHandling();
@@ -260,36 +254,39 @@ public class AgentController : MonoBehaviour {
                     if (isRecordingData) dataCollector.AddMoveToRecords("d");
                 }
                 break;
-            case AgentType.Playback:
-                if (agentDelay > 0) {
-                    agentDelay -= Time.deltaTime;
-                    break;
-                }
-
-                string nextMove = playbackActions.Dequeue();
-                switch (nextMove) {
-                    case "w":
-                        WalkForward();
-                        break;
-                    case "a":
-                        TurnLeft();
-                        break;
-                    case "s":
-                        WalkBackward();
-                        break;
-                    case "d":
-                        TurnRight();
-                        break;
-                    default:
-                        agentDelay = float.Parse(nextMove);
-                        break;
-                }
-                break;
             case AgentType.ANN:
-
+            case AgentType.CNN:
+            case AgentType.Playback:
+                Playback();
                 break;
             default:
                 throw new System.NullReferenceException("AIType not properly set!");
+        }
+    }
+
+    void Playback() {
+        if (agentDelay > 0) {
+            agentDelay -= Time.deltaTime;
+            return;
+        }
+
+        string nextMove = playbackActions.Dequeue();
+        switch (nextMove) {
+            case "w":
+                WalkForward();
+                break;
+            case "a":
+                TurnLeft();
+                break;
+            case "s":
+                WalkBackward();
+                break;
+            case "d":
+                TurnRight();
+                break;
+            default:
+                agentDelay = float.Parse(nextMove);
+                break;
         }
     }
 
@@ -306,7 +303,7 @@ public class AgentController : MonoBehaviour {
             isReadyToMove = false;
             audioSource.clip = clips[0];
             audioSource.Play();
-            if (isTraining) FeedDataToCNN(new List<double>() { 1, 0, 0, 0 });
+            if (isTraining) FeedDataToNetwork(new List<double>() { 1, 0, 0, 0 });
         }
     }
 
@@ -316,7 +313,7 @@ public class AgentController : MonoBehaviour {
             isReadyToMove = false;
             audioSource.clip = clips[0];
             audioSource.Play();
-            if (isTraining) FeedDataToCNN(new List<double>() { 0, 0, 1, 0 });
+            if (isTraining) FeedDataToNetwork(new List<double>() { 0, 0, 1, 0 });
         }
     }
 
@@ -325,7 +322,7 @@ public class AgentController : MonoBehaviour {
         isReadyToMove = false;
         audioSource.clip = clips[1];
         audioSource.Play();
-        if (isTraining) FeedDataToCNN(new List<double>() { 0, 1, 0, 0 });
+        if (isTraining) FeedDataToNetwork(new List<double>() { 0, 1, 0, 0 });
     }
 
     public void TurnRight() {
@@ -333,7 +330,7 @@ public class AgentController : MonoBehaviour {
         isReadyToMove = false;
         audioSource.clip = clips[1];
         audioSource.Play();
-        if (isTraining) FeedDataToCNN(new List<double>() { 0, 0, 0, 1 });
+        if (isTraining) FeedDataToNetwork(new List<double>() { 0, 0, 0, 1 });
     }
 
     void AgentReachedGoal() {
@@ -417,16 +414,70 @@ public class AgentController : MonoBehaviour {
     }
     #endregion
 
-    //CNN methods
+    //Methods for Human setting
     #region
-    void FeedDataToCNN(List<double> givenInput) {
+    IEnumerator InformPlayer() {
+        isPreparing = true;
+        if (!isNameSet) {
+            nameField.SetActive(true);
+            yield return new WaitUntil(() => isNameSet);
+            nameField.SetActive(false);
+            explanationTextBackground.SetActive(true);
+            explanationText.text = "Thank you for helping me with my Master's\nThesis. Controls and necessary information\n" +
+                "is shown on the right, and objectives are\nshown on the left. Remember to upload\nor send the generated text files " +
+                "to me\nafter your runs!";
+            yield return new WaitForSeconds(8);
+        }
+
+        switch (playstyle) {
+            case PlayStyles.Speedrunner:
+                actionsText.gameObject.SetActive(true);
+                explanationText.text = "For this run, play as a Speedrunner!\nReach the goal in as few actions as possible!";
+                if (isRecordingData) mapGenerator.RecordMap();
+                break;
+            case PlayStyles.Explorer:
+                explorationText.gameObject.SetActive(true);
+                explanationText.text = "For this run, play as an Explorer!\nExplore the map as much as possible\nbefore you reach the goal!";
+                if (isRecordingData) mapGenerator.RecordMap();
+                break;
+            case PlayStyles.Treasurehunter:
+                treasureText.gameObject.SetActive(true);
+                explanationText.text = "For this run, play as a Treasurehunter\nFind and step on all the treasures\nbefore you reach the goal!";
+                if (isRecordingData) mapGenerator.RecordMap();
+                break;
+            case PlayStyles.Done:
+                explanationText.text = "No more playstyles. Thanks for helping!\nRemember to send or upload the files for me!";
+                break;
+        }
+        explanationTextBackground.SetActive(true);
+        yield return new WaitForSeconds(3);
+        explanationTextBackground.SetActive(false);
+        isPreparing = false;
+    }
+
+    IEnumerator Feedback(string reason, bool reset, bool continuedRecording = false) {
+        explanationText.text = reason;
+        explanationTextBackground.SetActive(true);
+        yield return new WaitForSeconds(3);
+        explanationTextBackground.SetActive(false);
+        if (reset) {
+            ResetAgent();
+            if (continuedRecording) StartCoroutine(InformPlayer());
+        }
+    }
+    #endregion
+
+    //Methods for networks (ANN/CNN)
+    #region
+    void FeedDataToNetwork(List<double> givenInput) {
+        if (agentType == AgentType.Human || agentType == AgentType.Playback) return;
         float[,] visibleMap = new float[11, 11];
         LayerMask blockMask = LayerMask.GetMask("Block");
         int posX = (int)transform.position.x, posZ = (int)transform.position.z;
-        for (int x = posX - 5, vmx = 0; x <= posX + 5; x++, vmx++) { //Go from left to right
-            for (int z = posZ - 5, vmz = 0; z <= posZ + 5; z++, vmz++) { //Go from bottom to top
+        for (int x = posX - 5, vmx = 0; x <= posX + 5; x++, vmx++) {                            //Go from left to right
+            for (int z = posZ - 5, vmz = 0; z <= posZ + 5; z++, vmz++) {                            //Go from bottom to top
                 Ray ray = new Ray(new Vector3(x, 1, z), Vector3.down * 4);
-                Physics.Raycast(ray, out RaycastHit hit, 4, blockMask); //Raycast downwards
+                Physics.Raycast(ray, out RaycastHit hit, 4, blockMask);                                 //Raycast downwards
                 if (hit.collider != null) {
                     visibleMap[vmx, vmz] = GetBlockValue(hit.collider.GetComponent<BlockData>().blockType);
                 } else {
@@ -435,10 +486,19 @@ public class AgentController : MonoBehaviour {
             }
         }
 
-        //List<double> outputs = cnn.Train(visibleMap, givenInput);
-        List<double> outputs = cnn.Train(visibleMap, givenInput, cnnConfig);
-        //moveSuggestion.text = "Suggested move: " + GetMoveFromInt(GetIndexOfMaxOutput(outputs));
-        cnnSaver.serializedCNN = MLDebugger.GetOutputAndReset();
+        List<double> outputs = null;
+        switch (agentType) {
+            case AgentType.ANN:
+                outputs = ann.Train(ann.GenerateANNInputs(new List<float[,]> { visibleMap }, "Visisble Area"), givenInput);
+                annOutput.serializedANN = MLDebugger.GetOutputAndReset();
+                break;
+            case AgentType.CNN:
+                if (cnnConfig == null) outputs = cnn.Train(visibleMap, givenInput);
+                else outputs = cnn.Train(visibleMap, givenInput, cnnConfig);
+                cnnOutput.serializedCNN = MLDebugger.GetOutputAndReset();
+                break;
+        }
+        if (outputs != null) moveSuggestion.text = "Suggested move: " + GetMoveFromInt(GetIndexOfMaxOutput(outputs));
     }
 
     int GetIndexOfMaxOutput(List<double> outputs) {
