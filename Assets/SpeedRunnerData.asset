@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d534c0cba914dd438fda27f0d4baf46, type: 3}
+  m_Name: SpeedRunnerData
+  m_EditorClassIdentifier: 
+  playStyles: 0
+  path: Assets/Player Data/
+  dataFiles:
+  - {fileID: 4900000, guid: 7dd3719b09c81b044a0978e8cc2c7ab2, type: 3}
+  - {fileID: 4900000, guid: 2ad9c258be2233240a0c331f50dac75c, type: 3}
+  - {fileID: 4900000, guid: 38e76e5396d0ca3478a7fd8166ccc8e0, type: 3}
+  - {fileID: 4900000, guid: 4131dc899e2371f49adef773d49b7a15, type: 3}
+  - {fileID: 4900000, guid: 5b6eb2f01f1aee24cb9f89b3dabb2a1d, type: 3}
+  - {fileID: 4900000, guid: 376819a081b80f24491e578bc2361145, type: 3}
+  - {fileID: 4900000, guid: fc666b5135efa6f4c82c1f22e5d2b684, type: 3}
+  - {fileID: 4900000, guid: 443b69d5f5037ce40b4c30a3e1a7a780, type: 3}

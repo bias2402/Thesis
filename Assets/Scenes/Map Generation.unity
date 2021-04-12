@@ -7385,6 +7385,7 @@ MonoBehaviour:
   dataCollector: {fileID: 2052454301}
   isRecordingData: 0
   playerData: {fileID: 4900000, guid: 9fcbddd27d0c77b47a2424b483cd68fe, type: 3}
+  dataIterator: {fileID: 11400000, guid: 437909dd5f4ffcf43a8ecaba8dff00fd, type: 2}
   debugAI: 1
   isTraining: 1
   annDebugDepth: 1

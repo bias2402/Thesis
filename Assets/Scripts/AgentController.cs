@@ -29,6 +29,7 @@ public class AgentController : MonoBehaviour {
 
     [Header("AI Settings & Playback")]
     [SerializeField] private TextAsset playerData = null;
+    [SerializeField] private TrainingDataIterator dataIterator = null;
     [SerializeField] private bool debugAI = false;
     [SerializeField] private bool isTraining = false;
 
@@ -91,12 +92,6 @@ public class AgentController : MonoBehaviour {
 
                 isRecordingData = false;
                 isTraining = false;
-
-                if (playerData == null) throw new System.NullReferenceException("PlayerData file wasn't set! It is needed for playback!");
-                StreamReader sr = new StreamReader("Assets/Player Data/" + playerData.name + ".txt");
-                CollectedData collectedData = JsonUtility.FromJson<CollectedData>(sr.ReadToEnd());
-                mapGenerator.RecreateMap(collectedData);
-                playbackActions = new Queue<string>(collectedData.recordedActions);
                 break;
             case AgentType.ANN:
                 actionsText.gameObject.SetActive(true);
@@ -113,18 +108,11 @@ public class AgentController : MonoBehaviour {
                         ann = new ANN(4, 2, 4, 4, ActivationFunctionHandler.ActivationFunction.Sigmoid,
                             ActivationFunctionHandler.ActivationFunction.Sigmoid, 1);
                     }
-                } else {
-                    ann = MLSerializer.DeserializeANN(annSaver.serializedANN);
-                }
+                } else ann = MLSerializer.DeserializeANN(annSaver.serializedANN);
+
                 if (debugAI) MLDebugger.EnableDebugging(ann, annDebugDepth);
 
-                if (isTraining) {
-                    if (playerData == null) throw new System.NullReferenceException("PlayerData file wasn't set! It is needed for training!");
-                    sr = new StreamReader("Assets/Player Data/" + playerData.name + ".txt");
-                    collectedData = JsonUtility.FromJson<CollectedData>(sr.ReadToEnd());
-                    mapGenerator.RecreateMap(collectedData);
-                    playbackActions = new Queue<string>(collectedData.recordedActions);
-                }
+                if (isTraining) RecreateRun();
                 break;
             case AgentType.CNN:
                 actionsText.gameObject.SetActive(true);
@@ -140,19 +128,28 @@ public class AgentController : MonoBehaviour {
                 } else cnn = MLSerializer.DeserializeCNN(cnnSaver.serializedCNN);
                 if (debugAI) MLDebugger.EnableDebugging(cnn, cnnDebugDepth);
 
-                if (isTraining) {
-                    if (playerData == null) throw new System.NullReferenceException("PlayerData file wasn't set! It is needed for training!");
-                    sr = new StreamReader("Assets/Player Data/" + playerData.name + ".txt");
-                    collectedData = JsonUtility.FromJson<CollectedData>(sr.ReadToEnd());
-                    mapGenerator.RecreateMap(collectedData);
-                    playbackActions = new Queue<string>(collectedData.recordedActions);
-                }
+                if (isTraining) RecreateRun();
                 break;
         }
 
         rb = GetComponent<Rigidbody>();
         rb.isKinematic = true;
         enabled = false;
+    }
+
+    void RecreateRun() {
+        if (dataIterator != null) {
+            if (!dataIterator.GetNextFile(out playerData)) {
+                Debug.Log("No more files in iterator");
+                return;
+            }
+        }
+        if (playerData == null) throw new System.NullReferenceException("PlayerData file wasn't set! It is needed for training!");
+        StreamReader sr = dataIterator == null ? new StreamReader("Assets/Player Data/" + playerData.name + ".txt") :
+                                                 new StreamReader(dataIterator.GetPath() + playerData.name + ".txt");
+        CollectedData collectedData = JsonUtility.FromJson<CollectedData>(sr.ReadToEnd());
+        mapGenerator.RecreateMap(collectedData);
+        playbackActions = new Queue<string>(collectedData.recordedActions);
     }
 
     void ResetAgent() {
@@ -368,9 +365,11 @@ public class AgentController : MonoBehaviour {
                 break;
             case AgentType.ANN:
                 annSaver.serializedANN = MLSerializer.SerializeANN(ann);
+                RecreateRun();
                 break;
             case AgentType.CNN:
                 cnnSaver.serializedCNN = MLSerializer.SerializeCNN(cnn);
+                RecreateRun();
                 break;
         }
     }
