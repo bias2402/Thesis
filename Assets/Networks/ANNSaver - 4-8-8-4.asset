@@ -1,0 +1,69 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fae7d3511a0e7fa42a4af3f5a516b362, type: 3}
+  m_Name: ANNSaver - 4-8-8-4
+  m_EditorClassIdentifier: 
+  serializedANN: "ANN { alpha:0,05; epochs:1;  }\nlayer { \nneuron[ AF:ReLU; isInput:True;
+    inputValue:0; bias:0; outputValue:0; errorGradient:0; activationThreshold:0;
+    ]\nneuron[ AF:ReLU; isInput:True; inputValue:0,5; bias:0; outputValue:0,5; errorGradient:0;
+    activationThreshold:0; ]\nneuron[ AF:ReLU; isInput:True; inputValue:0; bias:0;
+    outputValue:0; errorGradient:0; activationThreshold:0; ]\nneuron[ AF:ReLU; isInput:True;
+    inputValue:0; bias:0; outputValue:0; errorGradient:0; activationThreshold:0;
+    ]\n}\nlayer { \nneuron[ AF:Sigmoid; isInput:False; inputValue:0; bias:6,44375491215176;
+    outputValue:0,00891553868496775; errorGradient:-85,3700006116415; activationThreshold:0;
+    weight:0,923406635375417; weight:-0,925864805432905; weight:0,436607883980781;
+    weight:0,882370928247632; input:0; input:0,5; input:0; input:0; ]\nneuron[ AF:Sigmoid;
+    isInput:False; inputValue:0; bias:6,44375491215176; outputValue:0,0197541578067937;
+    errorGradient:-85,3700006116415; activationThreshold:0; weight:0,737005449709019;
+    weight:0,68726454753767; weight:-0,345845253833498; weight:-0,868723859018052;
+    input:0; input:0,5; input:0; input:0; ]\nneuron[ AF:Sigmoid; isInput:False; inputValue:0;
+    bias:6,44375491215176; outputValue:0,0215477088033658; errorGradient:-85,3700006116415;
+    activationThreshold:0; weight:-0,175370336126243; weight:0,864738289203839; weight:-0,71294402410879;
+    weight:-0,870825658492197; input:0; input:0,5; input:0; input:0; ]\nneuron[ AF:Sigmoid;
+    isInput:False; inputValue:0; bias:6,44375491215176; outputValue:0,0188290940026961;
+    errorGradient:-85,3700006116415; activationThreshold:0; weight:-0,343430231950912;
+    weight:0,589456497500398; weight:-0,557578534613167; weight:-0,0505829439734029;
+    input:0; input:0,5; input:0; input:0; ]\n}\nlayer { \nneuron[ AF:Sigmoid; isInput:False;
+    inputValue:0; bias:-0,268489788006323; outputValue:0,54955507751021; errorGradient:3,5570833588184;
+    activationThreshold:0; weight:0,257689782072646; weight:0,504027754768742; weight:0,644153075127002;
+    weight:-0,226453102764885; input:0,00891553868496775; input:0,0197541578067937;
+    input:0,0215477088033658; input:0,0188290940026961; ]\nneuron[ AF:Sigmoid; isInput:False;
+    inputValue:0; bias:-0,268489788006323; outputValue:0,546030312509723; errorGradient:3,5570833588184;
+    activationThreshold:0; weight:-0,888375612855132; weight:-0,824287701316312;
+    weight:0,911842154297904; weight:0,647743536926687; input:0,00891553868496775;
+    input:0,0197541578067937; input:0,0215477088033658; input:0,0188290940026961;
+    ]\nneuron[ AF:Sigmoid; isInput:False; inputValue:0; bias:-0,268489788006323;
+    outputValue:0,544503279746005; errorGradient:3,5570833588184; activationThreshold:0;
+    weight:0,860905129397709; weight:0,456915171564052; weight:-0,382131783935303;
+    weight:-0,370962104467192; input:0,00891553868496775; input:0,0197541578067937;
+    input:0,0215477088033658; input:0,0188290940026961; ]\nneuron[ AF:Sigmoid; isInput:False;
+    inputValue:0; bias:-0,268489788006323; outputValue:0,54402588102222; errorGradient:3,5570833588184;
+    activationThreshold:0; weight:0,655121522795; weight:0,372075909456274; weight:-0,368846438531227;
+    weight:-0,30193851948806; input:0,00891553868496775; input:0,0197541578067937;
+    input:0,0215477088033658; input:0,0188290940026961; ]\n}\nlayer { \nneuron[ AF:Sigmoid;
+    isInput:False; inputValue:0; bias:-0,00937425428222685; outputValue:0,505461403815339;
+    errorGradient:0,187485085644537; activationThreshold:0; weight:0,149639986059461;
+    weight:-0,679352355040308; weight:0,944898621153505; weight:-0,344475893929822;
+    input:0,54955507751021; input:0,546030312509723; input:0,544503279746005; input:0,54402588102222;
+    ]\nneuron[ AF:Sigmoid; isInput:False; inputValue:0; bias:0,0273079425506119;
+    outputValue:0,626320476864119; errorGradient:-0,546158851012237; activationThreshold:0;
+    weight:0,902523497074155; weight:0,432787254188576; weight:-0,866701139075077;
+    weight:0,520927681364551; input:0,54955507751021; input:0,546030312509723; input:0,544503279746005;
+    input:0,54402588102222; ]\nneuron[ AF:Sigmoid; isInput:False; inputValue:0; bias:0,00844802409052884;
+    outputValue:0,383759778091888; errorGradient:-0,168960481810577; activationThreshold:0;
+    weight:-0,46860890903911; weight:-0,470454646027859; weight:-0,516064840143577;
+    weight:0,607019239853611; input:0,54955507751021; input:0,546030312509723; input:0,544503279746005;
+    input:0,54402588102222; ]\nneuron[ AF:Sigmoid; isInput:False; inputValue:0; bias:0,0032606489645728;
+    outputValue:0,247867531130186; errorGradient:-0,0652129792914559; activationThreshold:0;
+    weight:-0,580621119393325; weight:-0,570017880559907; weight:-0,336939013254335;
+    weight:-0,558381715583793; input:0,54955507751021; input:0,546030312509723; input:0,544503279746005;
+    input:0,54402588102222; ]\n}\n"

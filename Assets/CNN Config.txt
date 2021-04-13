@@ -1,5 +1,7 @@
 <!---
-#CNNConfig:Test
+#CNNConfig:Training
+Layer: Padding
+
 Layer: Convolution
 ActivationFunction: Sigmoid
 Stride: 1

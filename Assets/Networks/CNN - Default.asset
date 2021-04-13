@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 59b6d7266f356004bb2a0c8bef7e5e75, type: 3}
-  m_Name: CNNSaver
+  m_Name: CNN - Default
   m_EditorClassIdentifier: 
   serializedCNN: "CNN { }\nfilter { name:Path Horizontal;dimension:3;filter: | 0,3601952
     | -0,6080809 | -1 | 2,40532 | 1,732615 | 0,5 | -1 | -1 | -1 | ; }\nfilter { name:Path

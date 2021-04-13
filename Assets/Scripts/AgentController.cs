@@ -32,6 +32,7 @@ public class AgentController : MonoBehaviour {
     [SerializeField] private TrainingDataIterator dataIterator = null;
     [SerializeField] private bool debugAI = false;
     [SerializeField] private bool isTraining = false;
+    private string nextMove = "";
 
     [Header("ANN Settings")]
     [SerializeField] [Range(1, 3)] private int annDebugDepth = 1;
@@ -113,6 +114,7 @@ public class AgentController : MonoBehaviour {
                 if (debugAI) MLDebugger.EnableDebugging(ann, annDebugDepth);
 
                 if (isTraining) RecreateRun();
+                else mapGenerator.StartGeneration();
                 break;
             case AgentType.CNN:
                 actionsText.gameObject.SetActive(true);
@@ -129,6 +131,7 @@ public class AgentController : MonoBehaviour {
                 if (debugAI) MLDebugger.EnableDebugging(cnn, cnnDebugDepth);
 
                 if (isTraining) RecreateRun();
+                else mapGenerator.StartGeneration();
                 break;
         }
 
@@ -252,6 +255,9 @@ public class AgentController : MonoBehaviour {
                 break;
             case AgentType.ANN:
             case AgentType.CNN:
+                if (isTraining) Playback();
+                else PerformNextMove();
+                break;
             case AgentType.Playback:
                 Playback();
                 break;
@@ -282,6 +288,26 @@ public class AgentController : MonoBehaviour {
                 break;
             default:
                 agentDelay = float.Parse(nextMove);
+                break;
+        }
+    }
+
+    void PerformNextMove() {
+        switch (nextMove) {
+            case "w":
+                WalkForward();
+                break;
+            case "a":
+                TurnLeft();
+                break;
+            case "s":
+                WalkBackward();
+                break;
+            case "d":
+                TurnRight();
+                break;
+            default:
+                FeedDataToNetwork(new List<double>() { 0, 0, 0, 0 });
                 break;
         }
     }
@@ -329,7 +355,6 @@ public class AgentController : MonoBehaviour {
         if (isTraining) FeedDataToNetwork(new List<double>() { 0, 0, 0, 1 });
     }
 
-    //TO DO: When the agent reaches goal in Playback or any AI type, it should load the next file and restart!
     void AgentReachedGoal() {
         switch (agentType) {
             case AgentType.Human:
@@ -471,10 +496,9 @@ public class AgentController : MonoBehaviour {
     }
     #endregion
 
-    //Methods for networks (ANN/CNN)
+    //Methods for AI
     #region
-    void FeedDataToNetwork(List<double> givenInput) {
-        if (agentType == AgentType.Human || agentType == AgentType.Playback) return;
+    float[,] GetCurrentMap() {
         float[,] visibleMap = new float[11, 11];
         LayerMask blockMask = LayerMask.GetMask("Block");
         int posX = (int)transform.position.x, posZ = (int)transform.position.z;
@@ -489,20 +513,39 @@ public class AgentController : MonoBehaviour {
                 }
             }
         }
+        return visibleMap;
+    }
+
+    void FSMExecution() {
+
+    }
+
+    //Methods for networks (ANN/CNN)
+    #region
+    void FeedDataToNetwork(List<double> givenInput) {
+        if (agentType == AgentType.Human || agentType == AgentType.Playback) return;
+        float[,] visibleMap = GetCurrentMap();
 
         List<double> outputs = null;
         switch (agentType) {
             case AgentType.ANN:
-                outputs = ann.Train(ann.GenerateANNInputs(new List<float[,]> { visibleMap }, "Visisble Area"), givenInput);
+                if (isTraining) outputs = ann.Train(ann.GenerateANNInputs(new List<float[,]> { visibleMap }, "Visisble Area"), givenInput);
+                else outputs = ann.Run(ann.GenerateANNInputs(new List<float[,]> { visibleMap }, "Visisble Area"));
                 annOutput.serializedANN = MLDebugger.GetOutputAndReset();
                 break;
             case AgentType.CNN:
-                if (cnnConfig == null) outputs = cnn.Train(visibleMap, givenInput);
-                else outputs = cnn.Train(visibleMap, givenInput, cnnConfig);
+                if (isTraining) {
+                    if (cnnConfig == null) outputs = cnn.Train(visibleMap, givenInput);
+                    else outputs = cnn.Train(visibleMap, givenInput, cnnConfig);
+                } else {
+                    if (cnnConfig == null) outputs = cnn.Run(visibleMap);
+                    else outputs = cnn.Run(visibleMap, cnnConfig);
+                }
                 cnnOutput.serializedCNN = MLDebugger.GetOutputAndReset();
                 break;
         }
-        if (outputs != null) moveSuggestion.text = "Suggested move: " + GetMoveFromInt(GetIndexOfMaxOutput(outputs));
+        //if (outputs != null) moveSuggestion.text = "Suggested move: " + GetMoveFromInt(GetIndexOfMaxOutput(outputs));
+        nextMove = GetMoveFromInt(GetIndexOfMaxOutput(outputs)).ToLower();
     }
 
     int GetIndexOfMaxOutput(List<double> outputs) {
@@ -736,5 +779,6 @@ public class AgentController : MonoBehaviour {
         cnn.AddNewFilter(goalLowerLeftCorner, "Goal Lower Left Corner");
         #endregion
     }
+    #endregion
     #endregion
 }
