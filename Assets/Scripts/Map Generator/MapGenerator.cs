@@ -56,6 +56,13 @@ public class MapGenerator : MonoBehaviour {
     public Vector3 GetSpawnPoint() { return spawnPoint; }
 
     public void RecreateMap(CollectedData data) {
+        map = transform;
+        blocksCreated.Clear();
+        foreach (Transform child in map) { //Destroy all objects in the pools
+            foreach (Transform grandchild in child) {
+                Destroy(grandchild.gameObject);
+            }
+        }
         StartCoroutine(CreateMapBorder(true));
 
         int index = 0;

@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playStyles: 0
   path: Assets/Player Data/
+  index: 2
   dataFiles:
   - {fileID: 4900000, guid: 7dd3719b09c81b044a0978e8cc2c7ab2, type: 3}
   - {fileID: 4900000, guid: 2ad9c258be2233240a0c331f50dac75c, type: 3}

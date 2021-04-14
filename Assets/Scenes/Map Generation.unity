@@ -7381,18 +7381,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9897710b722314cad25cd7cb1a3dfb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  agentType: 1
+  agentType: 2
   dataCollector: {fileID: 2052454301}
   isRecordingData: 0
   playerData: {fileID: 4900000, guid: 9fcbddd27d0c77b47a2424b483cd68fe, type: 3}
-  dataIterator: {fileID: 11400000, guid: d6b7a479fa1023240a663c2a127d3425, type: 2}
+  dataIterator: {fileID: 11400000, guid: 437909dd5f4ffcf43a8ecaba8dff00fd, type: 2}
   debugAI: 1
   isTraining: 0
   annDebugDepth: 1
   annSaver: {fileID: 11400000, guid: 25adfa02337e15f4bbff424c2d268e1f, type: 2}
   annOutput: {fileID: 11400000, guid: e5500bd7725b6164591c9ef054a1df01, type: 2}
   annConfigFile: {fileID: 0}
-  cnnDebugDepth: 1
+  cnnDebugDepth: 3
   cnnSaver: {fileID: 11400000, guid: c7d821e6d3633fe469094392cba2885a, type: 2}
   cnnOutput: {fileID: 11400000, guid: 20f9f7ca689dfb44e8efb14941665d41, type: 2}
   cnnConfigFile: {fileID: 0}

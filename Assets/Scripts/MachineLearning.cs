@@ -1164,7 +1164,7 @@ namespace MachineLearning {
                         neuron.outputValue = ActivationFunctionHandler.TriggerActivationFunction(neuron.activationFunction, value);
 
                         //Ensure that the neuron's output is above the threshold for activation
-                        if (neuron.outputValue < neuron.activationThreshold) neuron.outputValue = 0;
+                        //if (neuron.outputValue < neuron.activationThreshold) neuron.outputValue = 0;
                     }
                 }
             }

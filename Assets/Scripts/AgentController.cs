@@ -14,6 +14,7 @@ public class AgentController : MonoBehaviour {
     [Header("Agent Setting")]
     [SerializeField] private AgentType agentType = AgentType.Human;
     private PlayStyles playstyle = PlayStyles.Speedrunner;
+    private bool isSpedUp = false;
 
     [Header("Recording Data")]
     [SerializeField] private DataCollector dataCollector = new DataCollector();
@@ -184,6 +185,9 @@ public class AgentController : MonoBehaviour {
     }
 
     void Update() {
+        if (Input.GetKeyDown(KeyCode.KeypadPlus)) Time.timeScale = Time.timeScale < 5 ? Time.timeScale += 1 : 5;
+        if (Input.GetKeyDown(KeyCode.KeypadMinus)) Time.timeScale = Time.timeScale > 1 ? Time.timeScale -= 1 : 1;
+
         if (!isAlive || didReachGoal || isPreparing) return;
 
         if (Input.GetKeyDown(KeyCode.Space)) FeedDataToNetwork(new List<double>() { 0, 0, 0, 0 });
@@ -325,7 +329,7 @@ public class AgentController : MonoBehaviour {
             isReadyToMove = false;
             audioSource.clip = clips[0];
             audioSource.Play();
-            if (isTraining) FeedDataToNetwork(new List<double>() { 1, 0, 0, 0 });
+            if (agentType == AgentType.ANN || agentType == AgentType.CNN) FeedDataToNetwork(new List<double>() { 1, 0, 0, 0 });
         }
     }
 
@@ -335,7 +339,7 @@ public class AgentController : MonoBehaviour {
             isReadyToMove = false;
             audioSource.clip = clips[0];
             audioSource.Play();
-            if (isTraining) FeedDataToNetwork(new List<double>() { 0, 0, 1, 0 });
+            if (agentType == AgentType.ANN || agentType == AgentType.CNN) FeedDataToNetwork(new List<double>() { 0, 0, 1, 0 });
         }
     }
 
@@ -344,7 +348,7 @@ public class AgentController : MonoBehaviour {
         isReadyToMove = false;
         audioSource.clip = clips[1];
         audioSource.Play();
-        if (isTraining) FeedDataToNetwork(new List<double>() { 0, 1, 0, 0 });
+        if (agentType == AgentType.ANN || agentType == AgentType.CNN) FeedDataToNetwork(new List<double>() { 0, 1, 0, 0 });
     }
 
     public void TurnRight() {
@@ -352,7 +356,7 @@ public class AgentController : MonoBehaviour {
         isReadyToMove = false;
         audioSource.clip = clips[1];
         audioSource.Play();
-        if (isTraining) FeedDataToNetwork(new List<double>() { 0, 0, 0, 1 });
+        if (agentType == AgentType.ANN || agentType == AgentType.CNN) FeedDataToNetwork(new List<double>() { 0, 0, 0, 1 });
     }
 
     void AgentReachedGoal() {
@@ -544,8 +548,14 @@ public class AgentController : MonoBehaviour {
                 cnnOutput.serializedCNN = MLDebugger.GetOutputAndReset();
                 break;
         }
-        //if (outputs != null) moveSuggestion.text = "Suggested move: " + GetMoveFromInt(GetIndexOfMaxOutput(outputs));
+        if (outputs != null) moveSuggestion.text = "Suggested move: " + GetMoveFromInt(GetIndexOfMaxOutput(outputs));
         nextMove = GetMoveFromInt(GetIndexOfMaxOutput(outputs)).ToLower();
+        string s = "";
+        foreach (double d in outputs) {
+            s += d + "   ";
+        }
+        s += "\n" + GetIndexOfMaxOutput(outputs);
+        Debug.Log(s);
     }
 
     int GetIndexOfMaxOutput(List<double> outputs) {
@@ -555,10 +565,8 @@ public class AgentController : MonoBehaviour {
         for (int i = 0; i < outputs.Count; i++) {
             if (index == null) {
                 index = i;
-                continue;
-            }
-
-            if (outputs[i] > max) {
+                max = outputs[i];
+            } else if (outputs[i] > max) {
                 max = outputs[i];
                 index = i;
             }
@@ -584,15 +592,15 @@ public class AgentController : MonoBehaviour {
     float GetBlockValue(BlockType type) {
         switch (type) {
             case BlockType.Goal:
-                return 1;
+                return 1f;
             case BlockType.LavaBlock:
-                return 0;
+                return -1;
             case BlockType.Platform:
-                return 0.5f;
+                return 0f;
             case BlockType.Spawn:
-                return 0.5f;
+                return 0f;
             case BlockType.Treasure:
-                return 0.8f;
+                return 1f;
             default:
                 return -1;
         }
