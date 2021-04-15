@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.IO;
 using MachineLearning;
+using Utilities;
 
 public enum AgentType { Human, ANN, CNN, Playback }
 public enum PlayStyles { Speedrunner, Explorer, Treasurehunter, Done }
@@ -14,7 +15,7 @@ public class AgentController : MonoBehaviour {
     [Header("Agent Setting")]
     [SerializeField] private AgentType agentType = AgentType.Human;
     private PlayStyles playstyle = PlayStyles.Speedrunner;
-    private bool isSpedUp = false;
+    public static int gridVisibility = 11;
 
     [Header("Recording Data")]
     [SerializeField] private DataCollector dataCollector = new DataCollector();
@@ -33,6 +34,7 @@ public class AgentController : MonoBehaviour {
     [SerializeField] private TrainingDataIterator dataIterator = null;
     [SerializeField] private bool debugAI = false;
     [SerializeField] private bool isTraining = false;
+    [SerializeField] private bool isEmulatingTraining = false;
     private string nextMove = "";
 
     [Header("ANN Settings")]
@@ -131,7 +133,7 @@ public class AgentController : MonoBehaviour {
                 } else cnn = MLSerializer.DeserializeCNN(cnnSaver.serializedCNN);
                 if (debugAI) MLDebugger.EnableDebugging(cnn, cnnDebugDepth);
 
-                if (isTraining) RecreateRun();
+                if (isTraining && !isEmulatingTraining) RecreateRun();
                 else mapGenerator.StartGeneration();
                 break;
         }
@@ -185,33 +187,58 @@ public class AgentController : MonoBehaviour {
     }
 
     void Update() {
-        if (Input.GetKeyDown(KeyCode.KeypadPlus)) Time.timeScale = Time.timeScale < 5 ? Time.timeScale += 1 : 5;
-        if (Input.GetKeyDown(KeyCode.KeypadMinus)) Time.timeScale = Time.timeScale > 1 ? Time.timeScale -= 1 : 1;
-
-        if (!isAlive || didReachGoal || isPreparing) return;
-
-        if (Input.GetKeyDown(KeyCode.Space)) FeedDataToNetwork(new List<double>() { 0, 0, 0, 0 });
-
-        if (isReadyToMove) {
-            AgentMovementHandling();
-            if (isRecordingData) agentDelay += Time.deltaTime;
+        if (isTraining && isEmulatingTraining) {
+            if (Input.GetKeyDown(KeyCode.T)) {
+                StartCoroutine(EmulationHandler());
+            }
         } else {
-            transform.Translate(Vector3.forward * move * Time.deltaTime * (1 / moveCooldown));
-            if (moveCooldownCounter > 0) moveCooldownCounter -= Time.deltaTime;
-            else {
-                if (isRecordingData) {
-                    dataCollector.AddDelayToRecords(agentDelay);
-                    agentDelay = 0;
+            if (Input.GetKeyDown(KeyCode.KeypadPlus)) Time.timeScale = Time.timeScale < 5 ? Time.timeScale += 1 : 5;
+            if (Input.GetKeyDown(KeyCode.KeypadMinus)) Time.timeScale = Time.timeScale > 1 ? Time.timeScale -= 1 : 1;
+
+            if (!isAlive || didReachGoal || isPreparing) return;
+
+            if (Input.GetKeyDown(KeyCode.Space)) FeedDataToNetwork(new List<double>() { 0, 0, 0, 0 });
+
+            if (isReadyToMove) {
+                AgentMovementHandling();
+                if (isRecordingData) agentDelay += Time.deltaTime;
+            } else {
+                transform.Translate(Vector3.forward * move * Time.deltaTime * (1 / moveCooldown));
+                if (moveCooldownCounter > 0) moveCooldownCounter -= Time.deltaTime;
+                else {
+                    if (isRecordingData) {
+                        dataCollector.AddDelayToRecords(agentDelay);
+                        agentDelay = 0;
+                    }
+                    moveCooldownCounter = moveCooldown;
+                    isReadyToMove = true;
+                    move = 0;
+                    GetBlockDataFromBlockBelowAgent();
+                    AssessDataFromBlockBelowAgent();
+                    Exploration();
+                    Align();
                 }
-                moveCooldownCounter = moveCooldown;
-                isReadyToMove = true;
-                move = 0;
-                GetBlockDataFromBlockBelowAgent();
-                AssessDataFromBlockBelowAgent();
-                Exploration();
-                Align();
             }
         }
+    }
+
+    IEnumerator EmulationHandler() {
+        StreamReader sr;
+        if (dataIterator != null) {
+            while (dataIterator.GetNextFile(out playerData)) {
+                sr = new StreamReader(dataIterator.GetPath() + playerData.name + ".txt");
+                cnn.EmulateTraining(JsonUtility.FromJson<CollectedData>(sr.ReadToEnd()), cnnConfig);
+                //cnnSaver.serializedCNN = MLSerializer.SerializeCNN(cnn);
+                sr.Close();
+                yield return new WaitForSeconds(0.2f);
+            }
+        } else {
+            sr = new StreamReader("Assets/Player Data/" + playerData.name + ".txt");
+            cnn.EmulateTraining(JsonUtility.FromJson<CollectedData>(sr.ReadToEnd()), cnnConfig);
+            //cnnSaver.serializedCNN = MLSerializer.SerializeCNN(cnn);
+            sr.Close();
+        }
+        Debug.Log("Training done");
     }
 
     //Public Get/Set methods
@@ -589,7 +616,7 @@ public class AgentController : MonoBehaviour {
         }
     }
 
-    float GetBlockValue(BlockType type) {
+    static float GetBlockValue(BlockType type) {
         switch (type) {
             case BlockType.Goal:
                 return 1f;
@@ -603,6 +630,23 @@ public class AgentController : MonoBehaviour {
                 return 1f;
             default:
                 return -1;
+        }
+    }
+
+    public static float GetBlockValue(string type) {
+        switch (type) {
+            case "Goal":
+                return GetBlockValue(BlockType.Goal);
+            case "LavaBlock":
+                return GetBlockValue(BlockType.LavaBlock);
+            case "Platform":
+                return GetBlockValue(BlockType.Platform);
+            case "Spawn":
+                return GetBlockValue(BlockType.Spawn);
+            case "Treasure":
+                return GetBlockValue(BlockType.Treasure);
+            default:
+                return GetBlockValue(BlockType.None);
         }
     }
 
@@ -789,4 +833,117 @@ public class AgentController : MonoBehaviour {
     }
     #endregion
     #endregion
+}
+
+public static class TrainingEmulator {
+    private static System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
+    public static CNN EmulateTraining(this CNN cnn, CollectedData collectedData, Configuration.CNNConfig cnnConfig = null) {
+        stopwatch.Start();
+        Queue<string> actions = new Queue<string>(collectedData.recordedActions);
+        int[] spawnPosition = new int[2];
+
+        int z = 0;
+        for (int i = 0; i < collectedData.recordedMap.Count; i++) {
+            if (i % collectedData.mapSizeX == 0) z++;
+            if (collectedData.recordedMap[i].Equals("Spawn")) {
+                spawnPosition[0] = 0;
+                spawnPosition[1] = z;
+                Debug.Log("Spawn found");
+            }
+        }
+        
+        int[] currentPosition = spawnPosition;
+        string action;
+        int[] nextPosition = new int[2];
+        string nextPositionInfo = "";
+        int heading = 1;
+        while (actions.Count > 0) {
+            action = actions.Dequeue();
+            if (action.IsFloat()) {
+                if (actions.Count > 0) action = actions.Dequeue();
+                else break;
+            }
+
+            heading.SetHeading(action);
+            nextPosition.GetNextPosition(heading);
+            nextPositionInfo.GetPositionInfo(currentPosition, collectedData.recordedMap, collectedData.mapSizeZ);
+            if (nextPositionInfo.Equals("LavaBlock")) currentPosition = spawnPosition;
+            else currentPosition = nextPosition;
+
+            if (cnnConfig == null)
+                cnn.Train(GetVisibleMap(collectedData.recordedMap, collectedData.mapSizeX, nextPosition), GenerateDesiredOutputs(action));
+            else
+                cnn.Train(GetVisibleMap(collectedData.recordedMap, collectedData.mapSizeX, nextPosition), GenerateDesiredOutputs(action), cnnConfig);
+        }
+        
+        stopwatch.Stop();
+        Debug.Log("Emulation training complete after: " + stopwatch.Elapsed.Seconds + "s");
+        return cnn;
+    }
+
+    private static int SetHeading(this int heading, string input) {
+        if (input.Equals("a")) {
+            if (heading == 0) return 3;
+            else return heading--;
+        } else if (input.Equals("d")) {
+            if (heading == 3) return 0;
+            else return heading++;
+        } else {
+            return heading;
+        }
+    }
+
+    private static int[] GetNextPosition(this int[] currentPosition, int heading) {
+        switch (heading) {
+            case 0:
+                currentPosition[1]--;
+                return currentPosition;
+            case 1:
+                currentPosition[0]++;
+                return currentPosition;
+            case 2:
+                currentPosition[1]++;
+                return currentPosition;
+            case 3:
+                currentPosition[0]--;
+                return currentPosition;
+            default:
+                throw new System.ArgumentException("Heading was outside of range!");
+        }
+    }
+
+    private static string GetPositionInfo(this string info, int[] position, List<string> map, int mapSizeZ) {
+        return map[mapSizeZ * position[1] + position[0]];
+    }
+
+    private static List<double> GenerateDesiredOutputs(string action) {
+        switch (action) {
+            case "w":
+                return new List<double>() { 1, 0, 0, 0 };
+            case "a":
+                return new List<double>() { 0, 1, 0, 0 };
+            case "s":
+                return new List<double>() { 0, 0, 1, 0 };
+            case "d":
+                return new List<double>() { 0, 0, 0, 1 };
+            default:
+                throw new System.ArgumentException("Given actions was outside the allowed argument types!");
+        }
+    }
+
+    private static float[,] GetVisibleMap(List<string> map, int mapSizeX, int[] position) {
+        float[,] visibleMap = new float[AgentController.gridVisibility, AgentController.gridVisibility];
+        int offset = (int)Mathf.Floor(AgentController.gridVisibility / 2);
+        int xCoord, zCoord, index;
+        for (int x = -offset, vmx = 0; x < offset; x++, vmx++) {
+            for (int z = -offset, vmz = 0; z < offset; z++, vmz++) {
+                xCoord = position[0] + x;
+                zCoord = position[1] + z * mapSizeX;
+                index = xCoord + zCoord;
+                if (index > 0) visibleMap[vmx, vmz] = AgentController.GetBlockValue(map[index]);
+                else visibleMap[vmx, vmz] = AgentController.GetBlockValue("");
+            }
+        }
+        return visibleMap;
+    }
 }

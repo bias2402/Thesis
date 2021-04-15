@@ -29,6 +29,8 @@ public class DataCollector : MonoBehaviour {
         collectedData.recordedMap.Clear();
         collectedData.recordedActions.Clear();
     }
+    
+    public CollectedData GetCollectedData() { return collectedData; }
 }
 
 [Serializable]

@@ -114,6 +114,8 @@ MonoBehaviour:
   neighboorBlocks: []
   neighboorDirection: []
   blockType: 0
+  isCasting: 1
+  isFound: 1
 --- !u!114 &2513495823088349097
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -152,7 +154,7 @@ AudioSource:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7043491913072258232}
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 8300000, guid: 1442ef99f2056374299a347aa1ed638c, type: 3}

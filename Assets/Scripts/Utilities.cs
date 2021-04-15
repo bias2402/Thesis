@@ -56,6 +56,20 @@ namespace Utilities {
             list.Insert(newIndex, item);
             return list;
         }
+
+        /// <summary>
+        /// Checks if the string contains a float, returning true if it does
+        /// </summary>
+        /// <param name="s"></param>
+        /// <returns></returns>
+        public static bool IsFloat(this string s) {
+            try {
+                float.Parse(s);
+                return true;
+            } catch {
+                return false;
+            }
+        }
     }
 
     public static class MathUtil {
