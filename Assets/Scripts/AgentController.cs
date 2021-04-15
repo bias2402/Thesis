@@ -191,6 +191,13 @@ public class AgentController : MonoBehaviour {
             if (Input.GetKeyDown(KeyCode.T)) {
                 StartCoroutine(EmulationHandler());
             }
+
+            if (Input.GetKeyDown(KeyCode.R)) {
+                StreamReader sr = dataIterator == null ? new StreamReader("Assets/Player Data/" + playerData.name + ".txt") :
+                                                 new StreamReader(dataIterator.GetPath() + playerData.name + ".txt");
+                CollectedData collectedData = JsonUtility.FromJson<CollectedData>(sr.ReadToEnd());
+                mapGenerator.RecreateMap(collectedData);
+            }
         } else {
             if (Input.GetKeyDown(KeyCode.KeypadPlus)) Time.timeScale = Time.timeScale < 5 ? Time.timeScale += 1 : 5;
             if (Input.GetKeyDown(KeyCode.KeypadMinus)) Time.timeScale = Time.timeScale > 1 ? Time.timeScale -= 1 : 1;
@@ -842,19 +849,16 @@ public static class TrainingEmulator {
         Queue<string> actions = new Queue<string>(collectedData.recordedActions);
         int[] spawnPosition = new int[2];
 
-        int z = 0;
         for (int i = 0; i < collectedData.recordedMap.Count; i++) {
-            if (i % collectedData.mapSizeX == 0) z++;
             if (collectedData.recordedMap[i].Equals("Spawn")) {
                 spawnPosition[0] = 0;
-                spawnPosition[1] = z;
-                Debug.Log("Spawn found");
+                spawnPosition[1] = i;
             }
         }
         
         int[] currentPosition = spawnPosition;
         string action;
-        int[] nextPosition = new int[2];
+        int[] nextPosition = currentPosition;
         string nextPositionInfo = "";
         int heading = 1;
         while (actions.Count > 0) {
@@ -866,7 +870,7 @@ public static class TrainingEmulator {
 
             heading.SetHeading(action);
             nextPosition.GetNextPosition(heading);
-            nextPositionInfo.GetPositionInfo(currentPosition, collectedData.recordedMap, collectedData.mapSizeZ);
+            nextPositionInfo.GetPositionInfo(currentPosition, collectedData.recordedMap, collectedData.mapSizeX);
             if (nextPositionInfo.Equals("LavaBlock")) currentPosition = spawnPosition;
             else currentPosition = nextPosition;
 
@@ -912,8 +916,8 @@ public static class TrainingEmulator {
         }
     }
 
-    private static string GetPositionInfo(this string info, int[] position, List<string> map, int mapSizeZ) {
-        return map[mapSizeZ * position[1] + position[0]];
+    private static string GetPositionInfo(this string info, int[] position, List<string> map, int mapSizeX) {
+        return map[mapSizeX * position[0] + position[1]];
     }
 
     private static List<double> GenerateDesiredOutputs(string action) {
