@@ -237,7 +237,7 @@ public class AgentController : MonoBehaviour {
                 cnn.EmulateTraining(JsonUtility.FromJson<CollectedData>(sr.ReadToEnd()), cnnConfig);
                 //cnnSaver.serializedCNN = MLSerializer.SerializeCNN(cnn);
                 sr.Close();
-                yield return new WaitForSeconds(0.2f);
+                yield return new WaitForSeconds(1f);
             }
         } else {
             sr = new StreamReader("Assets/Player Data/" + playerData.name + ".txt");
@@ -863,10 +863,7 @@ public static class TrainingEmulator {
         int heading = 1;
         while (actions.Count > 0) {
             action = actions.Dequeue();
-            if (action.IsFloat()) {
-                if (actions.Count > 0) action = actions.Dequeue();
-                else break;
-            }
+            if (action.IsFloat()) continue;
 
             heading.SetHeading(action);
             nextPosition.GetNextPosition(heading);
@@ -917,6 +914,7 @@ public static class TrainingEmulator {
     }
 
     private static string GetPositionInfo(this string info, int[] position, List<string> map, int mapSizeX) {
+        Debug.Log(mapSizeX + " " + position[0] + " " + position[1]);
         return map[mapSizeX * position[0] + position[1]];
     }
 
@@ -941,8 +939,8 @@ public static class TrainingEmulator {
         int xCoord, zCoord, index;
         for (int x = -offset, vmx = 0; x < offset; x++, vmx++) {
             for (int z = -offset, vmz = 0; z < offset; z++, vmz++) {
-                xCoord = position[0] + x;
-                zCoord = position[1] + z * mapSizeX;
+                xCoord = position[0] + x * mapSizeX;
+                zCoord = position[1] + z;
                 index = xCoord + zCoord;
                 if (index > 0) visibleMap[vmx, vmz] = AgentController.GetBlockValue(map[index]);
                 else visibleMap[vmx, vmz] = AgentController.GetBlockValue("");
