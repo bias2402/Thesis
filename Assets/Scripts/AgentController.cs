@@ -234,14 +234,21 @@ public class AgentController : MonoBehaviour {
         if (dataIterator != null) {
             while (dataIterator.GetNextFile(out playerData)) {
                 sr = new StreamReader(dataIterator.GetPath() + playerData.name + ".txt");
-                cnn.EmulateTraining(JsonUtility.FromJson<CollectedData>(sr.ReadToEnd()), cnnConfig);
+                CollectedData collectedData = JsonUtility.FromJson<CollectedData>(sr.ReadToEnd());
+                mapGenerator.RecreateMap(collectedData);
+                yield return new WaitForSeconds(3);
+
+                cnn.EmulateTraining(collectedData, cnnConfig);
                 //cnnSaver.serializedCNN = MLSerializer.SerializeCNN(cnn);
                 sr.Close();
-                yield return new WaitForSeconds(1f);
             }
         } else {
             sr = new StreamReader("Assets/Player Data/" + playerData.name + ".txt");
-            cnn.EmulateTraining(JsonUtility.FromJson<CollectedData>(sr.ReadToEnd()), cnnConfig);
+            CollectedData collectedData = JsonUtility.FromJson<CollectedData>(sr.ReadToEnd());
+            mapGenerator.RecreateMap(collectedData);
+            yield return new WaitForSeconds(3);
+
+            cnn.EmulateTraining(collectedData, cnnConfig);
             //cnnSaver.serializedCNN = MLSerializer.SerializeCNN(cnn);
             sr.Close();
         }
@@ -855,67 +862,85 @@ public static class TrainingEmulator {
                 spawnPosition[1] = i;
             }
         }
-        
-        int[] currentPosition = spawnPosition;
+
+        int[] currentPosition = new int[2];
+        currentPosition.CloneFrom(spawnPosition);
+        int[] nextPosition = new int[2];
+        nextPosition.CloneFrom(currentPosition);
+
         string action;
-        int[] nextPosition = currentPosition;
-        string nextPositionInfo = "";
+        string nextPositionInfo;
         int heading = 1;
         while (actions.Count > 0) {
             action = actions.Dequeue();
             if (action.IsFloat()) continue;
 
             heading.SetHeading(action);
-            nextPosition.GetNextPosition(heading);
-            nextPositionInfo.GetPositionInfo(currentPosition, collectedData.recordedMap, collectedData.mapSizeX);
-            if (nextPositionInfo.Equals("LavaBlock")) currentPosition = spawnPosition;
-            else currentPosition = nextPosition;
+            Debug.Log(heading);
+            if (action.Equals("w") || action.Equals("s")) nextPosition.GetNextPosition(heading, collectedData.mapSizeX, collectedData.mapSizeZ);
+            else nextPosition.CloneFrom(currentPosition);
+            nextPositionInfo = GetPositionInfo(new int[2].CloneFrom(currentPosition), collectedData.recordedMap, collectedData.mapSizeZ + 1);
+            if (nextPositionInfo.Equals("LavaBlock")) currentPosition.CloneFrom(spawnPosition);
+            else currentPosition.CloneFrom(nextPosition);
 
             if (cnnConfig == null)
-                cnn.Train(GetVisibleMap(collectedData.recordedMap, collectedData.mapSizeX, nextPosition), GenerateDesiredOutputs(action));
+                cnn.Train(GetVisibleMap(collectedData.recordedMap, collectedData.mapSizeZ + 1, nextPosition), GenerateDesiredOutputs(action));
             else
-                cnn.Train(GetVisibleMap(collectedData.recordedMap, collectedData.mapSizeX, nextPosition), GenerateDesiredOutputs(action), cnnConfig);
+                cnn.Train(GetVisibleMap(collectedData.recordedMap, collectedData.mapSizeZ + 1, nextPosition), GenerateDesiredOutputs(action), cnnConfig);
         }
-        
+
         stopwatch.Stop();
         Debug.Log("Emulation training complete after: " + stopwatch.Elapsed.Seconds + "s");
         return cnn;
     }
 
-    private static int SetHeading(this int heading, string input) {
-        if (input.Equals("a")) {
-            if (heading == 0) return 3;
-            else return heading--;
-        } else if (input.Equals("d")) {
-            if (heading == 3) return 0;
-            else return heading++;
-        } else {
-            return heading;
+    private static int[] CloneFrom(this int[] to, int[] from) {
+        if (to.Length != from.Length) {
+            Debug.LogError("Arrays weren't the same size!");
+            return to;
         }
+        for (int i = 0; i < from.Length; i++) {
+            to[i] = from[i];
+        }
+        return to;
     }
 
-    private static int[] GetNextPosition(this int[] currentPosition, int heading) {
-        switch (heading) {
+    private static int SetHeading(this int currentHeading, string input) {
+        if (input.Equals("a")) {
+            if (currentHeading == 0) currentHeading = 3;
+            else currentHeading--;
+        } else if (input.Equals("d")) {
+            if (currentHeading == 3) currentHeading = 0;
+            else currentHeading++;
+        }
+        return currentHeading;
+    }
+
+    private static int[] GetNextPosition(this int[] currentPosition, int currentHeading, int sizeX, int sizeZ) {
+        switch (currentHeading) {
             case 0:
-                currentPosition[1]--;
+                currentPosition[1]++;
+                if (currentPosition[1] > sizeZ) currentPosition[1] = sizeZ;
                 return currentPosition;
             case 1:
                 currentPosition[0]++;
+                if (currentPosition[0] > sizeX) currentPosition[0] = sizeX;
                 return currentPosition;
             case 2:
-                currentPosition[1]++;
+                currentPosition[1]--;
+                if (currentPosition[1] < 0) currentPosition[1] = 0;
                 return currentPosition;
             case 3:
                 currentPosition[0]--;
+                if (currentPosition[0] < 0) currentPosition[0] = 0;
                 return currentPosition;
             default:
                 throw new System.ArgumentException("Heading was outside of range!");
         }
     }
 
-    private static string GetPositionInfo(this string info, int[] position, List<string> map, int mapSizeX) {
-        Debug.Log(mapSizeX + " " + position[0] + " " + position[1]);
-        return map[mapSizeX * position[0] + position[1]];
+    private static string GetPositionInfo(int[] position, List<string> map, int mapSizeZ) {
+        return map[mapSizeZ * position[0] + position[1]];
     }
 
     private static List<double> GenerateDesiredOutputs(string action) {
@@ -933,13 +958,13 @@ public static class TrainingEmulator {
         }
     }
 
-    private static float[,] GetVisibleMap(List<string> map, int mapSizeX, int[] position) {
+    private static float[,] GetVisibleMap(List<string> map, int mapSizeZ, int[] position) {
         float[,] visibleMap = new float[AgentController.gridVisibility, AgentController.gridVisibility];
         int offset = (int)Mathf.Floor(AgentController.gridVisibility / 2);
         int xCoord, zCoord, index;
         for (int x = -offset, vmx = 0; x < offset; x++, vmx++) {
             for (int z = -offset, vmz = 0; z < offset; z++, vmz++) {
-                xCoord = position[0] + x * mapSizeX;
+                xCoord = position[0] + x * mapSizeZ;
                 zCoord = position[1] + z;
                 index = xCoord + zCoord;
                 if (index > 0) visibleMap[vmx, vmz] = AgentController.GetBlockValue(map[index]);
