@@ -235,22 +235,22 @@ public class AgentController : MonoBehaviour {
             while (dataIterator.GetNextFile(out playerData)) {
                 sr = new StreamReader(dataIterator.GetPath() + playerData.name + ".txt");
                 CollectedData collectedData = JsonUtility.FromJson<CollectedData>(sr.ReadToEnd());
+                sr.Close();
                 mapGenerator.RecreateMap(collectedData);
                 yield return new WaitForSeconds(3);
 
                 cnn.EmulateTraining(collectedData, cnnConfig);
-                //cnnSaver.serializedCNN = MLSerializer.SerializeCNN(cnn);
-                sr.Close();
+                cnnSaver.serializedCNN = MLSerializer.SerializeCNN(cnn);
             }
         } else {
             sr = new StreamReader("Assets/Player Data/" + playerData.name + ".txt");
             CollectedData collectedData = JsonUtility.FromJson<CollectedData>(sr.ReadToEnd());
+            sr.Close();
             mapGenerator.RecreateMap(collectedData);
             yield return new WaitForSeconds(3);
 
             cnn.EmulateTraining(collectedData, cnnConfig);
-            //cnnSaver.serializedCNN = MLSerializer.SerializeCNN(cnn);
-            sr.Close();
+            cnnSaver.serializedCNN = MLSerializer.SerializeCNN(cnn);
         }
         Debug.Log("Training done");
     }
