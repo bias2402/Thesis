@@ -875,7 +875,7 @@ public static class TrainingEmulator {
             action = actions.Dequeue();
             if (action.IsFloat()) continue;
 
-            heading.SetHeading(action);
+            heading = SetHeading(heading, action);
             Debug.Log(heading);
             if (action.Equals("w") || action.Equals("s")) nextPosition.GetNextPosition(heading, collectedData.mapSizeX, collectedData.mapSizeZ);
             else nextPosition.CloneFrom(currentPosition);
