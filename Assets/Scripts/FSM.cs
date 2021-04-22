@@ -2,7 +2,7 @@
 
 public static class FSM {
     private static string memory = "";
-    private static string[] patterns =  { "wsw", "sws", "ada", "dad", "wdw", "waw" };
+    private static string[] patterns = { "wsw", "sws", "ada", "dad", "wdw", "waw" };
 
     public static string GetNextAction(BlockData blockData, int rotation) {
         BlockType forwardBlock;
@@ -10,9 +10,12 @@ public static class FSM {
         else {
             if (blockData.neighboorDirection.Contains(blockData.directions[rotation])) {
                 int index = blockData.neighboorDirection.FindIndex(x => x == blockData.directions[rotation]);
-                forwardBlock = blockData.neighboorBlocks[index].blockType;
-            }
-            else forwardBlock = BlockType.None;
+                try { forwardBlock = blockData.neighboorBlocks[index].blockType; } 
+                catch (System.ArgumentOutOfRangeException) { 
+                    forwardBlock = BlockType.None;
+                    Debug.Log("Bad index. Baaaad!: " + index);
+                }
+            } else forwardBlock = BlockType.None;
         }
 
         if (forwardBlock == BlockType.LavaBlock || forwardBlock == BlockType.None) {
@@ -21,13 +24,11 @@ public static class FSM {
                     AddToMemory("d");
                     if (IsRepeatingPattern()) return "a";
                     return "d";
-                }
-                else if (direction == -1) {
+                } else if (direction == -1) {
                     AddToMemory("a");
                     if (IsRepeatingPattern()) return "d";
                     return "a";
-                }
-                else {
+                } else {
                     AddToMemory("s");
                     if (IsRepeatingPattern()) {
                         if (Random.Range(0, 2) == 0) return "a";
@@ -44,6 +45,28 @@ public static class FSM {
                 return "s";
             }
         } else {
+            if (rotation == 0) {
+                if (Random.Range(0, 8) == 0) {
+                    AddToMemory("d");
+                    return "d";
+                }
+            } else if (rotation == 2) {
+                if (Random.Range(0, 8) == 0) {
+                    AddToMemory("a");
+                    return "a";
+                }
+            } else {
+                if (Random.Range(0, 8) == 0) {
+                    if (Random.Range(0, 2) == 0) {
+                        AddToMemory("d");
+                        return "d";
+                    } else {
+                        AddToMemory("a");
+                        return "a";
+                    }
+                }
+            }
+
             AddToMemory("w");
             if (IsRepeatingPattern()) {
                 if (Random.Range(0, 2) == 0) return "a";
