@@ -9,7 +9,7 @@ public class BlockData : MonoBehaviour {
     public List<BlockData> neighboorBlocks = new List<BlockData>();
     public List<Vector3> neighboorDirection = new List<Vector3>();
     public BlockType blockType;
-    public readonly Vector3[] directions = { Vector3.right, Vector3.left, Vector3.forward, Vector3.back };
+    public readonly Vector3[] directions = { Vector3.forward, Vector3.right, Vector3.back, Vector3.left };
     public bool isCasting = true;
     public bool isFound = false;
     
@@ -32,6 +32,7 @@ public class BlockData : MonoBehaviour {
         for (int i = 0; i < neighboorBlocks.Count;) {
             if (neighboorBlocks[i] == null) {
                 neighboorBlocks.RemoveAt(i);
+                neighboorDirection.RemoveAt(i);
             } else i++;
         }
     }

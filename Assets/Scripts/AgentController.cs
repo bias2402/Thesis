@@ -6,7 +6,7 @@ using System.IO;
 using MachineLearning;
 using Utilities;
 
-public enum AgentType { Human, ANN, CNN, Playback }
+public enum AgentType { Human, ANN, CNN, FSM, Playback }
 public enum PlayStyles { Speedrunner, Explorer, Treasurehunter, Done }
 public enum TestCombination { Test1, Test2, Test3 }
 
@@ -88,6 +88,10 @@ public class AgentController : MonoBehaviour {
                 isTraining = false;
                 mapGenerator.StartGeneration();
                 StartCoroutine(InformPlayer());
+                break;
+            case AgentType.FSM:
+                isTraining = false;
+                mapGenerator.StartGeneration();
                 break;
             case AgentType.Playback:
                 actionsText.gameObject.SetActive(true);
@@ -191,24 +195,15 @@ public class AgentController : MonoBehaviour {
             if (Input.GetKeyDown(KeyCode.T)) {
                 StartCoroutine(EmulationHandler());
             }
-
-            if (Input.GetKeyDown(KeyCode.R)) {
-                StreamReader sr = dataIterator == null ? new StreamReader("Assets/Player Data/" + playerData.name + ".txt") :
-                                                 new StreamReader(dataIterator.GetPath() + playerData.name + ".txt");
-                CollectedData collectedData = JsonUtility.FromJson<CollectedData>(sr.ReadToEnd());
-                mapGenerator.RecreateMap(collectedData);
-            }
         } else {
             if (Input.GetKeyDown(KeyCode.KeypadPlus)) Time.timeScale = Time.timeScale < 5 ? Time.timeScale += 1 : 5;
             if (Input.GetKeyDown(KeyCode.KeypadMinus)) Time.timeScale = Time.timeScale > 1 ? Time.timeScale -= 1 : 1;
 
             if (!isAlive || didReachGoal || isPreparing) return;
 
-            if (Input.GetKeyDown(KeyCode.Space)) FeedDataToNetwork(new List<double>() { 0, 0, 0, 0 });
-
             if (isReadyToMove) {
                 AgentMovementHandling();
-                if (isRecordingData) agentDelay += Time.deltaTime;
+                if (agentType == AgentType.Human && isRecordingData) agentDelay += Time.deltaTime;
             } else {
                 transform.Translate(Vector3.forward * move * Time.deltaTime * (1 / moveCooldown));
                 if (moveCooldownCounter > 0) moveCooldownCounter -= Time.deltaTime;
@@ -302,6 +297,11 @@ public class AgentController : MonoBehaviour {
             case AgentType.CNN:
                 if (isTraining) Playback();
                 else PerformNextMove();
+                break;
+            case AgentType.FSM:
+                FSMExecution();
+                PerformNextMove();
+                isReadyToMove = false;
                 break;
             case AgentType.Playback:
                 Playback();
@@ -561,8 +561,23 @@ public class AgentController : MonoBehaviour {
         return visibleMap;
     }
 
-    void FSMExecution() {
+    void FSMExecution() => nextMove = FSM.GetNextAction(currentPositionBlockData, RotationToInt()).ToLower();
 
+    int RotationToInt() {
+        Debug.Log(Mathf.RoundToInt(transform.eulerAngles.y));
+
+        switch (Mathf.RoundToInt(transform.eulerAngles.y) % 360) {
+            case 0:
+                return 0;
+            case 90:
+                return 1;
+            case 180:
+                return 2;
+            case 270:
+                return 3;
+            default:
+                throw new System.ArgumentOutOfRangeException("The rotation is odd");
+        }
     }
 
     //Methods for networks (ANN/CNN)
@@ -851,6 +866,7 @@ public class AgentController : MonoBehaviour {
 
 public static class TrainingEmulator {
     private static System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
+
     public static CNN EmulateTraining(this CNN cnn, CollectedData collectedData, Configuration.CNNConfig cnnConfig = null) {
         stopwatch.Start();
         Queue<string> actions = new Queue<string>(collectedData.recordedActions);
@@ -882,15 +898,56 @@ public static class TrainingEmulator {
             if (nextPositionInfo.Equals("LavaBlock")) currentPosition.CloneFrom(spawnPosition);
             else currentPosition.CloneFrom(nextPosition);
 
+            float[,] visibleMap = GetVisibleMap(collectedData.recordedMap, collectedData.mapSizeZ + 1, nextPosition);
             if (cnnConfig == null)
-                cnn.Train(GetVisibleMap(collectedData.recordedMap, collectedData.mapSizeZ + 1, nextPosition), GenerateDesiredOutputs(action));
+                cnn.Train(visibleMap, GenerateDesiredOutputs(action));
             else
-                cnn.Train(GetVisibleMap(collectedData.recordedMap, collectedData.mapSizeZ + 1, nextPosition), GenerateDesiredOutputs(action), cnnConfig);
+                cnn.Train(visibleMap, GenerateDesiredOutputs(action), cnnConfig);
         }
 
         stopwatch.Stop();
-        Debug.Log("Emulation training complete after: " + stopwatch.Elapsed.Seconds + "s");
+        Debug.Log("Emulation CNN training complete after: " + stopwatch.Elapsed.Seconds + "s");
         return cnn;
+    }
+
+    public static ANN EmulateTraining(this ANN ann, CollectedData collectedData, Configuration.ANNConfig annConfig = null) {
+        stopwatch.Start();
+        Queue<string> actions = new Queue<string>(collectedData.recordedActions);
+        int[] spawnPosition = new int[2];
+
+        for (int i = 0; i < collectedData.recordedMap.Count; i++) {
+            if (collectedData.recordedMap[i].Equals("Spawn")) {
+                spawnPosition[0] = 0;
+                spawnPosition[1] = i;
+            }
+        }
+
+        int[] currentPosition = new int[2];
+        currentPosition.CloneFrom(spawnPosition);
+        int[] nextPosition = new int[2];
+        nextPosition.CloneFrom(currentPosition);
+
+        string action;
+        string nextPositionInfo;
+        int heading = 1;
+        while (actions.Count > 0) {
+            action = actions.Dequeue();
+            if (action.IsFloat()) continue;
+
+            heading = SetHeading(heading, action);
+            if (action.Equals("w") || action.Equals("s")) nextPosition.GetNextPosition(heading, collectedData.mapSizeX, collectedData.mapSizeZ);
+            else nextPosition.CloneFrom(currentPosition);
+            nextPositionInfo = GetPositionInfo(new int[2].CloneFrom(currentPosition), collectedData.recordedMap, collectedData.mapSizeZ + 1);
+            if (nextPositionInfo.Equals("LavaBlock")) currentPosition.CloneFrom(spawnPosition);
+            else currentPosition.CloneFrom(nextPosition);
+
+            float[,] visibleMap = GetVisibleMap(collectedData.recordedMap, collectedData.mapSizeZ + 1, nextPosition);
+            ann.Train(ann.GenerateANNInputs(new List<float[,]> { visibleMap }, "Current Position"), GenerateDesiredOutputs(action));
+        }
+
+        stopwatch.Stop();
+        Debug.Log("Emulation ANN training complete after: " + stopwatch.Elapsed.Seconds + "s");
+        return ann;
     }
 
     private static int[] CloneFrom(this int[] to, int[] from) {

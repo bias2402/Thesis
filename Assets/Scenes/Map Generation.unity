@@ -7381,7 +7381,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9897710b722314cad25cd7cb1a3dfb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  agentType: 2
+  agentType: 3
   dataCollector: {fileID: 2052454301}
   isRecordingData: 0
   playerData: {fileID: 4900000, guid: 9fcbddd27d0c77b47a2424b483cd68fe, type: 3}
