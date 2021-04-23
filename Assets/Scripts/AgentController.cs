@@ -308,6 +308,8 @@ public class AgentController : MonoBehaviour {
                 break;
             case AgentType.BT:
                 btHandler.Execute();
+                PerformNextMove();
+                isReadyToMove = false;
                 break;
             case AgentType.FSM:
                 FSMExecution();

@@ -7381,7 +7381,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9897710b722314cad25cd7cb1a3dfb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  agentType: 3
+  agentType: 2
   dataCollector: {fileID: 2052454301}
   isRecordingData: 0
   playerData: {fileID: 4900000, guid: 9fcbddd27d0c77b47a2424b483cd68fe, type: 3}
@@ -7538,6 +7538,263 @@ MonoBehaviour:
         mapSizeZ: 0
         recordedMap: []
         recordedActions: []
+--- !u!114 &2052454302
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2052454282}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5746f548a4f88a4b9b3ab127cda7715, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  tree: {fileID: 11400000, guid: 477430de50bd59f48ab75f81d1f0eb26, type: 2}
+  debugExecution: 0
+  leafMethods:
+  - leafName: Walk Forward
+    leafMethod:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 2052454302}
+          m_TargetAssemblyTypeName: BTHandler, Assembly-CSharp
+          m_MethodName: WalkForward
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+  - leafName: Increment Counter
+    leafMethod:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 2052454302}
+          m_TargetAssemblyTypeName: BTHandler, Assembly-CSharp
+          m_MethodName: IncrementWalkCounter
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+  - leafName: Check Counter
+    leafMethod:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 2052454302}
+          m_TargetAssemblyTypeName: BTHandler, Assembly-CSharp
+          m_MethodName: CheckCounter
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+  - leafName: Not Turned to Goal
+    leafMethod:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 2052454302}
+          m_TargetAssemblyTypeName: BTHandler, Assembly-CSharp
+          m_MethodName: IsNotAlignedWithGoal
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+  - leafName: Find Goal Direction
+    leafMethod:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 2052454302}
+          m_TargetAssemblyTypeName: BTHandler, Assembly-CSharp
+          m_MethodName: FindNecessaryRotationToPointToGoal
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+  - leafName: Turn
+    leafMethod:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 2052454302}
+          m_TargetAssemblyTypeName: BTHandler, Assembly-CSharp
+          m_MethodName: Turn
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+  - leafName: Reset Counter
+    leafMethod:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 2052454302}
+          m_TargetAssemblyTypeName: BTHandler, Assembly-CSharp
+          m_MethodName: ResetCounter
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+  - leafName: Check for Lava
+    leafMethod:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 2052454302}
+          m_TargetAssemblyTypeName: BTHandler, Assembly-CSharp
+          m_MethodName: CheckForLava
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+  - leafName: Reset Counter
+    leafMethod:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 2052454302}
+          m_TargetAssemblyTypeName: BTHandler, Assembly-CSharp
+          m_MethodName: ResetCounter
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+  - leafName: Walk Back
+    leafMethod:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 2052454302}
+          m_TargetAssemblyTypeName: BTHandler, Assembly-CSharp
+          m_MethodName: WalkBackwards
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+  - leafName: Find Goal Direction
+    leafMethod:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 2052454302}
+          m_TargetAssemblyTypeName: BTHandler, Assembly-CSharp
+          m_MethodName: FindNecessaryRotationToPointToGoal
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+  - leafName: Turn
+    leafMethod:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 2052454302}
+          m_TargetAssemblyTypeName: BTHandler, Assembly-CSharp
+          m_MethodName: Turn
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+  - leafName: Turn
+    leafMethod:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 2052454302}
+          m_TargetAssemblyTypeName: BTHandler, Assembly-CSharp
+          m_MethodName: Turn
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+  - leafName: Other Not Blocked
+    leafMethod:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 2052454302}
+          m_TargetAssemblyTypeName: BTHandler, Assembly-CSharp
+          m_MethodName: IsTheNextBlockLava
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+  - leafName: Goal Not Blocked
+    leafMethod:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 2052454302}
+          m_TargetAssemblyTypeName: BTHandler, Assembly-CSharp
+          m_MethodName: IsTheNextBlockLava
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+  agentController: {fileID: 2052454298}
+  turnToGoalCounterLimit: 3
 --- !u!4 &2052454303 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2849339999506844969, guid: b31fe610e4fe4dc4c8168387837b297d, type: 3}

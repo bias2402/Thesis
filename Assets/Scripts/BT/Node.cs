@@ -328,7 +328,7 @@ public class Node : GUIDraggableObject {
 	}
 
 	void DebugMeSenpai(string debugLine) {
-		Debug.Log(debugLine);
+		//Debug.Log(debugLine);
 	}
 	#endregion
 }

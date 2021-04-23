@@ -55,7 +55,7 @@ public class BTHandler : TreeHandler {
         Callback(true);
     }
 
-    public void IsBlockTowardsGoalBlocked() {
+    public void IsTheNextBlockLava() {
         int rotation = agentController.GetRotationInt();
         BlockData currentPositionBlock = agentController.GetCurrentBlockData();
 
