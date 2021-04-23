@@ -6,7 +6,7 @@ using System.IO;
 using MachineLearning;
 using Utilities;
 
-public enum AgentType { Human, ANN, CNN, FSM, Playback }
+public enum AgentType { Human, ANN, BT, CNN, FSM, Playback }
 public enum PlayStyles { Speedrunner, Explorer, Treasurehunter, Done }
 public enum TestCombination { Test1, Test2, Test3 }
 
@@ -67,6 +67,7 @@ public class AgentController : MonoBehaviour {
     private float moveCooldownCounter = 1;
     private int move = 0;
     private bool isPreparing = false;
+    private BTHandler btHandler = null;
 
     [Header("UI")]
     [SerializeField] private Text moveSuggestion = null;
@@ -91,6 +92,13 @@ public class AgentController : MonoBehaviour {
                 break;
             case AgentType.FSM:
                 isTraining = false;
+                mapGenerator.StartGeneration();
+                break;
+            case AgentType.BT:
+                isTraining = false;
+                btHandler = GetComponent<BTHandler>();
+                btHandler.enabled = true;
+                btHandler.InitTree();
                 mapGenerator.StartGeneration();
                 break;
             case AgentType.Playback:
@@ -297,6 +305,9 @@ public class AgentController : MonoBehaviour {
             case AgentType.CNN:
                 if (isTraining) Playback();
                 else PerformNextMove();
+                break;
+            case AgentType.BT:
+                btHandler.Execute();
                 break;
             case AgentType.FSM:
                 FSMExecution();
@@ -561,9 +572,9 @@ public class AgentController : MonoBehaviour {
         return visibleMap;
     }
 
-    void FSMExecution() => nextMove = FSM.GetNextAction(currentPositionBlockData, RotationToInt()).ToLower();
+    void FSMExecution() => nextMove = FSM.GetNextAction(currentPositionBlockData, GetRotationInt()).ToLower();
 
-    int RotationToInt() {
+    public int GetRotationInt() {
         Debug.Log(Mathf.RoundToInt(transform.eulerAngles.y));
 
         switch (Mathf.RoundToInt(transform.eulerAngles.y) % 360) {
@@ -579,6 +590,10 @@ public class AgentController : MonoBehaviour {
                 throw new System.ArgumentOutOfRangeException("The rotation is odd");
         }
     }
+
+    public BlockData GetCurrentBlockData() { return currentPositionBlockData; }
+
+    public void SetNextMove(string move) => nextMove = move;
 
     //Methods for networks (ANN/CNN)
     #region

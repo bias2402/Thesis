@@ -1,0 +1,1040 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f7b17d621ed6944c90069f90018bc54, type: 3}
+  m_Name: LifeLike BT Agent
+  m_EditorClassIdentifier: 
+  nodes:
+  - pos: {x: 697.60004, y: 10}
+    dragStart: {x: 0, y: 0}
+    parent:
+      id: 0
+    children:
+    - id: 1
+    name: Root
+    nodeType: 2
+    isDebugging: 0
+    isRoot: 1
+    size:
+    - 130
+    - 80
+    childConnectionPoint: {x: 762.60004, y: 90, z: 0}
+    parentConnectionPoint: {x: 762.60004, y: 10, z: 0}
+    isSelected: 0
+    listIndex: 0
+  - pos: {x: 453, y: 213}
+    dragStart: {x: 0, y: 0}
+    parent:
+      id: 1
+    children:
+    - id: 2
+    - id: 3
+    - id: 4
+    name: Sq Check and Turn
+    nodeType: 3
+    isDebugging: 0
+    isRoot: 0
+    size:
+    - 130
+    - 80
+    childConnectionPoint: {x: 518, y: 293, z: 0}
+    parentConnectionPoint: {x: 518, y: 213, z: 0}
+    isSelected: 0
+    listIndex: 1
+  - pos: {x: 697, y: 115}
+    dragStart: {x: 0, y: 0}
+    parent:
+      id: 5
+    children:
+    - id: 6
+    - id: 7
+    name: Slc Top
+    nodeType: 2
+    isDebugging: 0
+    isRoot: 0
+    size:
+    - 130
+    - 80
+    childConnectionPoint: {x: 762, y: 195, z: 0}
+    parentConnectionPoint: {x: 762, y: 115, z: 0}
+    isSelected: 0
+    listIndex: 2
+  - pos: {x: 964, y: 213}
+    dragStart: {x: 0, y: 0}
+    parent:
+      id: 1
+    children:
+    - id: 8
+    - id: 9
+    - id: 10
+    name: Sq Walk
+    nodeType: 3
+    isDebugging: 0
+    isRoot: 0
+    size:
+    - 130
+    - 80
+    childConnectionPoint: {x: 1029, y: 293, z: 0}
+    parentConnectionPoint: {x: 1029, y: 213, z: 0}
+    isSelected: 0
+    listIndex: 3
+  - pos: {x: 829, y: 327}
+    dragStart: {x: 0, y: 0}
+    parent:
+      id: 7
+    children: []
+    name: Walk Forward
+    nodeType: 1
+    isDebugging: 0
+    isRoot: 0
+    size:
+    - 130
+    - 80
+    childConnectionPoint: {x: 894, y: 407, z: 0}
+    parentConnectionPoint: {x: 894, y: 327, z: 0}
+    isSelected: 0
+    listIndex: 4
+  - pos: {x: 970, y: 328}
+    dragStart: {x: 0, y: 0}
+    parent:
+      id: 7
+    children: []
+    name: Increment Counter
+    nodeType: 1
+    isDebugging: 0
+    isRoot: 0
+    size:
+    - 130
+    - 80
+    childConnectionPoint: {x: 1035, y: 408, z: 0}
+    parentConnectionPoint: {x: 1035, y: 328, z: 0}
+    isSelected: 0
+    listIndex: 5
+  - pos: {x: 1110, y: 327}
+    dragStart: {x: 0, y: 0}
+    parent:
+      id: 7
+    children:
+    - id: 11
+    - id: 12
+    - id: 13
+    - id: 14
+    - id: 15
+    name: Sq Counter Turn
+    nodeType: 3
+    isDebugging: 0
+    isRoot: 0
+    size:
+    - 130
+    - 80
+    childConnectionPoint: {x: 1175, y: 407, z: 0}
+    parentConnectionPoint: {x: 1175, y: 327, z: 0}
+    isSelected: 0
+    listIndex: 6
+  - pos: {x: 839, y: 444}
+    dragStart: {x: 0, y: 0}
+    parent:
+      id: 10
+    children: []
+    name: Check Counter
+    nodeType: 1
+    isDebugging: 0
+    isRoot: 0
+    size:
+    - 130
+    - 80
+    childConnectionPoint: {x: 904, y: 524, z: 0}
+    parentConnectionPoint: {x: 904, y: 444, z: 0}
+    isSelected: 0
+    listIndex: 7
+  - pos: {x: 975, y: 447}
+    dragStart: {x: 0, y: 0}
+    parent:
+      id: 10
+    children: []
+    name: Not Turned to Goal
+    nodeType: 1
+    isDebugging: 0
+    isRoot: 0
+    size:
+    - 130
+    - 80
+    childConnectionPoint: {x: 1040, y: 527, z: 0}
+    parentConnectionPoint: {x: 1040, y: 447, z: 0}
+    isSelected: 0
+    listIndex: 8
+  - pos: {x: 1112, y: 447}
+    dragStart: {x: 0, y: 0}
+    parent:
+      id: 10
+    children: []
+    name: Find Goal Direction
+    nodeType: 1
+    isDebugging: 0
+    isRoot: 0
+    size:
+    - 130
+    - 80
+    childConnectionPoint: {x: 1177, y: 527, z: 0}
+    parentConnectionPoint: {x: 1177, y: 447, z: 0}
+    isSelected: 0
+    listIndex: 9
+  - pos: {x: 1247, y: 445}
+    dragStart: {x: 0, y: 0}
+    parent:
+      id: 10
+    children: []
+    name: Turn
+    nodeType: 1
+    isDebugging: 0
+    isRoot: 0
+    size:
+    - 130
+    - 80
+    childConnectionPoint: {x: 1312, y: 525, z: 0}
+    parentConnectionPoint: {x: 1312, y: 445, z: 0}
+    isSelected: 0
+    listIndex: 10
+  - pos: {x: 1383, y: 445}
+    dragStart: {x: 0, y: 0}
+    parent:
+      id: 10
+    children: []
+    name: Reset Counter
+    nodeType: 1
+    isDebugging: 0
+    isRoot: 0
+    size:
+    - 130
+    - 80
+    childConnectionPoint: {x: 1448, y: 525, z: 0}
+    parentConnectionPoint: {x: 1448, y: 445, z: 0}
+    isSelected: 0
+    listIndex: 11
+  - pos: {x: 454, y: 322}
+    dragStart: {x: 0, y: 0}
+    parent:
+      id: 6
+    children:
+    - id: 16
+    - id: 17
+    name: Slc Turn or Back
+    nodeType: 2
+    isDebugging: 0
+    isRoot: 0
+    size:
+    - 130
+    - 80
+    childConnectionPoint: {x: 519, y: 402, z: 0}
+    parentConnectionPoint: {x: 519, y: 322, z: 0}
+    isSelected: 0
+    listIndex: 12
+  - pos: {x: 307, y: 324}
+    dragStart: {x: 0, y: 0}
+    parent:
+      id: 6
+    children: []
+    name: Check for Lava
+    nodeType: 1
+    isDebugging: 0
+    isRoot: 0
+    size:
+    - 130
+    - 80
+    childConnectionPoint: {x: 372, y: 404, z: 0}
+    parentConnectionPoint: {x: 372, y: 324, z: 0}
+    isSelected: 0
+    listIndex: 13
+  - pos: {x: 605, y: 316}
+    dragStart: {x: 0, y: 0}
+    parent:
+      id: 6
+    children: []
+    name: Reset Counter
+    nodeType: 1
+    isDebugging: 0
+    isRoot: 0
+    size:
+    - 130
+    - 80
+    childConnectionPoint: {x: 670, y: 396, z: 0}
+    parentConnectionPoint: {x: 670, y: 316, z: 0}
+    isSelected: 0
+    listIndex: 14
+  - pos: {x: 361, y: 420}
+    dragStart: {x: 0, y: 0}
+    parent:
+      id: 3
+    children:
+    - id: 18
+    - id: 19
+    name: Sq Find and Turn
+    nodeType: 3
+    isDebugging: 0
+    isRoot: 0
+    size:
+    - 130
+    - 80
+    childConnectionPoint: {x: 426, y: 500, z: 0}
+    parentConnectionPoint: {x: 426, y: 420, z: 0}
+    isSelected: 0
+    listIndex: 15
+  - pos: {x: 537, y: 416}
+    dragStart: {x: 0, y: 0}
+    parent:
+      id: 3
+    children: []
+    name: Walk Back
+    nodeType: 1
+    isDebugging: 0
+    isRoot: 0
+    size:
+    - 130
+    - 80
+    childConnectionPoint: {x: 602, y: 496, z: 0}
+    parentConnectionPoint: {x: 602, y: 416, z: 0}
+    isSelected: 0
+    listIndex: 16
+  - pos: {x: 287, y: 517}
+    dragStart: {x: 0, y: 0}
+    parent:
+      id: 16
+    children: []
+    name: Find Goal Direction
+    nodeType: 1
+    isDebugging: 0
+    isRoot: 0
+    size:
+    - 130
+    - 80
+    childConnectionPoint: {x: 352, y: 597, z: 0}
+    parentConnectionPoint: {x: 352, y: 517, z: 0}
+    isSelected: 0
+    listIndex: 17
+  - pos: {x: 425, y: 515}
+    dragStart: {x: 0, y: 0}
+    parent:
+      id: 16
+    children:
+    - id: 20
+    - id: 21
+    name: Slc Turning
+    nodeType: 2
+    isDebugging: 0
+    isRoot: 0
+    size:
+    - 130
+    - 80
+    childConnectionPoint: {x: 490, y: 595, z: 0}
+    parentConnectionPoint: {x: 490, y: 515, z: 0}
+    isSelected: 0
+    listIndex: 18
+  - pos: {x: 281, y: 621}
+    dragStart: {x: 0, y: 0}
+    parent:
+      id: 19
+    children:
+    - id: 22
+    - id: 23
+    name: Sq Turn To Goal
+    nodeType: 3
+    isDebugging: 0
+    isRoot: 0
+    size:
+    - 130
+    - 80
+    childConnectionPoint: {x: 346, y: 701, z: 0}
+    parentConnectionPoint: {x: 346, y: 621, z: 0}
+    isSelected: 0
+    listIndex: 19
+  - pos: {x: 349, y: 723}
+    dragStart: {x: 0, y: 0}
+    parent:
+      id: 20
+    children: []
+    name: Turn
+    nodeType: 1
+    isDebugging: 0
+    isRoot: 0
+    size:
+    - 130
+    - 80
+    childConnectionPoint: {x: 414, y: 803, z: 0}
+    parentConnectionPoint: {x: 414, y: 723, z: 0}
+    isSelected: 0
+    listIndex: 20
+  - pos: {x: 214, y: 722}
+    dragStart: {x: 0, y: 0}
+    parent:
+      id: 20
+    children: []
+    name: Not Blocked
+    nodeType: 1
+    isDebugging: 0
+    isRoot: 0
+    size:
+    - 130
+    - 80
+    childConnectionPoint: {x: 279, y: 802, z: 0}
+    parentConnectionPoint: {x: 279, y: 722, z: 0}
+    isSelected: 0
+    listIndex: 21
+  - pos: {x: 551, y: 623}
+    dragStart: {x: 0, y: 0}
+    parent:
+      id: 19
+    children:
+    - id: 24
+    - id: 25
+    name: Sq Find Other Way
+    nodeType: 3
+    isDebugging: 0
+    isRoot: 0
+    size:
+    - 130
+    - 80
+    childConnectionPoint: {x: 616, y: 703, z: 0}
+    parentConnectionPoint: {x: 616, y: 623, z: 0}
+    isSelected: 0
+    listIndex: 22
+  - pos: {x: 481, y: 722}
+    dragStart: {x: 0, y: 0}
+    parent:
+      id: 21
+    children: []
+    name: Not Blocked
+    nodeType: 1
+    isDebugging: 0
+    isRoot: 0
+    size:
+    - 130
+    - 80
+    childConnectionPoint: {x: 546, y: 802, z: 0}
+    parentConnectionPoint: {x: 546, y: 722, z: 0}
+    isSelected: 0
+    listIndex: 23
+  - pos: {x: 615, y: 723}
+    dragStart: {x: 0, y: 0}
+    parent:
+      id: 21
+    children: []
+    name: Turn
+    nodeType: 1
+    isDebugging: 0
+    isRoot: 0
+    size:
+    - 130
+    - 80
+    childConnectionPoint: {x: 680, y: 803, z: 0}
+    parentConnectionPoint: {x: 680, y: 723, z: 0}
+    isSelected: 0
+    listIndex: 24
+  nodeConnections:
+  - childIndex: 2
+    parentIndex: 0
+    childPoint: {x: 762, y: 195, z: 0}
+    parentPoint: {x: 762.60004, y: 10, z: 0}
+  - childIndex: 4
+    parentIndex: 3
+    childPoint: {x: 894, y: 407, z: 0}
+    parentPoint: {x: 1029, y: 213, z: 0}
+  - childIndex: 5
+    parentIndex: 3
+    childPoint: {x: 1035, y: 408, z: 0}
+    parentPoint: {x: 1029, y: 213, z: 0}
+  - childIndex: 6
+    parentIndex: 3
+    childPoint: {x: 1175, y: 407, z: 0}
+    parentPoint: {x: 1029, y: 213, z: 0}
+  - childIndex: 7
+    parentIndex: 6
+    childPoint: {x: 904, y: 524, z: 0}
+    parentPoint: {x: 1175, y: 327, z: 0}
+  - childIndex: 8
+    parentIndex: 6
+    childPoint: {x: 1040, y: 527, z: 0}
+    parentPoint: {x: 1175, y: 327, z: 0}
+  - childIndex: 9
+    parentIndex: 6
+    childPoint: {x: 1177, y: 527, z: 0}
+    parentPoint: {x: 1175, y: 327, z: 0}
+  - childIndex: 1
+    parentIndex: 2
+    childPoint: {x: 518, y: 293, z: 0}
+    parentPoint: {x: 762, y: 115, z: 0}
+  - childIndex: 3
+    parentIndex: 2
+    childPoint: {x: 1029, y: 293, z: 0}
+    parentPoint: {x: 762, y: 115, z: 0}
+  - childIndex: 13
+    parentIndex: 1
+    childPoint: {x: 372, y: 404, z: 0}
+    parentPoint: {x: 518, y: 213, z: 0}
+  - childIndex: 12
+    parentIndex: 1
+    childPoint: {x: 519, y: 402, z: 0}
+    parentPoint: {x: 518, y: 213, z: 0}
+  - childIndex: 15
+    parentIndex: 12
+    childPoint: {x: 426, y: 500, z: 0}
+    parentPoint: {x: 519, y: 322, z: 0}
+  - childIndex: 17
+    parentIndex: 15
+    childPoint: {x: 352, y: 597, z: 0}
+    parentPoint: {x: 426, y: 420, z: 0}
+  - childIndex: 18
+    parentIndex: 15
+    childPoint: {x: 490, y: 595, z: 0}
+    parentPoint: {x: 426, y: 420, z: 0}
+  - childIndex: 16
+    parentIndex: 12
+    childPoint: {x: 602, y: 496, z: 0}
+    parentPoint: {x: 519, y: 322, z: 0}
+  - childIndex: 14
+    parentIndex: 1
+    childPoint: {x: 670, y: 396, z: 0}
+    parentPoint: {x: 518, y: 213, z: 0}
+  - childIndex: 21
+    parentIndex: 19
+    childPoint: {x: 279, y: 802, z: 0}
+    parentPoint: {x: 346, y: 621, z: 0}
+  - childIndex: 20
+    parentIndex: 19
+    childPoint: {x: 414, y: 803, z: 0}
+    parentPoint: {x: 346, y: 621, z: 0}
+  - childIndex: 19
+    parentIndex: 18
+    childPoint: {x: 346, y: 701, z: 0}
+    parentPoint: {x: 490, y: 515, z: 0}
+  - childIndex: 22
+    parentIndex: 18
+    childPoint: {x: 616, y: 703, z: 0}
+    parentPoint: {x: 490, y: 515, z: 0}
+  - childIndex: 23
+    parentIndex: 22
+    childPoint: {x: 546, y: 802, z: 0}
+    parentPoint: {x: 616, y: 623, z: 0}
+  - childIndex: 24
+    parentIndex: 22
+    childPoint: {x: 680, y: 803, z: 0}
+    parentPoint: {x: 616, y: 623, z: 0}
+  - childIndex: 10
+    parentIndex: 6
+    childPoint: {x: 1312, y: 525, z: 0}
+    parentPoint: {x: 1175, y: 327, z: 0}
+  - childIndex: 11
+    parentIndex: 6
+    childPoint: {x: 1448, y: 525, z: 0}
+    parentPoint: {x: 1175, y: 327, z: 0}
+  leafCount: 15
+  references:
+    version: 1
+    00000000:
+      type: {class: , ns: , asm: }
+    00000001:
+      type: {class: Node, ns: , asm: Assembly-CSharp}
+      data:
+        pos: {x: 697, y: 115}
+        dragStart: {x: 0, y: 0}
+        parent:
+          id: 5
+        children:
+        - id: 6
+        - id: 7
+        name: Slc Top
+        nodeType: 2
+        isDebugging: 0
+        isRoot: 0
+        size:
+        - 130
+        - 80
+        childConnectionPoint: {x: 762, y: 195, z: 0}
+        parentConnectionPoint: {x: 762, y: 115, z: 0}
+        isSelected: 0
+        listIndex: 2
+    00000002:
+      type: {class: Node, ns: , asm: Assembly-CSharp}
+      data:
+        pos: {x: 307, y: 324}
+        dragStart: {x: 0, y: 0}
+        parent:
+          id: 6
+        children: []
+        name: Check for Lava
+        nodeType: 1
+        isDebugging: 0
+        isRoot: 0
+        size:
+        - 130
+        - 80
+        childConnectionPoint: {x: 372, y: 404, z: 0}
+        parentConnectionPoint: {x: 372, y: 324, z: 0}
+        isSelected: 0
+        listIndex: 13
+    00000003:
+      type: {class: Node, ns: , asm: Assembly-CSharp}
+      data:
+        pos: {x: 454, y: 322}
+        dragStart: {x: 0, y: 0}
+        parent:
+          id: 6
+        children:
+        - id: 16
+        - id: 17
+        name: Slc Turn or Back
+        nodeType: 2
+        isDebugging: 0
+        isRoot: 0
+        size:
+        - 130
+        - 80
+        childConnectionPoint: {x: 519, y: 402, z: 0}
+        parentConnectionPoint: {x: 519, y: 322, z: 0}
+        isSelected: 0
+        listIndex: 12
+    00000004:
+      type: {class: Node, ns: , asm: Assembly-CSharp}
+      data:
+        pos: {x: 605, y: 316}
+        dragStart: {x: 0, y: 0}
+        parent:
+          id: 6
+        children: []
+        name: Reset Counter
+        nodeType: 1
+        isDebugging: 0
+        isRoot: 0
+        size:
+        - 130
+        - 80
+        childConnectionPoint: {x: 670, y: 396, z: 0}
+        parentConnectionPoint: {x: 670, y: 316, z: 0}
+        isSelected: 0
+        listIndex: 14
+    00000005:
+      type: {class: Node, ns: , asm: Assembly-CSharp}
+      data:
+        pos: {x: 697.60004, y: 10}
+        dragStart: {x: 0, y: 0}
+        parent:
+          id: 0
+        children:
+        - id: 1
+        name: Root
+        nodeType: 2
+        isDebugging: 0
+        isRoot: 1
+        size:
+        - 130
+        - 80
+        childConnectionPoint: {x: 762.60004, y: 90, z: 0}
+        parentConnectionPoint: {x: 762.60004, y: 10, z: 0}
+        isSelected: 0
+        listIndex: 0
+    00000006:
+      type: {class: Node, ns: , asm: Assembly-CSharp}
+      data:
+        pos: {x: 453, y: 213}
+        dragStart: {x: 0, y: 0}
+        parent:
+          id: 1
+        children:
+        - id: 2
+        - id: 3
+        - id: 4
+        name: Sq Check and Turn
+        nodeType: 3
+        isDebugging: 0
+        isRoot: 0
+        size:
+        - 130
+        - 80
+        childConnectionPoint: {x: 518, y: 293, z: 0}
+        parentConnectionPoint: {x: 518, y: 213, z: 0}
+        isSelected: 0
+        listIndex: 1
+    00000007:
+      type: {class: Node, ns: , asm: Assembly-CSharp}
+      data:
+        pos: {x: 964, y: 213}
+        dragStart: {x: 0, y: 0}
+        parent:
+          id: 1
+        children:
+        - id: 8
+        - id: 9
+        - id: 10
+        name: Sq Walk
+        nodeType: 3
+        isDebugging: 0
+        isRoot: 0
+        size:
+        - 130
+        - 80
+        childConnectionPoint: {x: 1029, y: 293, z: 0}
+        parentConnectionPoint: {x: 1029, y: 213, z: 0}
+        isSelected: 0
+        listIndex: 3
+    00000008:
+      type: {class: Node, ns: , asm: Assembly-CSharp}
+      data:
+        pos: {x: 829, y: 327}
+        dragStart: {x: 0, y: 0}
+        parent:
+          id: 7
+        children: []
+        name: Walk Forward
+        nodeType: 1
+        isDebugging: 0
+        isRoot: 0
+        size:
+        - 130
+        - 80
+        childConnectionPoint: {x: 894, y: 407, z: 0}
+        parentConnectionPoint: {x: 894, y: 327, z: 0}
+        isSelected: 0
+        listIndex: 4
+    00000009:
+      type: {class: Node, ns: , asm: Assembly-CSharp}
+      data:
+        pos: {x: 970, y: 328}
+        dragStart: {x: 0, y: 0}
+        parent:
+          id: 7
+        children: []
+        name: Increment Counter
+        nodeType: 1
+        isDebugging: 0
+        isRoot: 0
+        size:
+        - 130
+        - 80
+        childConnectionPoint: {x: 1035, y: 408, z: 0}
+        parentConnectionPoint: {x: 1035, y: 328, z: 0}
+        isSelected: 0
+        listIndex: 5
+    0000000A:
+      type: {class: Node, ns: , asm: Assembly-CSharp}
+      data:
+        pos: {x: 1110, y: 327}
+        dragStart: {x: 0, y: 0}
+        parent:
+          id: 7
+        children:
+        - id: 11
+        - id: 12
+        - id: 13
+        - id: 14
+        - id: 15
+        name: Sq Counter Turn
+        nodeType: 3
+        isDebugging: 0
+        isRoot: 0
+        size:
+        - 130
+        - 80
+        childConnectionPoint: {x: 1175, y: 407, z: 0}
+        parentConnectionPoint: {x: 1175, y: 327, z: 0}
+        isSelected: 0
+        listIndex: 6
+    0000000B:
+      type: {class: Node, ns: , asm: Assembly-CSharp}
+      data:
+        pos: {x: 839, y: 444}
+        dragStart: {x: 0, y: 0}
+        parent:
+          id: 10
+        children: []
+        name: Check Counter
+        nodeType: 1
+        isDebugging: 0
+        isRoot: 0
+        size:
+        - 130
+        - 80
+        childConnectionPoint: {x: 904, y: 524, z: 0}
+        parentConnectionPoint: {x: 904, y: 444, z: 0}
+        isSelected: 0
+        listIndex: 7
+    0000000C:
+      type: {class: Node, ns: , asm: Assembly-CSharp}
+      data:
+        pos: {x: 975, y: 447}
+        dragStart: {x: 0, y: 0}
+        parent:
+          id: 10
+        children: []
+        name: Not Turned to Goal
+        nodeType: 1
+        isDebugging: 0
+        isRoot: 0
+        size:
+        - 130
+        - 80
+        childConnectionPoint: {x: 1040, y: 527, z: 0}
+        parentConnectionPoint: {x: 1040, y: 447, z: 0}
+        isSelected: 0
+        listIndex: 8
+    0000000D:
+      type: {class: Node, ns: , asm: Assembly-CSharp}
+      data:
+        pos: {x: 1112, y: 447}
+        dragStart: {x: 0, y: 0}
+        parent:
+          id: 10
+        children: []
+        name: Find Goal Direction
+        nodeType: 1
+        isDebugging: 0
+        isRoot: 0
+        size:
+        - 130
+        - 80
+        childConnectionPoint: {x: 1177, y: 527, z: 0}
+        parentConnectionPoint: {x: 1177, y: 447, z: 0}
+        isSelected: 0
+        listIndex: 9
+    0000000E:
+      type: {class: Node, ns: , asm: Assembly-CSharp}
+      data:
+        pos: {x: 1247, y: 445}
+        dragStart: {x: 0, y: 0}
+        parent:
+          id: 10
+        children: []
+        name: Turn
+        nodeType: 1
+        isDebugging: 0
+        isRoot: 0
+        size:
+        - 130
+        - 80
+        childConnectionPoint: {x: 1312, y: 525, z: 0}
+        parentConnectionPoint: {x: 1312, y: 445, z: 0}
+        isSelected: 0
+        listIndex: 10
+    0000000F:
+      type: {class: Node, ns: , asm: Assembly-CSharp}
+      data:
+        pos: {x: 1383, y: 445}
+        dragStart: {x: 0, y: 0}
+        parent:
+          id: 10
+        children: []
+        name: Reset Counter
+        nodeType: 1
+        isDebugging: 0
+        isRoot: 0
+        size:
+        - 130
+        - 80
+        childConnectionPoint: {x: 1448, y: 525, z: 0}
+        parentConnectionPoint: {x: 1448, y: 445, z: 0}
+        isSelected: 0
+        listIndex: 11
+    00000010:
+      type: {class: Node, ns: , asm: Assembly-CSharp}
+      data:
+        pos: {x: 361, y: 420}
+        dragStart: {x: 0, y: 0}
+        parent:
+          id: 3
+        children:
+        - id: 18
+        - id: 19
+        name: Sq Find and Turn
+        nodeType: 3
+        isDebugging: 0
+        isRoot: 0
+        size:
+        - 130
+        - 80
+        childConnectionPoint: {x: 426, y: 500, z: 0}
+        parentConnectionPoint: {x: 426, y: 420, z: 0}
+        isSelected: 0
+        listIndex: 15
+    00000011:
+      type: {class: Node, ns: , asm: Assembly-CSharp}
+      data:
+        pos: {x: 537, y: 416}
+        dragStart: {x: 0, y: 0}
+        parent:
+          id: 3
+        children: []
+        name: Walk Back
+        nodeType: 1
+        isDebugging: 0
+        isRoot: 0
+        size:
+        - 130
+        - 80
+        childConnectionPoint: {x: 602, y: 496, z: 0}
+        parentConnectionPoint: {x: 602, y: 416, z: 0}
+        isSelected: 0
+        listIndex: 16
+    00000012:
+      type: {class: Node, ns: , asm: Assembly-CSharp}
+      data:
+        pos: {x: 287, y: 517}
+        dragStart: {x: 0, y: 0}
+        parent:
+          id: 16
+        children: []
+        name: Find Goal Direction
+        nodeType: 1
+        isDebugging: 0
+        isRoot: 0
+        size:
+        - 130
+        - 80
+        childConnectionPoint: {x: 352, y: 597, z: 0}
+        parentConnectionPoint: {x: 352, y: 517, z: 0}
+        isSelected: 0
+        listIndex: 17
+    00000013:
+      type: {class: Node, ns: , asm: Assembly-CSharp}
+      data:
+        pos: {x: 425, y: 515}
+        dragStart: {x: 0, y: 0}
+        parent:
+          id: 16
+        children:
+        - id: 20
+        - id: 21
+        name: Slc Turning
+        nodeType: 2
+        isDebugging: 0
+        isRoot: 0
+        size:
+        - 130
+        - 80
+        childConnectionPoint: {x: 490, y: 595, z: 0}
+        parentConnectionPoint: {x: 490, y: 515, z: 0}
+        isSelected: 0
+        listIndex: 18
+    00000014:
+      type: {class: Node, ns: , asm: Assembly-CSharp}
+      data:
+        pos: {x: 281, y: 621}
+        dragStart: {x: 0, y: 0}
+        parent:
+          id: 19
+        children:
+        - id: 22
+        - id: 23
+        name: Sq Turn To Goal
+        nodeType: 3
+        isDebugging: 0
+        isRoot: 0
+        size:
+        - 130
+        - 80
+        childConnectionPoint: {x: 346, y: 701, z: 0}
+        parentConnectionPoint: {x: 346, y: 621, z: 0}
+        isSelected: 0
+        listIndex: 19
+    00000015:
+      type: {class: Node, ns: , asm: Assembly-CSharp}
+      data:
+        pos: {x: 551, y: 623}
+        dragStart: {x: 0, y: 0}
+        parent:
+          id: 19
+        children:
+        - id: 24
+        - id: 25
+        name: Sq Find Other Way
+        nodeType: 3
+        isDebugging: 0
+        isRoot: 0
+        size:
+        - 130
+        - 80
+        childConnectionPoint: {x: 616, y: 703, z: 0}
+        parentConnectionPoint: {x: 616, y: 623, z: 0}
+        isSelected: 0
+        listIndex: 22
+    00000016:
+      type: {class: Node, ns: , asm: Assembly-CSharp}
+      data:
+        pos: {x: 214, y: 722}
+        dragStart: {x: 0, y: 0}
+        parent:
+          id: 20
+        children: []
+        name: Not Blocked
+        nodeType: 1
+        isDebugging: 0
+        isRoot: 0
+        size:
+        - 130
+        - 80
+        childConnectionPoint: {x: 279, y: 802, z: 0}
+        parentConnectionPoint: {x: 279, y: 722, z: 0}
+        isSelected: 0
+        listIndex: 21
+    00000017:
+      type: {class: Node, ns: , asm: Assembly-CSharp}
+      data:
+        pos: {x: 349, y: 723}
+        dragStart: {x: 0, y: 0}
+        parent:
+          id: 20
+        children: []
+        name: Turn
+        nodeType: 1
+        isDebugging: 0
+        isRoot: 0
+        size:
+        - 130
+        - 80
+        childConnectionPoint: {x: 414, y: 803, z: 0}
+        parentConnectionPoint: {x: 414, y: 723, z: 0}
+        isSelected: 0
+        listIndex: 20
+    00000018:
+      type: {class: Node, ns: , asm: Assembly-CSharp}
+      data:
+        pos: {x: 481, y: 722}
+        dragStart: {x: 0, y: 0}
+        parent:
+          id: 21
+        children: []
+        name: Not Blocked
+        nodeType: 1
+        isDebugging: 0
+        isRoot: 0
+        size:
+        - 130
+        - 80
+        childConnectionPoint: {x: 546, y: 802, z: 0}
+        parentConnectionPoint: {x: 546, y: 722, z: 0}
+        isSelected: 0
+        listIndex: 23
+    00000019:
+      type: {class: Node, ns: , asm: Assembly-CSharp}
+      data:
+        pos: {x: 615, y: 723}
+        dragStart: {x: 0, y: 0}
+        parent:
+          id: 21
+        children: []
+        name: Turn
+        nodeType: 1
+        isDebugging: 0
+        isRoot: 0
+        size:
+        - 130
+        - 80
+        childConnectionPoint: {x: 680, y: 803, z: 0}
+        parentConnectionPoint: {x: 680, y: 723, z: 0}
+        isSelected: 0
+        listIndex: 24

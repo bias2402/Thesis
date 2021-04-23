@@ -1,0 +1,28 @@
+A quick guide to use this library.
+
+Making a tree: Go into the Window dropdown and open the Tree Maker (default 4 items down from the top).
+A new window will open, in which you can build a behavior tree using nodes and connections. 
+IMPORTANT: If you make changes in a script (doesn't matter if it is from the library or not) and the 
+editor compiles while the Tree Maker window is open, you will get a GUI error. Just close the window
+and open it again.
+
+Applying the tree: When a tree has been saved, it's saved as a ScriptableObject (asset file). It will 
+be located in the Trees folder. Please don't move this folder, as the code tries to locate it at
+Assets/Trees! Make a new script for your agent (or whatever you want to add the behavior to) and 
+change the new scripts extension from MonoBehavior to TreeHandler. In Unity, add the new script
+to something and you'll be able to drag the Tree to the top, after which the list Leaf Methods
+will be updated and allow for methods to be added to the different leaves (just like using Unity
+buttons OnClick event; drag something to it (the same script perhaps?) and find the corrent
+method to execute). Write the methods you want it to run and you're set.
+
+Executing the tree: TreeHandler has two important methods: Execute, which should be run on Update, 
+while the agent is actively using the behavior tree, and Callback, which should be called from a
+leaf method once it is complete. If the method fulfills its task you can return true, but if it
+didn't succeed (e.g. it was timed or someting) return false instead.
+
+There is a SampleScene with my own agent in it. Check the agents tree called Test in the Tree Maker 
+and check the simple way of implementing TreeHandler in the AgentExample script.
+
+Have fun!
+
+-Tobias
