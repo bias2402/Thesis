@@ -577,8 +577,6 @@ public class AgentController : MonoBehaviour {
     void FSMExecution() => nextMove = FSM.GetNextAction(currentPositionBlockData, GetRotationInt()).ToLower();
 
     public int GetRotationInt() {
-        Debug.Log(Mathf.RoundToInt(transform.eulerAngles.y));
-
         switch (Mathf.RoundToInt(transform.eulerAngles.y) % 360) {
             case 0:
                 return 0;

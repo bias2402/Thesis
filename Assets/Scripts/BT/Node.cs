@@ -291,7 +291,7 @@ public class Node : GUIDraggableObject {
 				if (result || currentChildRunning >= children.Count) {												//If the result is true or current child exceeds list count
 					currentChildRunning = 0;																			
 					if (parent != null) parent.Callback(result);														//If parent isn't equal null, call its callback
-					else DebugMeSenpai(GetNodeName() + " is the top of the tree. Execution done for this frame.");		
+					else if (isDebugging) DebugMeSenpai(GetNodeName() + " is the top of the tree. Execution done for this frame.");		
 				} else Execute();																					//Otherwise, call execute to execute the next child
 				break;
 			case NodeTypes.Sequence:		
@@ -328,7 +328,7 @@ public class Node : GUIDraggableObject {
 	}
 
 	void DebugMeSenpai(string debugLine) {
-		//Debug.Log(debugLine);
+		Debug.Log(debugLine);
 	}
 	#endregion
 }

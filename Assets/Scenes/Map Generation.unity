@@ -7585,22 +7585,6 @@ MonoBehaviour:
             m_StringArgument: 
             m_BoolArgument: 0
           m_CallState: 2
-  - leafName: Check Counter
-    leafMethod:
-      m_PersistentCalls:
-        m_Calls:
-        - m_Target: {fileID: 2052454302}
-          m_TargetAssemblyTypeName: BTHandler, Assembly-CSharp
-          m_MethodName: CheckCounter
-          m_Mode: 1
-          m_Arguments:
-            m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-            m_IntArgument: 0
-            m_FloatArgument: 0
-            m_StringArgument: 
-            m_BoolArgument: 0
-          m_CallState: 2
   - leafName: Not Turned to Goal
     leafMethod:
       m_PersistentCalls:
@@ -7623,7 +7607,7 @@ MonoBehaviour:
         m_Calls:
         - m_Target: {fileID: 2052454302}
           m_TargetAssemblyTypeName: BTHandler, Assembly-CSharp
-          m_MethodName: FindNecessaryRotationToPointToGoal
+          m_MethodName: FindGoalDirection
           m_Mode: 1
           m_Arguments:
             m_ObjectArgument: {fileID: 0}
@@ -7671,7 +7655,7 @@ MonoBehaviour:
         m_Calls:
         - m_Target: {fileID: 2052454302}
           m_TargetAssemblyTypeName: BTHandler, Assembly-CSharp
-          m_MethodName: CheckForLava
+          m_MethodName: IsTheNextBlockLava
           m_Mode: 1
           m_Arguments:
             m_ObjectArgument: {fileID: 0}
@@ -7719,7 +7703,7 @@ MonoBehaviour:
         m_Calls:
         - m_Target: {fileID: 2052454302}
           m_TargetAssemblyTypeName: BTHandler, Assembly-CSharp
-          m_MethodName: FindNecessaryRotationToPointToGoal
+          m_MethodName: FindGoalDirection
           m_Mode: 1
           m_Arguments:
             m_ObjectArgument: {fileID: 0}
@@ -7736,38 +7720,6 @@ MonoBehaviour:
         - m_Target: {fileID: 2052454302}
           m_TargetAssemblyTypeName: BTHandler, Assembly-CSharp
           m_MethodName: Turn
-          m_Mode: 1
-          m_Arguments:
-            m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-            m_IntArgument: 0
-            m_FloatArgument: 0
-            m_StringArgument: 
-            m_BoolArgument: 0
-          m_CallState: 2
-  - leafName: Turn
-    leafMethod:
-      m_PersistentCalls:
-        m_Calls:
-        - m_Target: {fileID: 2052454302}
-          m_TargetAssemblyTypeName: BTHandler, Assembly-CSharp
-          m_MethodName: Turn
-          m_Mode: 1
-          m_Arguments:
-            m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-            m_IntArgument: 0
-            m_FloatArgument: 0
-            m_StringArgument: 
-            m_BoolArgument: 0
-          m_CallState: 2
-  - leafName: Other Not Blocked
-    leafMethod:
-      m_PersistentCalls:
-        m_Calls:
-        - m_Target: {fileID: 2052454302}
-          m_TargetAssemblyTypeName: BTHandler, Assembly-CSharp
-          m_MethodName: IsTheNextBlockLava
           m_Mode: 1
           m_Arguments:
             m_ObjectArgument: {fileID: 0}
@@ -7783,7 +7735,71 @@ MonoBehaviour:
         m_Calls:
         - m_Target: {fileID: 2052454302}
           m_TargetAssemblyTypeName: BTHandler, Assembly-CSharp
-          m_MethodName: IsTheNextBlockLava
+          m_MethodName: IsTheBlockTowardsGoalLava
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+  - leafName: Check Counter
+    leafMethod:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 2052454302}
+          m_TargetAssemblyTypeName: BTHandler, Assembly-CSharp
+          m_MethodName: CheckCounter
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+  - leafName: Other Not Blocked
+    leafMethod:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 2052454302}
+          m_TargetAssemblyTypeName: BTHandler, Assembly-CSharp
+          m_MethodName: IsTheRandomDirectionBlockLava
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+  - leafName: Turn
+    leafMethod:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 2052454302}
+          m_TargetAssemblyTypeName: BTHandler, Assembly-CSharp
+          m_MethodName: Turn
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+  - leafName: Find Other Rotation
+    leafMethod:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 2052454302}
+          m_TargetAssemblyTypeName: BTHandler, Assembly-CSharp
+          m_MethodName: FindAnotherRandomDirection
           m_Mode: 1
           m_Arguments:
             m_ObjectArgument: {fileID: 0}

@@ -15,6 +15,7 @@ public class TreeHandler : MonoBehaviour {
     private List<Node> nodes = new List<Node>();
     [SerializeField] private List<LeafMethod> leafMethods = null;
     private List<Node> leaves = new List<Node>();
+    private bool lastResult = false;
 
     //This method runs when the editor compiles or a variable in a component of this type is changed through the inspector
     private void OnValidate() {
@@ -67,6 +68,8 @@ public class TreeHandler : MonoBehaviour {
     public void Execute() {
         nodes[0].Execute();
     }
+
+    public void SetResult(bool result) => lastResult = result;
 
     public void Callback(bool result) {                                                             //This method is supposed to be called whenever a leaf completes its task in another script
         foreach (Node l in leaves) {                                                                        //Iterate the leaves and find the currently running leaf to call its callback function with result
