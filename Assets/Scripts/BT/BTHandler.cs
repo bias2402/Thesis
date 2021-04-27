@@ -42,7 +42,6 @@ public class BTHandler : TreeHandler {
     }
 
     public void FindAnotherRandomDirection() {
-        Debug.Log("Find Random Direction");
         int rotation = agentController.GetRotationInt();
         BlockData currentPositionBlock = agentController.GetCurrentBlockData();
 
@@ -69,14 +68,14 @@ public class BTHandler : TreeHandler {
 
         try {
             if (currentPositionBlock.neighboorDirection.Contains(currentPositionBlock.directions[index])) {
-                if (currentPositionBlock.neighboorBlocks[index].blockType == BlockType.LavaBlock) return;
-                requiredRotation = rotation - index;
+                int dirIndex = currentPositionBlock.neighboorDirection.FindIndex(x => x == currentPositionBlock.directions[index]);
+                if (currentPositionBlock.neighboorBlocks[dirIndex].blockType == BlockType.LavaBlock) return;
+                requiredRotation = index - rotation;
                 randomDirectionRotation = index;
                 Callback(true);
             }
         } catch (System.ArgumentOutOfRangeException) {
-            Debug.LogError("Well, fuck: " + index + " " + 
-                currentPositionBlock.neighboorDirection.Contains(currentPositionBlock.directions[index]));
+            Debug.LogError("Well, fuck");
         }
     }
 
@@ -101,7 +100,6 @@ public class BTHandler : TreeHandler {
     }
 
     public void IsTheBlockTowardsGoalLava() {
-        Debug.Log("Check Goal Direction");
         int rotation = agentController.GetRotationInt();
         BlockData currentPositionBlock = agentController.GetCurrentBlockData();
 
@@ -128,7 +126,6 @@ public class BTHandler : TreeHandler {
     }
 
     public void IsTheRandomDirectionBlockLava() {
-        Debug.Log("Check Random Direction");
         int rotation = randomDirectionRotation;
         BlockData currentPositionBlock = agentController.GetCurrentBlockData();
 
@@ -154,7 +151,6 @@ public class BTHandler : TreeHandler {
     }
 
     public void Turn() {
-        Debug.Log("Turn");
         if (requiredRotation < 0) {
             requiredRotation++;
             agentController.SetNextMove("a");

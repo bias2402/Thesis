@@ -64,7 +64,7 @@ public class AgentController : MonoBehaviour {
     public bool didReachGoal { get; private set; } = false;
     public bool isAlive { get; private set; } = true;
     private bool isReadyToMove = false;
-    private float moveCooldownCounter = 1;
+    private float moveCooldownCounter = 1.5f;
     private int move = 0;
     private bool isPreparing = false;
     private BTHandler btHandler = null;
@@ -381,8 +381,10 @@ public class AgentController : MonoBehaviour {
         if (!IsTheBorderInTheWay(transform.forward)) {
             move = 1;
             isReadyToMove = false;
-            audioSource.clip = clips[0];
-            audioSource.Play();
+            if (audioSource != null && audioSource.enabled) {
+                audioSource.clip = clips[0];
+                audioSource.Play();
+            }
             if (agentType == AgentType.ANN || agentType == AgentType.CNN) FeedDataToNetwork(new List<double>() { 1, 0, 0, 0 });
         }
     }
@@ -391,8 +393,10 @@ public class AgentController : MonoBehaviour {
         if (!IsTheBorderInTheWay(-transform.forward)) {
             move = -1;
             isReadyToMove = false;
-            audioSource.clip = clips[0];
-            audioSource.Play();
+            if (audioSource != null && audioSource.enabled) {
+                audioSource.clip = clips[0];
+                audioSource.Play();
+            }
             if (agentType == AgentType.ANN || agentType == AgentType.CNN) FeedDataToNetwork(new List<double>() { 0, 0, 1, 0 });
         }
     }
@@ -400,16 +404,20 @@ public class AgentController : MonoBehaviour {
     public void TurnLeft() {
         transform.Rotate(new Vector3(0, -90, 0));
         isReadyToMove = false;
-        audioSource.clip = clips[1];
-        audioSource.Play();
+        if (audioSource != null && audioSource.enabled) {
+            audioSource.clip = clips[1];
+            audioSource.Play();
+        }
         if (agentType == AgentType.ANN || agentType == AgentType.CNN) FeedDataToNetwork(new List<double>() { 0, 1, 0, 0 });
     }
 
     public void TurnRight() {
         transform.Rotate(new Vector3(0, 90, 0));
         isReadyToMove = false;
-        audioSource.clip = clips[1];
-        audioSource.Play();
+        if (audioSource != null && audioSource.enabled) {
+            audioSource.clip = clips[1];
+            audioSource.Play();
+        }
         if (agentType == AgentType.ANN || agentType == AgentType.CNN) FeedDataToNetwork(new List<double>() { 0, 0, 0, 1 });
     }
 
@@ -481,9 +489,11 @@ public class AgentController : MonoBehaviour {
         switch (currentPositionBlockData.blockType) {
             case BlockType.LavaBlock:
                 isAlive = false;
-                audioSource.clip = clips[2];
-                audioSource.Play();
-                StartCoroutine(Feedback("LAVA! HOT, HOT, HOT! OUCH!", true));
+                if (audioSource != null && audioSource.enabled) {
+                    audioSource.clip = clips[2];
+                    audioSource.Play();
+                }
+                StartCoroutine(Feedback("LAVA! HOT, HOT, HOT!", true));
                 break;
             case BlockType.Goal:
                 didReachGoal = true;
