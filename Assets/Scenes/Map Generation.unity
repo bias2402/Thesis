@@ -7399,7 +7399,7 @@ MonoBehaviour:
   cnnConfigFile: {fileID: 4900000, guid: e40a39428fb50fb4aa0ebbd8d7ee917d, type: 3}
   mapGenerator: {fileID: 1817389731}
   cameraFollower: {fileID: 1564766420}
-  moveCooldown: 0.25
+  moveCooldown: 1
   clips:
   - {fileID: 8300000, guid: 68c91120af5eb9a4d95a558580d23b44, type: 3}
   - {fileID: 8300000, guid: 1ba1b0dd3de93ae4bad7ef52950cf8b3, type: 3}

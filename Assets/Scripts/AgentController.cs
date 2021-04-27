@@ -365,7 +365,7 @@ public class AgentController : MonoBehaviour {
                 TurnRight();
                 break;
             default:
-                FeedDataToNetwork(new List<double>() { 0, 0, 0, 0 });
+                //FeedDataToNetwork(new List<double>() { 0, 0, 0, 0 });
                 break;
         }
     }
@@ -566,7 +566,7 @@ public class AgentController : MonoBehaviour {
 
     //Methods for AI
     #region
-    float[,] GetCurrentMap() {
+    public float[,] GetCurrentMap() {
         float[,] visibleMap = new float[11, 11];
         LayerMask blockMask = LayerMask.GetMask("Block");
         int posX = (int)transform.position.x, posZ = (int)transform.position.z;

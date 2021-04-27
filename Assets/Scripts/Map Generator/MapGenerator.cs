@@ -443,8 +443,7 @@ public class MapGenerator : MonoBehaviour {
         if (!foundPath) {
             StopAllCoroutines();
             CreateMap();
-        }
-        else StartCoroutine(RaycastNeighboors());
+        } else StartCoroutine(RaycastNeighboors());
     }
 
     //Used to make each block save information about their neighboors and start their animation

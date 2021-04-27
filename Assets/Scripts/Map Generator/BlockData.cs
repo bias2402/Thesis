@@ -12,7 +12,7 @@ public class BlockData : MonoBehaviour {
     public readonly Vector3[] directions = { Vector3.forward, Vector3.right, Vector3.back, Vector3.left };
     public bool isCasting = true;
     public bool isFound = false;
-    
+
     public BlockData() {
         if (blockType == BlockType.Treasure) isFound = false;
         else isFound = true;
@@ -35,6 +35,17 @@ public class BlockData : MonoBehaviour {
                 neighboorDirection.RemoveAt(i);
             } else i++;
         }
+
+        bool refind = false;
+        for (int i = 0; i < neighboorDirection.Count; i++) {
+            if (neighboorDirection.Count == 4) {
+                if (neighboorDirection[i] != directions[i]) {
+                    refind = true;
+                    break;
+                }
+            }
+        }
+        if (refind) FindNeighboors();
     }
 
     public void Cast() {

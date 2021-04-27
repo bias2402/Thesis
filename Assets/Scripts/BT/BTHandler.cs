@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 
 public class BTHandler : TreeHandler {
     [SerializeField] private AgentController agentController = null;
@@ -45,6 +46,55 @@ public class BTHandler : TreeHandler {
         int rotation = agentController.GetRotationInt();
         BlockData currentPositionBlock = agentController.GetCurrentBlockData();
 
+        Stack<BlockData> moves = new Stack<BlockData>();
+        BlockData currentPos, previousPos;
+        int nextPosIndex, depth, bias = 0;
+        int[] steps = new int[4];
+
+        for (int i = 0; i < currentPositionBlock.directions.Length; i++) {
+            if (i == rotation) continue;
+            if (!currentPositionBlock.neighboorDirection.Contains(currentPositionBlock.directions[i])) continue;
+            nextPosIndex = currentPositionBlock.neighboorDirection.FindIndex(x => x == currentPositionBlock.directions[i]);
+            moves.Clear();
+            try { moves.Push(currentPositionBlock.neighboorBlocks[nextPosIndex]); }
+            catch { continue; }
+            depth = 0;
+            bias = 0;
+            currentPos = currentPositionBlock;
+
+            while (moves.Count > 0 && depth <= 3) {
+                previousPos = currentPos;
+                currentPos = moves.Pop();
+                for (int j = 0; j < currentPos.neighboorBlocks.Count; j++) {
+                    if (currentPos.neighboorBlocks[j] == previousPos) continue;
+                    if (currentPos.neighboorBlocks[j].blockType == BlockType.LavaBlock) continue;
+                    moves.Push(currentPos.neighboorBlocks[j]);
+                    if (j == i) bias++;
+                }
+                depth++;
+            }
+
+            steps[i] = depth + bias;
+        }
+
+        steps[0] -= 1;
+        steps[2] -= 1;
+        steps[3] -= 2;
+        int max = 0, optimalRotation = 0;
+
+        for (int i = 0; i < steps.Length; i++) {
+            if (steps[i] > max) {
+                max = steps[i];
+                optimalRotation = i;
+            }
+        }
+
+        requiredRotation = optimalRotation - rotation;
+        randomDirectionRotation = optimalRotation;
+        Callback(true);
+        Debug.Log("Req: " + requiredRotation + ", RDir: " + randomDirectionRotation);
+
+        /*
         checkedOtherRotations[1] = true;
         if (!currentPositionBlock.neighboorDirection.Contains(currentPositionBlock.directions[1])) {
             checkedOtherRotations[2] = true;
@@ -76,7 +126,7 @@ public class BTHandler : TreeHandler {
             }
         } catch (System.ArgumentOutOfRangeException) {
             Debug.LogError("Well, fuck");
-        }
+        }*/
     }
 
     public void IsTheNextBlockLava() {
