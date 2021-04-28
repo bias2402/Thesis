@@ -47,7 +47,8 @@ public class BTHandler : TreeHandler {
         BlockData currentPositionBlock = agentController.GetCurrentBlockData();
 
         Stack<BlockData> moves = new Stack<BlockData>();
-        BlockData currentPos, previousPos;
+        List<BlockData> visisted = new List<BlockData>();
+        BlockData currentPos;
         int nextPosIndex, depth, bias = 0;
         int[] steps = new int[4];
 
@@ -61,12 +62,13 @@ public class BTHandler : TreeHandler {
             depth = 0;
             bias = 0;
             currentPos = currentPositionBlock;
+            visisted.Clear();
 
             while (moves.Count > 0 && depth <= 3) {
-                previousPos = currentPos;
+                visisted.Add(currentPos);
                 currentPos = moves.Pop();
                 for (int j = 0; j < currentPos.neighboorBlocks.Count; j++) {
-                    if (currentPos.neighboorBlocks[j] == previousPos) continue;
+                    if (visisted.Contains(currentPos.neighboorBlocks[j])) continue;
                     if (currentPos.neighboorBlocks[j].blockType == BlockType.LavaBlock) continue;
                     moves.Push(currentPos.neighboorBlocks[j]);
                     if (j == i) bias++;
@@ -79,7 +81,7 @@ public class BTHandler : TreeHandler {
 
         steps[0] -= 1;
         steps[2] -= 1;
-        steps[3] -= 2;
+        if (steps[0] > 0 || steps[1] > 0 || steps[2] > 0) steps[3] = 0;
         int max = 0, optimalRotation = 0;
 
         for (int i = 0; i < steps.Length; i++) {
