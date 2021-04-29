@@ -566,7 +566,7 @@ public class AgentController : MonoBehaviour {
 
     //Methods for AI
     #region
-    public float[,] GetCurrentMap() {
+    public float[,] GetCurrentFloatMap() {
         float[,] visibleMap = new float[11, 11];
         LayerMask blockMask = LayerMask.GetMask("Block");
         int posX = (int)transform.position.x, posZ = (int)transform.position.z;
@@ -578,6 +578,22 @@ public class AgentController : MonoBehaviour {
                     visibleMap[vmx, vmz] = GetBlockValue(hit.collider.GetComponent<BlockData>().blockType);
                 } else {
                     visibleMap[vmx, vmz] = GetBlockValue(BlockType.None);
+                }
+            }
+        }
+        return visibleMap;
+    }
+
+    public List<BlockData> GetCurrentBlockMap() {
+        List<BlockData> visibleMap = new List<BlockData>();
+        LayerMask blockMask = LayerMask.GetMask("Block");
+        int posX = (int)transform.position.x, posZ = (int)transform.position.z;
+        for (int x = posX - 5, vmx = 0; x <= posX + 5; x++, vmx++) {                            //Go from left to right
+            for (int z = posZ - 5, vmz = 0; z <= posZ + 5; z++, vmz++) {                            //Go from bottom to top
+                Ray ray = new Ray(new Vector3(x, 1, z), Vector3.down * 4);
+                Physics.Raycast(ray, out RaycastHit hit, 4, blockMask);                                 //Raycast downwards
+                if (hit.collider != null) {
+                    visibleMap.Add(hit.collider.GetComponent<BlockData>());
                 }
             }
         }
@@ -609,7 +625,7 @@ public class AgentController : MonoBehaviour {
     #region
     void FeedDataToNetwork(List<double> givenInput) {
         if (agentType == AgentType.Human || agentType == AgentType.Playback) return;
-        float[,] visibleMap = GetCurrentMap();
+        float[,] visibleMap = GetCurrentFloatMap();
 
         List<double> outputs = null;
         switch (agentType) {

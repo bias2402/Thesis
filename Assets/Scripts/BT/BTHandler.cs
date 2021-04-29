@@ -4,39 +4,52 @@ using System.Linq;
 
 public class BTHandler : TreeHandler {
     [SerializeField] private AgentController agentController = null;
-    [SerializeField] private int turnToGoalCounterLimit = 3;
-    private int walkingCounter = 0;
     private int requiredRotation = 0;
     private int randomDirectionRotation = 0;
-    private readonly bool[] checkedOtherRotations = new bool[4] { false, true, false, false };
-
-    public void ResetCounter() {
-        walkingCounter = 0;
-        Callback(true);
-    }
+    private List<BlockData> seenBlocks = new List<BlockData>();
+    private KeyValuePair<BlockData, string> lastTurn = new KeyValuePair<BlockData, string>();
+    private string memory = "";
+    private bool wasForced = false;
 
     public void WalkBackwards() {
-        for (int i = 0; i < checkedOtherRotations.Length; i++) {
-            checkedOtherRotations[i] = false;
-        }
-        checkedOtherRotations[1] = true;
-
         agentController.SetNextMove("s");
+        MemoryHandling("s");
         Callback(true);
     }
 
     public void FindGoalDirection() {
         BlockData currentBlock = agentController.GetCurrentBlockData();
         int rotation = agentController.GetRotationInt();
+
         if (currentBlock.neighboorDirection.Contains(currentBlock.directions[1])) {
-            if (rotation != 1) {
-                if (rotation == 0) requiredRotation = 1;
-                else requiredRotation = 1 - rotation;
+            switch (rotation) {
+                case 0:
+                    requiredRotation = 1;
+                    break;
+                case 1:
+                    requiredRotation = 0;
+                    break;
+                case 2:
+                    requiredRotation = -1;
+                    break;
+                case 3:
+                    requiredRotation = Random.Range(0, 2) == 0 ? -1 : 1;
+                    break;
             }
         } else {
-            if (rotation != 2) {
-                if (rotation == 3) requiredRotation = -1;
-                else requiredRotation = 2 - rotation;
+            switch (rotation) {
+                case 0:
+                    requiredRotation = Random.Range(0, 2) == 0 ? -1 : 1;
+                    break;
+                case 1:
+                    requiredRotation = 1;
+                    break;
+                case 2:
+                    requiredRotation = 0;
+                    break;
+                case 3:
+                    requiredRotation = -1;
+                    break;
             }
         }
         Callback(true);
@@ -49,89 +62,52 @@ public class BTHandler : TreeHandler {
         Stack<BlockData> moves = new Stack<BlockData>();
         List<BlockData> visisted = new List<BlockData>();
         BlockData currentPos;
-        int nextPosIndex, depth, bias = 0;
-        int[] steps = new int[4];
+        int nextPosIndex, depth, prevSteps = 0, steps = 0, optimalRotation = 1;
 
         for (int i = 0; i < currentPositionBlock.directions.Length; i++) {
-            if (i == rotation) continue;
+            if ((i + rotation) % 2 == 0) continue;
             if (!currentPositionBlock.neighboorDirection.Contains(currentPositionBlock.directions[i])) continue;
+
             nextPosIndex = currentPositionBlock.neighboorDirection.FindIndex(x => x == currentPositionBlock.directions[i]);
             moves.Clear();
-            try { moves.Push(currentPositionBlock.neighboorBlocks[nextPosIndex]); }
-            catch { continue; }
+            try { moves.Push(currentPositionBlock.neighboorBlocks[nextPosIndex]); } catch { continue; }
             depth = 0;
-            bias = 0;
+            steps = 0;
             currentPos = currentPositionBlock;
             visisted.Clear();
 
-            while (moves.Count > 0 && depth <= 3) {
+            while (moves.Count > 0 && depth <= 5) {
                 visisted.Add(currentPos);
                 currentPos = moves.Pop();
                 for (int j = 0; j < currentPos.neighboorBlocks.Count; j++) {
                     if (visisted.Contains(currentPos.neighboorBlocks[j])) continue;
                     if (currentPos.neighboorBlocks[j].blockType == BlockType.LavaBlock) continue;
                     moves.Push(currentPos.neighboorBlocks[j]);
-                    if (j == i) bias++;
+                    steps++;
                 }
                 depth++;
             }
 
-            steps[i] = depth + bias;
-        }
-
-        steps[0] -= 1;
-        steps[2] -= 1;
-        if (steps[0] > 0 || steps[1] > 0 || steps[2] > 0) steps[3] = 0;
-        int max = 0, optimalRotation = 0;
-
-        for (int i = 0; i < steps.Length; i++) {
-            if (steps[i] > max) {
-                max = steps[i];
+            if (steps > prevSteps) {
                 optimalRotation = i;
+                prevSteps = steps;
             }
         }
 
         requiredRotation = optimalRotation - rotation;
+        requiredRotation = requiredRotation > 1 ? 1 : requiredRotation < -1 ? -1 : requiredRotation;
         randomDirectionRotation = optimalRotation;
+
+        if (currentPositionBlock == lastTurn.Key) {
+            if (lastTurn.Value.Equals("a")) requiredRotation = 1;
+            else requiredRotation = -1;
+            randomDirectionRotation = rotation + requiredRotation;
+        }
+
         Callback(true);
-        Debug.Log("Req: " + requiredRotation + ", RDir: " + randomDirectionRotation);
-
-        /*
-        checkedOtherRotations[1] = true;
-        if (!currentPositionBlock.neighboorDirection.Contains(currentPositionBlock.directions[1])) {
-            checkedOtherRotations[2] = true;
-        }
-
-        List<int> possibleRotations = new List<int>();
-        for (int i = 0; i < checkedOtherRotations.Length; i++) {
-            if (!checkedOtherRotations[i]) possibleRotations.Add(i);
-        }
-        if (possibleRotations.Count == 0) {
-            Callback(false);
-            return;
-        }
-
-        int index = possibleRotations[Random.Range(0, possibleRotations.Count)];
-        possibleRotations.RemoveAt(possibleRotations.FindIndex(x => x == index));
-        checkedOtherRotations[index] = true;
-        if (possibleRotations.Count > 0 && (index - rotation) % 2 == 0) {
-            index = possibleRotations[Random.Range(0, possibleRotations.Count)];
-        }
-
-        try {
-            if (currentPositionBlock.neighboorDirection.Contains(currentPositionBlock.directions[index])) {
-                int dirIndex = currentPositionBlock.neighboorDirection.FindIndex(x => x == currentPositionBlock.directions[index]);
-                if (currentPositionBlock.neighboorBlocks[dirIndex].blockType == BlockType.LavaBlock) return;
-                requiredRotation = index - rotation;
-                randomDirectionRotation = index;
-                Callback(true);
-            }
-        } catch (System.ArgumentOutOfRangeException) {
-            Debug.LogError("Well, fuck");
-        }*/
     }
 
-    public void IsTheNextBlockLava() {
+    public void CheckFrontBlock() {
         int rotation = agentController.GetRotationInt();
         BlockData currentPositionBlock = agentController.GetCurrentBlockData();
 
@@ -147,11 +123,17 @@ public class BTHandler : TreeHandler {
             } else forwardBlock = BlockType.None;
         }
 
-        if (forwardBlock == BlockType.LavaBlock || forwardBlock == BlockType.None) Callback(true);
-        else Callback(false);
+        if (forwardBlock == BlockType.LavaBlock || forwardBlock == BlockType.None) Callback(false);
+        else {
+            if (wasForced) {
+                Callback(false);
+                wasForced = false;
+            }
+            else Callback(true);
+        }
     }
 
-    public void IsTheBlockTowardsGoalLava() {
+    public void CanTurnTowardsGoal() {
         int rotation = agentController.GetRotationInt();
         BlockData currentPositionBlock = agentController.GetCurrentBlockData();
 
@@ -174,7 +156,12 @@ public class BTHandler : TreeHandler {
         }
 
         if (goalDirectionBlock == BlockType.LavaBlock || goalDirectionBlock == BlockType.None) Callback(false);
-        else Callback(true);
+        else {
+            if (wasForced) {
+                Callback(false);
+                wasForced = false;
+            } else Callback(true);
+        }
     }
 
     public void IsTheRandomDirectionBlockLava() {
@@ -197,48 +184,60 @@ public class BTHandler : TreeHandler {
         else Callback(true);
     }
 
-    public void IsNotAlignedWithGoal() {
-        if (agentController.GetRotationInt() == 1) Callback(false);
-        else Callback(true);
+    public void IsFacingGoalDirection() {
+        int rotation = agentController.GetRotationInt();
+        BlockData currentPositionBlock = agentController.GetCurrentBlockData();
+
+        if (currentPositionBlock.neighboorDirection.Contains(currentPositionBlock.directions[1])) {
+            if (rotation == 1) {
+                Callback(true);
+                return;
+            }
+        } else {
+            if (rotation == 2) {
+                Callback(true);
+                return;
+            }
+        }
+        Callback(false);
     }
 
     public void Turn() {
         if (requiredRotation < 0) {
             requiredRotation++;
             agentController.SetNextMove("a");
+            MemoryHandling("a");
+            lastTurn = new KeyValuePair<BlockData, string>(agentController.GetCurrentBlockData(), "a");
         } else if (requiredRotation > 0) {
             requiredRotation--;
             agentController.SetNextMove("d");
+            MemoryHandling("d");
+            lastTurn = new KeyValuePair<BlockData, string>(agentController.GetCurrentBlockData(), "d");
         }
 
-        if (requiredRotation == 0) {
-            for (int i = 0; i < checkedOtherRotations.Length; i++) {
-                checkedOtherRotations[i] = false;
-            }
-            checkedOtherRotations[1] = true;
-            Callback(true);
-        }
+        if (requiredRotation == 0) Callback(true);
     }
 
     public void WalkForward() {
-        agentController.SetNextMove("w");
-        Callback(true);
-    }
-
-    public void IncrementWalkCounter() {
-        walkingCounter++;
-        Callback(true);
-    }
-
-    public void CheckCounter() {
-        if (walkingCounter == turnToGoalCounterLimit) {
-            if (Random.Range(0, 7) == 0) {
-                Callback(true);
-                return;
-            }
-            Callback(false);
-            return;
+        if (memory.Equals("wsws") || memory.Equals("swsw")) {
+            agentController.SetNextMove("s");
+            MemoryHandling("s");
+            wasForced = true;
+        } else {
+            agentController.SetNextMove("w");
+            MemoryHandling("w");
         }
-        Callback(false);
+
+        List<BlockData> visibleMap = agentController.GetCurrentBlockMap();
+        for (int i = 0; i < visibleMap.Count; i++) {
+            if (!seenBlocks.Contains(visibleMap[i])) seenBlocks.Add(visibleMap[i]);
+        }
+
+        Callback(true);
+    }
+
+    private void MemoryHandling(string action) {
+        if (memory.Length == 4) memory = memory.Substring(1, 3);
+        memory += action;
     }
 }
