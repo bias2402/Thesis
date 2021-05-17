@@ -7381,10 +7381,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9897710b722314cad25cd7cb1a3dfb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  agentType: 1
+  agentType: 3
   dataCollector: {fileID: 2052454301}
   isRecordingData: 0
-  playerData: {fileID: 4900000, guid: 5b6eb2f01f1aee24cb9f89b3dabb2a1d, type: 3}
+  playerData: {fileID: 4900000, guid: 31dd7e46d926f424093b07450f2d0abc, type: 3}
   dataIterator: {fileID: 11400000, guid: d6b7a479fa1023240a663c2a127d3425, type: 2}
   debugAI: 0
   isTraining: 1
@@ -7394,9 +7394,9 @@ MonoBehaviour:
   annOutput: {fileID: 11400000, guid: e5500bd7725b6164591c9ef054a1df01, type: 2}
   annConfigFile: {fileID: 4900000, guid: f6cb0a056a50b8a4598b683ef6dca670, type: 3}
   cnnDebugDepth: 3
-  cnnSaver: {fileID: 11400000, guid: b660d7364f3cea64ba90b040354cbe4e, type: 2}
+  cnnSaver: {fileID: 11400000, guid: c7d821e6d3633fe469094392cba2885a, type: 2}
   cnnOutput: {fileID: 11400000, guid: 20f9f7ca689dfb44e8efb14941665d41, type: 2}
-  cnnConfigFile: {fileID: 4900000, guid: e40a39428fb50fb4aa0ebbd8d7ee917d, type: 3}
+  cnnConfigFile: {fileID: 4900000, guid: 896441cfc6c418340b79d99ca7ca94f7, type: 3}
   mapGenerator: {fileID: 1817389731}
   cameraFollower: {fileID: 1564766420}
   moveCooldown: 0.5

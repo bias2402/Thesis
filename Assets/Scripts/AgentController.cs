@@ -121,7 +121,7 @@ public class AgentController : MonoBehaviour {
                 if (annSaver == null || string.IsNullOrEmpty(annSaver.serializedANN)) {
                     if (annConfigFile != null) {
                         annConfig = Configuration.DeserializeANN("Assets/" + annConfigFile.name + ".txt");
-                        ann = new ANN(annConfig, 4);
+                        ann = new ANN(annConfig, 11 * 11);
                     } else {
                         ann = new ANN(4, 2, 4, 4, ActivationFunctionHandler.ActivationFunction.Sigmoid,
                             ActivationFunctionHandler.ActivationFunction.Sigmoid, 1);
@@ -130,7 +130,7 @@ public class AgentController : MonoBehaviour {
 
                 if (debugAI) MLDebugger.EnableDebugging(ann, annDebugDepth);
 
-                if (isTraining) RecreateRun();
+                if (isTraining && !isEmulatingTraining) RecreateRun();
                 else mapGenerator.StartGeneration();
                 break;
             case AgentType.CNN:

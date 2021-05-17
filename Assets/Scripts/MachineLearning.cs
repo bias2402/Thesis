@@ -496,6 +496,7 @@ namespace MachineLearning {
             Coord pos;
             int convCount = 0, maxPoolCount = 0, fcCount = 0, avgPoolCount = 0, inGenCount = 0;
             string debug = "";
+            float alpha = 0.05f;
 
             while (executionMemory.Count > 0) {
                 ExecutionStep exeStep = executionMemory.Pop();
@@ -540,7 +541,7 @@ namespace MachineLearning {
                                     totalDelta += currentDelta;
                                 }
                             }
-                            filter[pos.x, pos.y] += totalDelta;
+                            filter[pos.x, pos.y] += totalDelta * alpha;
                         } while (!pos.Increment());
                         if (isDebugging && MLDebugger.depth >= 2) debug += "\nPost-FilterUpdate: " + SerializeMap(filter);
 
@@ -625,11 +626,6 @@ namespace MachineLearning {
                 MLDebugger.AddToDebugOutput("Backpropagation completed. " + convCount + " x Convolution, " + maxPoolCount + " x MaxPooling, " + avgPoolCount +
                                                          " x AveragePooling, " + inGenCount + " x InputGeneration, " + fcCount + " x FullyConnected", true);
             }            
-            #endregion
-
-            //Older implementation
-            #region
-
             #endregion
         }
         #endregion
@@ -1187,7 +1183,6 @@ namespace MachineLearning {
         public void Backpropagation(List<double> desiredOutputs, bool saveWeightSumForEachInputNeurons = false) {
             //Newer implementation
             #region
-            /*
             int outputLayer = layers.Count - 1;
             int hiddenLayers = layers.Count > 2 ? layers.Count - 2 : 0;
             Neuron neuron;
@@ -1254,7 +1249,7 @@ namespace MachineLearning {
                         neuron = layers[i].neurons[j];
 
                         //Calculate the errorGradient
-                        double errorGradient = ActivationFunctionHandler.TriggerDerativeFunction(neuron.activationFunction, outputLayer) * errorGradientSum;
+                        double errorGradient = ActivationFunctionHandler.TriggerDerativeFunction(neuron.activationFunction, neuron.outputValue) * errorGradientSum;
 
                         //Update the neuron's weights
                         for (int k = 0; k < neuron.weights.Count; k++) {
@@ -1288,11 +1283,11 @@ namespace MachineLearning {
                     inputErrors.Add(value);
                 }
             }
-            */
             #endregion
 
             //Older implementation
             #region
+            /*
             int outputLayer = layers.Count - 1;
             int hiddenLayers = layers.Count > 2 ? layers.Count - 2 : 0;
             Neuron neuron;
@@ -1327,7 +1322,7 @@ namespace MachineLearning {
                         neuron = layers[i].neurons[j];
 
                         //Calculate the errorGradient
-                        double errorGradient = ActivationFunctionHandler.TriggerDerativeFunction(neuron.activationFunction, neuron.outputValue * errorGradientSum);
+                        double errorGradient = ActivationFunctionHandler.TriggerDerativeFunction(neuron.activationFunction, neuron.outputValue) * errorGradientSum;
 
                         //Update the neuron's weights
                         for (int k = 0; k < neuron.weights.Count; k++) neuron.weights[k] += alpha * neuron.inputValue * errorGradient;
@@ -1338,6 +1333,7 @@ namespace MachineLearning {
                     }
                 }
             }
+            */
             #endregion
         }
         #endregion
@@ -1390,11 +1386,12 @@ namespace MachineLearning {
             /// <param name="activationFunction"></param>
             public Layer(int numberOfNeuronsForLayer, Layer prevLayer = null, ActivationFunctionHandler.ActivationFunction activationFunction = ActivationFunctionHandler.ActivationFunction.ReLU) {
                 for (int i = 0; i < numberOfNeuronsForLayer; i++) {
-                    if (prevLayer != null)
-                        neurons.Add(new Neuron(prevLayer.neurons.Count));
+                    if (prevLayer != null) neurons.Add(new Neuron(prevLayer.neurons.Count));
                     else neurons.Add(new Neuron());
                 }
-                if (prevLayer != null) foreach (Neuron n in neurons) n.activationFunction = activationFunction;
+                if (prevLayer != null) foreach (Neuron n in neurons) n.activationFunction = 
+                            activationFunction == ActivationFunctionHandler.ActivationFunction.None ? 
+                            ActivationFunctionHandler.ActivationFunction.Sigmoid : activationFunction;
             }
 
             /// <summary>

@@ -48,8 +48,8 @@ public class Tester : MonoBehaviour {
         //sw.Flush();
         //sw.Close();
 
-        //cnnConfig = Configuration.DeserializeCNN("Assets/" + cnnConfigFile.name + ".txt");
-        cnn = MLSerializer.DeserializeCNN(cnnSaver.serializedCNN);
+        cnnConfig = Configuration.DeserializeCNN("Assets/" + cnnConfigFile.name + ".txt");
+        //cnn = MLSerializer.DeserializeCNN(cnnSaver.serializedCNN);
 
         //sw = new System.IO.StreamWriter("Assets/config-test2.txt");
         //sw.Write(Configuration.Serialize(cnnConfig));
