@@ -479,6 +479,8 @@ namespace MachineLearning {
         /// Perform the backpropagation of the CNN to update values of the ANN's and filters
         /// </summary>
         public void Backpropagation(List<double> desiredOutputs) {
+            //Newer implementation
+            #region
             if (isDebugging) {
                 MLDebugger.Start();
                 MLDebugger.AddToDebugOutput("Starting backpropagation", false);
@@ -622,7 +624,13 @@ namespace MachineLearning {
                 if (MLDebugger.depth >= 2) MLDebugger.AddToDebugOutput("CNN Backpropagation:" + debug + "\n", false, false);
                 MLDebugger.AddToDebugOutput("Backpropagation completed. " + convCount + " x Convolution, " + maxPoolCount + " x MaxPooling, " + avgPoolCount +
                                                          " x AveragePooling, " + inGenCount + " x InputGeneration, " + fcCount + " x FullyConnected", true);
-            }
+            }            
+            #endregion
+
+            //Older implementation
+            #region
+
+            #endregion
         }
         #endregion
 
@@ -1177,6 +1185,9 @@ namespace MachineLearning {
         /// <param name="desiredOutputs"></param>
         /// <param name="saveWeightSumForEachInputNeurons"
         public void Backpropagation(List<double> desiredOutputs, bool saveWeightSumForEachInputNeurons = false) {
+            //Newer implementation
+            #region
+            /*
             int outputLayer = layers.Count - 1;
             int hiddenLayers = layers.Count > 2 ? layers.Count - 2 : 0;
             Neuron neuron;
@@ -1277,6 +1288,57 @@ namespace MachineLearning {
                     inputErrors.Add(value);
                 }
             }
+            */
+            #endregion
+
+            //Older implementation
+            #region
+            int outputLayer = layers.Count - 1;
+            int hiddenLayers = layers.Count > 2 ? layers.Count - 2 : 0;
+            Neuron neuron;
+
+            //Output layer
+            for (int i = 0; i < layers[outputLayer].neurons.Count; i++) {
+                neuron = layers[outputLayer].neurons[i];
+
+                //Calculate the error and errorGradient
+                double error = desiredOutputs[i] - neuron.outputValue;
+                double errorGradient = ActivationFunctionHandler.TriggerDerativeFunction(neuron.activationFunction, neuron.outputValue * error);
+
+                //Update the neuron's weights
+                for (int j = 0; j < neuron.weights.Count; j++) neuron.weights[j] += alpha * neuron.inputValue * error;
+
+                //Update the neuron's bias and errorGradient
+                neuron.bias = alpha * -1 * errorGradient;
+                neuron.errorGradient = errorGradient;
+            }
+
+            //Hidden layers
+            if (hiddenLayers != 0) {
+                for (int i = hiddenLayers; i > 0; i--) {
+                    //Calculate the errorGradientSum for the previous layer
+                    double errorGradientSum = 0;
+                    for (int j = 0; j < layers[i + 1].neurons.Count; j++) {
+                        errorGradientSum += layers[i + 1].neurons[j].errorGradient;
+                    }
+
+                    //Update the neurons in this hidden layer
+                    for (int j = 0; j < layers[i].neurons.Count; j++) {
+                        neuron = layers[i].neurons[j];
+
+                        //Calculate the errorGradient
+                        double errorGradient = ActivationFunctionHandler.TriggerDerativeFunction(neuron.activationFunction, neuron.outputValue * errorGradientSum);
+
+                        //Update the neuron's weights
+                        for (int k = 0; k < neuron.weights.Count; k++) neuron.weights[k] += alpha * neuron.inputValue * errorGradient;
+
+                        //Update the neuron's bias and errorGradient
+                        neuron.bias = alpha * -1 * neuron.errorGradient;
+                        neuron.errorGradient = errorGradient;
+                    }
+                }
+            }
+            #endregion
         }
         #endregion
 
@@ -1305,6 +1367,7 @@ namespace MachineLearning {
                         break;
                 }
             }
+
         }
 
         /// <summary>
