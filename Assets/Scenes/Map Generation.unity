@@ -7387,7 +7387,7 @@ MonoBehaviour:
   playerData: {fileID: 4900000, guid: 31dd7e46d926f424093b07450f2d0abc, type: 3}
   dataIterator: {fileID: 11400000, guid: d6b7a479fa1023240a663c2a127d3425, type: 2}
   debugAI: 0
-  isTraining: 0
+  isTraining: 1
   isEmulatingTraining: 1
   annDebugDepth: 1
   annSaver: {fileID: 11400000, guid: 25adfa02337e15f4bbff424c2d268e1f, type: 2}

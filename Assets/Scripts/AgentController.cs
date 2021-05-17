@@ -664,11 +664,11 @@ public class AgentController : MonoBehaviour {
         }
         if (outputs != null) moveSuggestion.text = "Suggested move: " + GetMoveFromInt(GetIndexOfMaxOutput(outputs));
         nextMove = GetMoveFromInt(GetIndexOfMaxOutput(outputs)).ToLower();
-        string s = "";
+        string s = "Output values: ";
         foreach (double d in outputs) {
-            s += d + "   ";
+            s += d + "  |  ";
         }
-        s += "\n" + GetIndexOfMaxOutput(outputs);
+        s += "\nIndex: " + GetIndexOfMaxOutput(outputs);
         Debug.Log(s);
     }
 
