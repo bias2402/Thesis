@@ -1,9 +1,9 @@
 <!---
 #ANNConfig: ANN
 Alpha: 0,05
-Epochs: 1
-NumberOfHiddenLayers: 8
-NumberOfHiddenNeuronsPerLayer: 2
+Epochs: 10000
+NumberOfHiddenLayers: 2
+NumberOfHiddenNeuronsPerLayer: 8
 NumberOfOutputNeurons: 4
 HiddenActivationFunction: Sigmoid
 OutputActivationFunction: Sigmoid

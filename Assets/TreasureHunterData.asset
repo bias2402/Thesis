@@ -15,6 +15,7 @@ MonoBehaviour:
   playStyles: 2
   path: Assets/Player Data/
   index: 0
+  repetitions: 1
   dataFiles:
   - {fileID: 4900000, guid: c1ed0d586a7074544a94004919155310, type: 3}
   - {fileID: 4900000, guid: 40aca30294dca0d4881765db31797bc5, type: 3}

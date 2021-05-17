@@ -5,6 +5,7 @@ using UnityEngine.UI;
 using System.IO;
 using MachineLearning;
 using Utilities;
+using System.Globalization;
 
 public enum AgentType { Human, ANN, BT, CNN, FSM, Playback }
 public enum PlayStyles { Speedrunner, Explorer, Treasurehunter, Done }
@@ -102,22 +103,23 @@ public class AgentController : MonoBehaviour {
                 mapGenerator.StartGeneration();
                 break;
             case AgentType.Playback:
-                actionsText.gameObject.SetActive(true);
-                explorationText.gameObject.SetActive(true);
-                treasureText.gameObject.SetActive(true);
+                //actionsText.gameObject.SetActive(true);
+                //explorationText.gameObject.SetActive(true);
+                //treasureText.gameObject.SetActive(true);
 
                 isRecordingData = false;
                 isTraining = false;
+                RecreateRun();
                 break;
             case AgentType.ANN:
-                actionsText.gameObject.SetActive(true);
-                explorationText.gameObject.SetActive(true);
-                treasureText.gameObject.SetActive(true);
+                //actionsText.gameObject.SetActive(true);
+                //explorationText.gameObject.SetActive(true);
+                //treasureText.gameObject.SetActive(true);
 
                 isRecordingData = false;
 
                 if (annSaver == null || string.IsNullOrEmpty(annSaver.serializedANN)) {
-                    if (annConfig != null) {
+                    if (annConfigFile != null) {
                         annConfig = Configuration.DeserializeANN("Assets/" + annConfigFile.name + ".txt");
                         ann = new ANN(annConfig, 4);
                     } else {
@@ -132,9 +134,9 @@ public class AgentController : MonoBehaviour {
                 else mapGenerator.StartGeneration();
                 break;
             case AgentType.CNN:
-                actionsText.gameObject.SetActive(true);
-                explorationText.gameObject.SetActive(true);
-                treasureText.gameObject.SetActive(true);
+                //actionsText.gameObject.SetActive(true);
+                //explorationText.gameObject.SetActive(true);
+                //treasureText.gameObject.SetActive(true);
 
                 isRecordingData = false;
 
@@ -233,29 +235,41 @@ public class AgentController : MonoBehaviour {
     }
 
     IEnumerator EmulationHandler() {
-        StreamReader sr;
-        if (dataIterator != null) {
-            while (dataIterator.GetNextFile(out playerData)) {
-                sr = new StreamReader(dataIterator.GetPath() + playerData.name + ".txt");
+        if (agentType == AgentType.ANN || agentType == AgentType.CNN) {
+            StreamReader sr;
+            if (dataIterator != null) {
+                while (dataIterator.GetNextFile(out playerData)) {
+                    sr = new StreamReader(dataIterator.GetPath() + playerData.name + ".txt");
+                    CollectedData collectedData = JsonUtility.FromJson<CollectedData>(sr.ReadToEnd());
+                    sr.Close();
+                    mapGenerator.RecreateMap(collectedData);
+                    yield return new WaitForSeconds(3);
+
+                    if (agentType == AgentType.CNN) {
+                        cnn.EmulateTraining(collectedData, cnnConfig);
+                        cnnSaver.serializedCNN = MLSerializer.SerializeCNN(cnn);
+                    } else {
+                        ann.EmulateTraining(collectedData);
+                        annSaver.serializedANN = MLSerializer.SerializeANN(ann);
+                    }
+                }
+            } else {
+                sr = new StreamReader("Assets/Player Data/" + playerData.name + ".txt");
                 CollectedData collectedData = JsonUtility.FromJson<CollectedData>(sr.ReadToEnd());
                 sr.Close();
                 mapGenerator.RecreateMap(collectedData);
                 yield return new WaitForSeconds(3);
 
-                cnn.EmulateTraining(collectedData, cnnConfig);
-                cnnSaver.serializedCNN = MLSerializer.SerializeCNN(cnn);
+                if (agentType == AgentType.CNN) {
+                    cnn.EmulateTraining(collectedData, cnnConfig);
+                    cnnSaver.serializedCNN = MLSerializer.SerializeCNN(cnn);
+                } else {
+                    ann.EmulateTraining(collectedData);
+                    annSaver.serializedANN = MLSerializer.SerializeANN(ann);
+                }
             }
-        } else {
-            sr = new StreamReader("Assets/Player Data/" + playerData.name + ".txt");
-            CollectedData collectedData = JsonUtility.FromJson<CollectedData>(sr.ReadToEnd());
-            sr.Close();
-            mapGenerator.RecreateMap(collectedData);
-            yield return new WaitForSeconds(3);
-
-            cnn.EmulateTraining(collectedData, cnnConfig);
-            cnnSaver.serializedCNN = MLSerializer.SerializeCNN(cnn);
+            Debug.Log("Training done");
         }
-        Debug.Log("Training done");
     }
 
     //Public Get/Set methods
@@ -345,7 +359,7 @@ public class AgentController : MonoBehaviour {
                 TurnRight();
                 break;
             default:
-                agentDelay = float.Parse(nextMove);
+                agentDelay = float.Parse(nextMove, CultureInfo.InvariantCulture);
                 break;
         }
     }
@@ -365,7 +379,7 @@ public class AgentController : MonoBehaviour {
                 TurnRight();
                 break;
             default:
-                //FeedDataToNetwork(new List<double>() { 0, 0, 0, 0 });
+                if (agentType == AgentType.ANN || agentType == AgentType.CNN) FeedDataToNetwork(new List<double>() { 0, 0, 0, 0 });
                 break;
         }
     }
@@ -528,7 +542,7 @@ public class AgentController : MonoBehaviour {
 
         switch (playstyle) {
             case PlayStyles.Speedrunner:
-                actionsText.gameObject.SetActive(true);
+                //actionsText.gameObject.SetActive(true);
                 explanationText.text = "For this run, play as a Speedrunner!\nReach the goal in as few actions as possible!";
                 if (isRecordingData) mapGenerator.RecordMap();
                 break;
@@ -951,7 +965,7 @@ public static class TrainingEmulator {
         return cnn;
     }
 
-    public static ANN EmulateTraining(this ANN ann, CollectedData collectedData, Configuration.ANNConfig annConfig = null) {
+    public static ANN EmulateTraining(this ANN ann, CollectedData collectedData) {
         stopwatch.Start();
         Queue<string> actions = new Queue<string>(collectedData.recordedActions);
         int[] spawnPosition = new int[2];
@@ -987,7 +1001,8 @@ public static class TrainingEmulator {
         }
 
         stopwatch.Stop();
-        Debug.Log("Emulation ANN training complete after: " + stopwatch.Elapsed.Seconds + "s");
+        Debug.Log("Emulation ANN training complete after: " + stopwatch.Elapsed.Milliseconds + "ms");
+        stopwatch.Reset();
         return ann;
     }
 
