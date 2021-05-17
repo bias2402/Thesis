@@ -318,7 +318,10 @@ public class AgentController : MonoBehaviour {
             case AgentType.ANN:
             case AgentType.CNN:
                 if (isTraining) Playback();
-                else PerformNextMove();
+                else {
+                    FeedDataToNetwork(null);
+                    PerformNextMove();
+                }
                 break;
             case AgentType.BT:
                 btHandler.Execute();
@@ -399,7 +402,7 @@ public class AgentController : MonoBehaviour {
                 audioSource.clip = clips[0];
                 audioSource.Play();
             }
-            if (agentType == AgentType.ANN || agentType == AgentType.CNN) FeedDataToNetwork(new List<double>() { 1, 0, 0, 0 });
+            //if (agentType == AgentType.ANN || agentType == AgentType.CNN) FeedDataToNetwork(new List<double>() { 1, 0, 0, 0 });
         }
     }
 
@@ -411,7 +414,7 @@ public class AgentController : MonoBehaviour {
                 audioSource.clip = clips[0];
                 audioSource.Play();
             }
-            if (agentType == AgentType.ANN || agentType == AgentType.CNN) FeedDataToNetwork(new List<double>() { 0, 0, 1, 0 });
+            //if (agentType == AgentType.ANN || agentType == AgentType.CNN) FeedDataToNetwork(new List<double>() { 0, 0, 1, 0 });
         }
     }
 
@@ -422,7 +425,7 @@ public class AgentController : MonoBehaviour {
             audioSource.clip = clips[1];
             audioSource.Play();
         }
-        if (agentType == AgentType.ANN || agentType == AgentType.CNN) FeedDataToNetwork(new List<double>() { 0, 1, 0, 0 });
+        //if (agentType == AgentType.ANN || agentType == AgentType.CNN) FeedDataToNetwork(new List<double>() { 0, 1, 0, 0 });
     }
 
     public void TurnRight() {
@@ -432,7 +435,7 @@ public class AgentController : MonoBehaviour {
             audioSource.clip = clips[1];
             audioSource.Play();
         }
-        if (agentType == AgentType.ANN || agentType == AgentType.CNN) FeedDataToNetwork(new List<double>() { 0, 0, 0, 1 });
+        //if (agentType == AgentType.ANN || agentType == AgentType.CNN) FeedDataToNetwork(new List<double>() { 0, 0, 0, 1 });
     }
 
     void AgentReachedGoal() {
